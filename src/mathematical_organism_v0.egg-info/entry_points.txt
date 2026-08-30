@@ -1,0 +1,2 @@
+[console_scripts]
+math-organism = mathematical_organism.cli:main

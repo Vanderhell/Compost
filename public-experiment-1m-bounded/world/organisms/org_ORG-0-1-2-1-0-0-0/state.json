@@ -1,0 +1,22 @@
+{
+  "alive": true,
+  "atoms": 19,
+  "births": 1,
+  "bite": 269,
+  "body": 28,
+  "body_mass": 269,
+  "bytes_eaten": 395,
+  "composites": 1,
+  "corpse_nutrition": 0.0,
+  "divisions": 1,
+  "generation": 6,
+  "gut": 0,
+  "id": "ORG-0-1-2-1-0-0-0",
+  "metabolic_debt": 0.7401347656249984,
+  "parent": "ORG-0-1-2-1-0-0",
+  "relations": 8,
+  "reserve": 606.3796103515651,
+  "state": "ACTIVE",
+  "territory": "D01001011110",
+  "weakest_weight": 0.0
+}

@@ -1,0 +1,62 @@
+# Mathematical Organism V0
+
+Mathematical Organism V0 is an experimental research simulator for autonomous,
+deterministic organisms that consume binary files in a sandbox. It is not a
+claim of biological realism or a production data-processing system.
+
+## Install
+
+Python 3.11 or newer is required.
+
+```bash
+python -m pip install .
+```
+
+## Run a sandbox
+
+Create an inbox and place one or more binary files in it:
+
+```text
+sandbox/
+  inbox/
+    example.bin
+```
+
+Then start the autonomous runtime:
+
+```bash
+python -m mathematical_organism run sandbox
+```
+
+The runtime creates the remaining directories itself:
+
+```text
+sandbox/
+  inbox/       user-provided binary input
+  world/       prepared FOOD and runtime state
+  telemetry/   read-only snapshots
+```
+
+Use a bounded observation run when needed:
+
+```bash
+python -m mathematical_organism run sandbox --workers 4 --max-seconds 30
+```
+
+Inspect the most recent snapshot without changing the world:
+
+```bash
+python -m mathematical_organism status sandbox
+python -m mathematical_organism status sandbox --organisms
+```
+
+The observer reports FOOD accounting, population, body mass and bite sizes,
+organism reserve/debt/gut state, territories, corpses, and runtime throughput.
+It does not make biological decisions.
+
+## Current limitations
+
+This remains a research project. Performance scaling and population dynamics
+are active research questions. The sandbox consumes working FOOD prepared from
+the inbox; use copies of files you are willing to supply to an experiment.
+Telemetry is observational and may be eventually consistent while workers run.
