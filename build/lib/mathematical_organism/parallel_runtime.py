@@ -637,8 +637,18 @@ class AutonomousMultiprocessingRuntime:
 
     def food_accounting(self) -> tuple[int, int, int, int, int]:
         """Physical FOOD accounting without inspecting worker-owned bodies."""
-        original = sum(food.size for food in self.environment.food_sources.values())
-        inbox = sum(food.inbox_remaining for food in self.environment.food_sources.values())
+        sources = self.environment.food_sources
+        # A raw inbox file is already physical input before an organism has
+        # performed its first ingest request.  Count unregistered files here;
+        # once ingest registers a source, its ``size`` replaces this term.
+        # This makes ingest a transfer from inbox to FOOD, never new input.
+        unregistered = sum(
+            path.stat().st_size
+            for path in self.environment.inbox.iterdir()
+            if path.is_file() and path.name not in sources
+        )
+        original = sum(food.size for food in sources.values()) + unregistered
+        inbox = sum(food.inbox_remaining for food in sources.values()) + unregistered
         remaining = sum(path.stat().st_size for path in self.environment.food.rglob("*.food"))
         consumed = original - inbox - remaining
         return original, consumed, remaining, inbox, self.direct_duplicates
