@@ -3,7 +3,6 @@ from __future__ import annotations
 import sys
 import tempfile
 import unittest
-import shutil
 import math
 from dataclasses import replace
 from pathlib import Path
@@ -16,10 +15,6 @@ from mathematical_organism.sandbox_runtime import AutonomousOrganism, SandboxObs
 
 
 class SandboxRuntimeTests(unittest.TestCase):
-    REAL_PARTITION = (
-        PROJECT_ROOT.parent / "cOMPOSABLE SPACE" / "esp32_build32"
-        / "esp32s3_skip_space.ino.partitions_flashed.bin"
-    )
     def _write(self, path: Path, size: int) -> None:
         path.write_bytes(bytes(index % 251 for index in range(size)))
 
@@ -125,14 +120,13 @@ class SandboxRuntimeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             runtime = SandboxRuntime(Path(directory) / "sandbox", block_size=64)
             root = runtime.bootstrap()
-            self.assertTrue(self.REAL_PARTITION.is_file(), self.REAL_PARTITION)
-            source = runtime.inbox / self.REAL_PARTITION.name
-            shutil.copyfile(self.REAL_PARTITION, source)
+            source = runtime.inbox / "partition_3kib.bin"
+            self._write(source, 3072)
             for _ in range(400):
                 runtime.autonomous_step()
                 if runtime.food_sources and not source.exists() and all(food.inbox_remaining == 0 and food.remaining == 0 for food in runtime.food_sources.values()):
                     break
-            food = runtime.food_sources[self.REAL_PARTITION.name]
+            food = runtime.food_sources[source.name]
             self.assertFalse(source.exists())
             self.assertEqual(food.metrics.bytes_consumed, 3072)
             self.assertEqual(food.remaining, 0)

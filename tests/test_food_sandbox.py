@@ -9,14 +9,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from mathematical_organism.food_sandbox import PhysicalFoodSandbox, SandboxFeedingHarness, stream_sha256  # noqa: E402
+from tools.create_food_fixture import fixture_bytes  # noqa: E402
 
 
 class PhysicalFoodSandboxTests(unittest.TestCase):
-    REAL_PARTITION = (
-        PROJECT_ROOT.parent / "cOMPOSABLE SPACE" / "esp32_build32"
-        / "esp32s3_skip_space.ino.partitions_flashed.bin"
-    )
-
     def test_partial_bites_physically_remove_ranges_and_empty_parcel(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -41,17 +37,18 @@ class PhysicalFoodSandboxTests(unittest.TestCase):
             self.assertEqual(stream_sha256(source), before_hash)
 
     def test_3kib_source_is_physically_exhausted_once_only(self) -> None:
-        self.assertTrue(self.REAL_PARTITION.is_file(), self.REAL_PARTITION)
-        before_hash = stream_sha256(self.REAL_PARTITION)
         with tempfile.TemporaryDirectory() as directory:
-            harness = SandboxFeedingHarness(self.REAL_PARTITION, Path(directory) / "sandbox", seed=0xF00D, parcel_size=64, context_overlap=2)
+            source = Path(directory) / "input.bin"
+            source.write_bytes(fixture_bytes()[:3072])
+            before_hash = stream_sha256(source)
+            harness = SandboxFeedingHarness(source, Path(directory) / "sandbox", seed=0xF00D, parcel_size=64, context_overlap=2)
             harness.run()
             harness.assert_invariants()
             self.assertEqual(harness.food.metrics.bytes_consumed, 3072)
             self.assertEqual(harness.food.remaining, 0)
             self.assertEqual(harness.food.metrics.duplicate_consumption, 0)
             self.assertEqual(list(harness.food.food_dir.glob("*.food")), [])
-        self.assertEqual(stream_sha256(self.REAL_PARTITION), before_hash)
+            self.assertEqual(stream_sha256(source), before_hash)
 
 
 if __name__ == "__main__":

@@ -15,11 +15,6 @@ from tools.create_food_fixture import fixture_bytes  # noqa: E402
 
 
 class FileFoodTests(unittest.TestCase):
-    REAL_PARTITION = (
-        PROJECT_ROOT.parent / "cOMPOSABLE SPACE" / "esp32_build32"
-        / "esp32s3_skip_space.ino.partitions_flashed.bin"
-    )
-
     def _fixture(self) -> tuple[tempfile.TemporaryDirectory[str], Path]:
         directory = tempfile.TemporaryDirectory()
         path = Path(directory.name) / "fixture.bin"
@@ -161,8 +156,10 @@ class FileFoodTests(unittest.TestCase):
         self.assertEqual(food.remaining, 0)
 
     def test_real_3kib_regression_consumes_all_food(self) -> None:
-        self.assertTrue(self.REAL_PARTITION.is_file(), self.REAL_PARTITION)
-        harness = ImplicitFileFeedingHarness(self.REAL_PARTITION, seed=0xF00D, parcel_size=64, context_overlap=2)
+        directory, path = self._fixture()
+        self.addCleanup(directory.cleanup)
+        path.write_bytes(fixture_bytes()[:3072])
+        harness = ImplicitFileFeedingHarness(path, seed=0xF00D, parcel_size=64, context_overlap=2)
         harness.run()
         harness.assert_invariants()
         self.assertEqual(harness.food.metrics.bytes_consumed, 3072)
