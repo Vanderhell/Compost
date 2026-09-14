@@ -13,7 +13,7 @@ from .public_sandbox import PublicMultiprocessingSandbox, read_last_snapshot
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Run the Mathematical Organism V0 reference simulator."
+        description="Run the Compost reference simulator."
     )
     parser.add_argument(
         "sequences",
@@ -114,7 +114,7 @@ def _print_sandbox_snapshot(snapshot: dict[str, object], *, include_organisms: b
 
 
 def _public_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="External autonomous Mathematical Organism sandbox.")
+    parser = argparse.ArgumentParser(description="External autonomous Compost sandbox.")
     commands = parser.add_subparsers(dest="command", required=True)
     run = commands.add_parser("run", help="run an autonomous world; add binary files to sandbox/inbox")
     run.add_argument("sandbox", type=Path)
@@ -170,7 +170,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     arguments = list(sys.argv[1:] if argv is None else argv)
     if not arguments or arguments[0] in {"-h", "--help"}:
         parser = argparse.ArgumentParser(
-            description="Mathematical Organism experimental sandbox and reference simulator."
+            description="Compost experimental sandbox and reference simulator."
         )
         commands = parser.add_subparsers(title="commands", dest="command")
         commands.add_parser("run", help="run an autonomous multiprocessing sandbox")

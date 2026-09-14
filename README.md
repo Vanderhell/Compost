@@ -1,4 +1,4 @@
-# Mathematical Organism V0
+# Compost
 
 Experimental deterministic artificial-life simulator in which autonomous
 mathematical organisms consume binary data as FOOD, maintain internal state,
@@ -8,9 +8,9 @@ with a sandbox environment.
 > Experimental research project. It is not a biological model and not a
 > production data-processing system.
 
-## What is Mathematical Organism?
+## What is Compost?
 
-Mathematical Organism V0 is a sandbox for deterministic artificial-life and
+Compost is a sandbox for deterministic artificial-life and
 complex-systems experiments. It runs autonomous entities over binary input and
 records the resulting world state and telemetry.
 
@@ -50,7 +50,7 @@ Python 3.11 or newer is required.
 python -m pip install .
 ```
 
-The installed console command is `math-organism`.
+The installed console command is `compost`.
 
 ## Running an experiment
 

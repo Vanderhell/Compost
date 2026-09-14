@@ -3,15 +3,15 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "mathematical-organism-v0"
+name = "compost"
 version = "0.1.0"
-description = "Experimental deterministic mathematical-organism sandbox"
+description = "Experimental deterministic artificial-life simulator"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = []
 
 [project.scripts]
-math-organism = "mathematical_organism.cli:main"
+compost = "mathematical_organism.cli:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
