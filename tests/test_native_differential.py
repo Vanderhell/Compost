@@ -13,6 +13,7 @@ from mathematical_organism.biology_rules import lazy_metabolism_delta, structura
 from mathematical_organism.backend import NativeBackend
 from mathematical_organism.canonical import canonical_digest
 from mathematical_organism.lifecycle import LifecycleConfig, LivingStructure, MathematicalLifeOrganism, MathematicalLifePopulation, OrganismStatus
+from mathematical_organism.sandbox_runtime import AutonomousOrganism
 from mathematical_organism.biology_rules import reproduction_allowed
 
 
@@ -117,6 +118,34 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             second = backend.process_gut(2)
             self.assertEqual(second["processed_mass"], 1)
             self.assertEqual(backend.snapshot()["gut"], ())
+
+    def test_external_gut_processing_matches_sandbox_oracle(self) -> None:
+        payload = (1, 2, 1)
+        nutrition = (1.0, 2.0, 3.0)
+        reference = AutonomousOrganism("ORG-ROOT")
+        reference.enqueue_external_material(payload, nutrition)
+        reference.result.available_nutrition_total += len(payload)
+        expected = reference.process_gut(2)
+        with NativeBackend(self.library_path, organism_id=0) as backend:
+            backend.enqueue_external(bytes(payload), nutrition)
+            actual = backend.process_gut(2)
+            snapshot = backend.snapshot()
+        self.assertEqual(expected, 2)
+        self.assertEqual(actual["processed_mass"], expected)
+        self.assertEqual(actual["assimilated_mass"], reference.material_flow.assimilated_mass)
+        self.assertEqual(actual["rejected_mass"], reference.material_flow.rejected_mass)
+        self.assertEqual(actual["expelled_mass"], reference.material_flow.expelled_mass)
+        self.assertEqual(snapshot["gut"], ((1, 0, bytes((1,)), (3.0,)),))
+        for field in (
+            "input_mass", "assimilated_mass", "rejected_mass", "resorbed_mass",
+            "processed_mass", "expelled_mass", "external_expelled_mass",
+            "resorption_expelled_mass", "structural_created_mass",
+            "structural_transferred_in", "structural_transferred_out",
+        ):
+            self.assertEqual(snapshot["material_flow"][field], getattr(reference.material_flow, field), field)
+        self.assertEqual(snapshot["body"]["atom_count"], len(reference.body.atoms))
+        self.assertEqual(snapshot["body"]["relation_count"], len(reference.body.relations))
+        self.assertEqual(snapshot["body"]["structural_mass"], reference.body.full_body_mass())
 
     def test_native_partition_preserves_structural_mass_independently(self) -> None:
         with NativeBackend(self.library_path, organism_id=10) as parent:
