@@ -198,11 +198,14 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             "ABBA" * 64,
             "ABC" * 85,
         )
+        cycles = int(os.environ.get("COMPOST_DIFFERENTIAL_CYCLES", "256"))
+        if cycles <= 0:
+            self.fail("COMPOST_DIFFERENTIAL_CYCLES must be positive")
         for scenario in range(40):
             payload = payloads[scenario % len(payloads)]
             population = MathematicalLifePopulation(payload)
             with NativeBackend(self.library_path, organism_id=scenario) as backend:
-                for cycle in range(256):
+                for cycle in range(cycles):
                     population.cycle()
                     backend.step(payload.encode("ascii") if cycle == 0 else b"", (1.0,) * len(payload) if cycle == 0 else ())
                     reference = population.organisms[0]
