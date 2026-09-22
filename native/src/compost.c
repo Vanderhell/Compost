@@ -864,7 +864,9 @@ compost_status_t compost_organism_digest(
                 continue;
             }
             relation = free_structure(next.relations, COMPOST_MAX_RELATIONS);
-            if (relation == NULL || !add_double(next.reserve, -next.config.relation_formation_cost, &next.reserve)) {
+            if (relation == NULL ||
+                !add_double(next.reserve, -next.config.relation_formation_cost, &next.reserve) ||
+                !add_double(next.reserve, relation_gain, &next.reserve)) {
                 return COMPOST_STATUS_INVALID_ARGUMENT;
             }
             memset(relation, 0, sizeof(*relation));
@@ -896,6 +898,7 @@ compost_status_t compost_organism_digest(
             if (!add_double(relation->strength, relation_gain, &relation->strength) ||
                 !add_double(relation->evidence, 1.0, &relation->evidence) ||
                 !add_double(relation->income_rate, relation_gain, &relation->income_rate) ||
+                !add_double(next.reserve, relation_gain, &next.reserve) ||
                 !add_u64(counters.relations_strengthened, UINT64_C(1), &counters.relations_strengthened)) {
                 return COMPOST_STATUS_INVALID_ARGUMENT;
             }
