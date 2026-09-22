@@ -39,9 +39,12 @@ The first C target is the lifecycle/sandbox behavioral core only:
 The first core must not perform file I/O, inspect Python objects, consult a
 clock, spawn threads, or make a scheduling decision based on hash iteration.
 
-## DEFER
+## DEFER / NOT YET COMPLETE
 
-- Python ABI/FFI integration until C and Python snapshots match per step.
+- Full Python ABI/FFI lifecycle integration until the remaining gut, corpse,
+  division, and population snapshots match per step. A narrow versioned opaque
+  ABI and explicit Python backend selector already exist for the migrated
+  checkpoint; native failures are not silently downgraded.
 - Native multiprocessing and any throughput-oriented parallel mode.
 - Native physical FOOD storage, filesystem sandboxing, and telemetry.
 - Porting the legacy graph learner before a compatibility decision and fixtures
