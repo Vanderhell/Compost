@@ -978,7 +978,8 @@ compost_status_t compost_organism_step(
     compost_cycle_result_t *result
 )
 {
-    if (organism == NULL || input == NULL || result == NULL || !organism->initialized) {
+    if (organism == NULL || input == NULL || result == NULL || !organism->initialized ||
+        (input->length > 0U && (input->food == NULL || input->nutrition == NULL))) {
         return COMPOST_STATUS_INVALID_ARGUMENT;
     }
     if (organism->status == COMPOST_LIFECYCLE_DEAD) {
