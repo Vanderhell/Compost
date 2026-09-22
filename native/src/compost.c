@@ -309,6 +309,31 @@ void compost_organism_destroy(compost_organism_t *organism)
     memset(organism, 0, sizeof(*organism));
 }
 
+static compost_status_t validate_gut(const compost_organism_t *organism)
+{
+    if (organism->gut_head >= COMPOST_MAX_GUT_CHUNKS ||
+        organism->gut_count > COMPOST_MAX_GUT_CHUNKS) {
+        return COMPOST_STATUS_INVALID_STATE;
+    }
+    for (size_t index = 0U; index < COMPOST_MAX_GUT_CHUNKS; ++index) {
+        const compost_gut_chunk_t *chunk = &organism->gut[index];
+        if (chunk->origin == COMPOST_MATERIAL_EXTERNAL) {
+            if (chunk->payload_length > COMPOST_MAX_GUT_CHUNK_BYTES ||
+                chunk->payload_length != chunk->mass) {
+                return COMPOST_STATUS_INVALID_STATE;
+            }
+            for (size_t byte = 0U; byte < chunk->payload_length; ++byte) {
+                if (!finite(chunk->nutrition[byte])) return COMPOST_STATUS_INVALID_STATE;
+            }
+        } else if (chunk->origin == COMPOST_MATERIAL_RESORPTION) {
+            if (chunk->payload_length != 0U) return COMPOST_STATUS_INVALID_STATE;
+        } else {
+            return COMPOST_STATUS_INVALID_STATE;
+        }
+    }
+    return COMPOST_STATUS_OK;
+}
+
 compost_status_t compost_organism_snapshot(
     const compost_organism_t *organism,
     compost_snapshot_t *snapshot
@@ -322,6 +347,9 @@ compost_status_t compost_organism_snapshot(
     }
     if (organism->status != COMPOST_LIFECYCLE_ALIVE &&
         organism->status != COMPOST_LIFECYCLE_DEAD) {
+        return COMPOST_STATUS_INVALID_STATE;
+    }
+    if (validate_gut(organism) != COMPOST_STATUS_OK) {
         return COMPOST_STATUS_INVALID_STATE;
     }
     memset(snapshot, 0, sizeof(*snapshot));

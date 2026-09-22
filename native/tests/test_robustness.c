@@ -56,5 +56,15 @@ int main(void)
         return fail("invalid lifecycle enum");
     }
     compost_organism_destroy(&organism);
+    if (compost_organism_init(&organism, &config, NULL, 5U) != COMPOST_STATUS_OK) {
+        return fail("invalid gut setup");
+    }
+    organism.gut[0].mass = 2U;
+    organism.gut[0].payload_length = 1U;
+    if (compost_organism_snapshot(&organism, &after) != COMPOST_STATUS_INVALID_STATE) {
+        compost_organism_destroy(&organism);
+        return fail("invalid gut rejection");
+    }
+    compost_organism_destroy(&organism);
     return 0;
 }
