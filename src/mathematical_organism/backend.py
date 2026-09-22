@@ -52,6 +52,24 @@ class _Result(ctypes.Structure):
     ]
 
 
+class _MaintenanceResult(ctypes.Structure):
+    _fields_ = [
+        ("required", ctypes.c_double),
+        ("paid", ctypes.c_double),
+        ("deficit", ctypes.c_double),
+        ("weakened_candidates", ctypes.c_uint64),
+        ("resorbed_mass", ctypes.c_uint64),
+    ]
+
+
+class _CycleResult(ctypes.Structure):
+    _fields_ = [
+        ("digestion", _Result),
+        ("maintenance", _MaintenanceResult),
+        ("status_after", ctypes.c_int),
+    ]
+
+
 class NativeBackend:
     """Small explicit ctypes adapter for the versioned native ABI."""
 
@@ -85,6 +103,8 @@ class NativeBackend:
         library.compost_destroy.restype = None
         library.compost_context_digest.argtypes = [ctypes.c_void_p, ctypes.POINTER(_Input), ctypes.POINTER(_Result)]
         library.compost_context_digest.restype = ctypes.c_int
+        library.compost_context_step.argtypes = [ctypes.c_void_p, ctypes.POINTER(_Input), ctypes.POINTER(_CycleResult)]
+        library.compost_context_step.restype = ctypes.c_int
         library.compost_context_state_digest.argtypes = [ctypes.c_void_p]
         library.compost_context_state_digest.restype = ctypes.c_uint64
 
@@ -119,6 +139,30 @@ class NativeBackend:
         if not self._context or not self._context.value:
             raise NativeBackendError("native backend is closed")
         return int(self._library.compost_context_state_digest(self._context))
+
+    def step(self, food: bytes | bytearray, nutrition: tuple[float, ...] | None = None) -> dict[str, float | int]:
+        """Run the current explicit native digest+maintenance checkpoint."""
+        if not self._context or not self._context.value:
+            raise NativeBackendError("native backend is closed")
+        payload = bytes(food)
+        values = tuple(1.0 for _ in payload) if nutrition is None else nutrition
+        if len(values) != len(payload):
+            raise ValueError("food and nutrition lengths differ")
+        food_buffer = (ctypes.c_uint8 * len(payload))(*payload)
+        nutrition_buffer = (ctypes.c_double * len(values))(*values)
+        native_input = _Input(food_buffer, nutrition_buffer, len(payload))
+        result = _CycleResult()
+        status = self._library.compost_context_step(self._context, ctypes.byref(native_input), ctypes.byref(result))
+        self._check(status, "compost_context_step")
+        return {
+            "consumed_bytes": int(result.digestion.consumed_bytes),
+            "assimilated_mass": int(result.digestion.assimilated_mass),
+            "rejected_mass": int(result.digestion.rejected_mass),
+            "maintenance_required": float(result.maintenance.required),
+            "maintenance_paid": float(result.maintenance.paid),
+            "maintenance_deficit": float(result.maintenance.deficit),
+            "status_after": int(result.status_after),
+        }
 
     def close(self) -> None:
         if self._context and self._context.value:
