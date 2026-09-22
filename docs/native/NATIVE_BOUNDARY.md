@@ -41,10 +41,10 @@ clock, spawn threads, or make a scheduling decision based on hash iteration.
 
 ## DEFER / NOT YET COMPLETE
 
-- Full Python ABI/FFI lifecycle integration until the remaining gut, corpse,
-  division, and population snapshots match per step. A narrow versioned opaque
-  ABI and explicit Python backend selector already exist for the migrated
-  checkpoint; native failures are not silently downgraded.
+- Full Python ABI/FFI lifecycle integration until corpse, division, population,
+  and sandbox-level gut snapshots match per step. The versioned opaque ABI now
+  includes bounded external-gut enqueue/process operations and an explicit
+  Python backend selector; native failures are not silently downgraded.
 - Native multiprocessing and any throughput-oriented parallel mode.
 - Native physical FOOD storage, filesystem sandboxing, and telemetry.
 - Porting the legacy graph learner before a compatibility decision and fixtures

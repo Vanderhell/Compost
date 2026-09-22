@@ -24,8 +24,8 @@ green (`6 passed`), and the complete Python regression suite is green
 (`189 passed, 6 skipped, 3 subtests passed`), but the selected partition
 transaction has not yet been compared field-by-field against the Python
 division transaction. The native checkpoint now includes deterministic
-starvation removal and dead-step no-ops; the full external-gut, corpse, and
-division campaign remains open.
+starvation removal, dead-step no-ops, and bounded external-gut FIFO payload
+processing; the sandbox-level gut, corpse, and division campaign remains open.
 
 The native-only paired replay test now executes 10,000 deterministic steps and
 compares state digests and step counters after every step. It is a determinism
@@ -42,8 +42,8 @@ A long-run replay was executed locally against the MSVC Release native DLL with
 `COMPOST_DIFFERENTIAL_CYCLES=25000`. It covered the same 40 deterministic
 scenarios for exactly `1,000,000` aggregate Python/native steps and passed in
 `414.21s` with zero divergences. This is strong single-organism evidence, but
-it is not yet the full population, external-gut, corpse, or parallel-runtime
-campaign.
+it is not yet the full population, sandbox environment, corpse, or
+parallel-runtime campaign.
 
 When a field comparison fails, the assertion reports the first divergent
 field together with the Python `canonical_digest` and the native ABI
