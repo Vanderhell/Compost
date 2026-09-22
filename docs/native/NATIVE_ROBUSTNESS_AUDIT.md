@@ -24,15 +24,21 @@ The deterministic C fuzz target executes 10,000 generated public-API cases,
 including NaN inputs and invalid pointer/length combinations, and checks state
 preservation after every failed call.
 
+The same seven-test suite was also built and executed with GCC 13.3 under WSL
+using AddressSanitizer and UndefinedBehaviorSanitizer. All seven tests passed;
+the run emitted no sanitizer diagnostics. The Windows-mounted workspace did
+emit CMake clock-skew warnings caused by filesystem timestamp differences; no
+test or sanitizer failure was associated with those warnings.
+
 ## Outstanding evidence
 
-ASan/UBSan linking is unavailable in the current MinGW installation because
+ASan/UBSan linking remains unavailable in the current MinGW installation because
 `libasan` and `libubsan` are missing. Clang cannot link here because the Windows
-CRT libraries are not available to its standalone driver. These are environment
-limitations, not local sanitizer passes. CI now contains a Linux GCC ASan/UBSan
-build and test job; its result must be checked on each release candidate. A
-release gate still requires leak checks, allocation-failure injection,
-integer-extrema campaigns, and corrupt snapshot tests.
+CRT libraries are not available to its standalone driver. These are Windows
+toolchain limitations; the WSL GCC sanitizer run above is local sanitizer
+evidence, while CI still provides the release-platform Linux job. A release
+gate still requires leak checks, allocation-failure injection, integer-extrema
+campaigns, and corrupt snapshot tests.
 
 ## Verdict
 
