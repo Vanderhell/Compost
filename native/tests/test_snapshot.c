@@ -108,6 +108,31 @@ int main(void)
         digesting.status != COMPOST_LIFECYCLE_ALIVE) {
         return fail("maintenance slice");
     }
+    compost_organism_t starving = {0};
+    compost_maintenance_result_t starving_result = {0};
+    if (compost_organism_init(&starving, &config, NULL, UINT64_C(12)) != COMPOST_STATUS_OK) {
+        compost_organism_destroy(&starving);
+        compost_organism_destroy(&digesting);
+        return fail("starvation setup");
+    }
+    starving.atoms[0] = (compost_structure_t){true, COMPOST_STRUCTURE_ATOM, 1U, 0U, 4.0, 0.25, 1.0, 4.0};
+    starving.atoms[1] = (compost_structure_t){true, COMPOST_STRUCTURE_ATOM, 2U, 0U, 1.0, 0.25, 1.0, 1.0};
+    starving.relations[0] = (compost_structure_t){true, COMPOST_STRUCTURE_RELATION, 1U, 2U, 3.0, 0.5, 1.0, 3.0};
+    starving.body.atom_count = 2U;
+    starving.body.relation_count = 1U;
+    starving.body.structural_mass = 258U;
+    starving.material_flow.structural_created_mass = 2U;
+    starving.reserve = 0.0;
+    if (compost_organism_maintenance(&starving, &starving_result) != COMPOST_STATUS_OK ||
+        starving_result.weakened_candidates != 2U || starving_result.resorbed_mass != 2U ||
+        starving.status != COMPOST_LIFECYCLE_DEAD || starving.body.atom_count != 0U ||
+        starving.body.relation_count != 0U || starving.gut_count != 1U ||
+        compost_organism_verify_material_conservation(&starving) != COMPOST_STATUS_OK) {
+        compost_organism_destroy(&starving);
+        compost_organism_destroy(&digesting);
+        return fail("starvation transition");
+    }
+    compost_organism_destroy(&starving);
     digesting.material_flow.structural_created_mass += 10U;
     if (compost_organism_enqueue_resorbed(&digesting, 10U) != COMPOST_STATUS_OK ||
         digesting.gut_count != 1U || digesting.material_flow.resorbed_mass != 10U ||
