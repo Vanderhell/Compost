@@ -37,5 +37,16 @@ Observed on the current Windows MinGW GCC toolchain: `5` repetitions of
 `0.614000000`, max `0.623000000` CPU seconds, median `162866.450` steps/sec.
 This measures only the bounded direct-C digest checkpoint.
 
-No Python or FFI throughput number is recorded yet. No speedup claim is
-permitted from this report alone.
+No speedup claim is permitted from the direct-C smoke benchmark alone.
+
+## Python/FFI checkpoint comparison
+
+`tools/benchmark_native_backends.py` runs the same bounded `AB` replay for
+both the Python reference and the current native checkpoint through ctypes.
+On the current Windows MinGW/GCC build, five repetitions of `10000` steps
+measured a Python median of `0.036908400` seconds (`270941.032` steps/sec)
+and a native-FFI median of `0.310031200` seconds (`32254.818` steps/sec).
+This is not a complete simulator comparison: it includes FFI overhead and the
+native checkpoint is still incomplete. It demonstrates that further native
+performance claims require a larger migrated workload and measurement of the
+boundary costs.
