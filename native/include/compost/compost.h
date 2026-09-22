@@ -365,6 +365,16 @@ compost_status_t compost_context_digest(
     compost_step_result_t *result
 );
 
+compost_status_t compost_context_partition(
+    compost_context_t *parent,
+    uint64_t child_id,
+    const uint8_t *child_atoms,
+    size_t child_atom_count,
+    double birth_cost,
+    compost_context_t **child,
+    compost_division_result_t *result
+);
+
 compost_status_t compost_organism_enqueue_resorbed(
     compost_organism_t *organism,
     uint64_t mass

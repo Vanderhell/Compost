@@ -120,6 +120,42 @@ compost_status_t compost_context_digest(
     return compost_organism_digest(&context->organism, input, result);
 }
 
+compost_status_t compost_context_partition(
+    compost_context_t *parent,
+    uint64_t child_id,
+    const uint8_t *child_atoms,
+    size_t child_atom_count,
+    double birth_cost,
+    compost_context_t **child,
+    compost_division_result_t *result
+)
+{
+    if (parent == NULL || child == NULL || result == NULL) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    *child = NULL;
+    compost_context_t *created = malloc(sizeof(*created));
+    if (created == NULL) {
+        return COMPOST_STATUS_OUT_OF_MEMORY;
+    }
+    memset(created, 0, sizeof(*created));
+    const compost_status_t status = compost_organism_partition(
+        &parent->organism,
+        &created->organism,
+        child_id,
+        child_atoms,
+        child_atom_count,
+        birth_cost,
+        result
+    );
+    if (status != COMPOST_STATUS_OK) {
+        free(created);
+        return status;
+    }
+    *child = created;
+    return COMPOST_STATUS_OK;
+}
+
 compost_status_t compost_config_default(compost_config_t *config)
 {
     if (config == NULL) {
