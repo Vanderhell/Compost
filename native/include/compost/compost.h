@@ -195,6 +195,14 @@ typedef struct compost_step_result {
     uint64_t relations_strengthened;
 } compost_step_result_t;
 
+typedef struct compost_maintenance_result {
+    double required;
+    double paid;
+    double deficit;
+    uint64_t weakened_candidates;
+    uint64_t resorbed_mass;
+} compost_maintenance_result_t;
+
 /* A zeroed allocator selects the library's malloc/free-backed defaults. */
 compost_status_t compost_config_default(compost_config_t *config);
 
@@ -265,6 +273,12 @@ compost_status_t compost_organism_digest(
     compost_organism_t *organism,
     const compost_step_input_t *input,
     compost_step_result_t *result
+);
+
+/* Applies the eager reference maintenance/forgetting slice and advances age. */
+compost_status_t compost_organism_maintenance(
+    compost_organism_t *organism,
+    compost_maintenance_result_t *result
 );
 
 #ifdef __cplusplus

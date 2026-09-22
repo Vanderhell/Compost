@@ -520,3 +520,117 @@ compost_status_t compost_organism_digest(
     *result = next_result;
     return COMPOST_STATUS_OK;
 }
+
+static uint64_t structure_count(const compost_organism_t *organism)
+{
+    return organism->body.atom_count + organism->body.relation_count + organism->body.composite_count;
+}
+
+static double structure_maintenance(const compost_organism_t *organism)
+{
+    double total = 0.0;
+    for (size_t index = 0U; index < COMPOST_MAX_ATOMS; ++index) {
+        if (organism->atoms[index].occupied) {
+            total += organism->atoms[index].maintenance;
+        }
+    }
+    for (size_t index = 0U; index < COMPOST_MAX_RELATIONS; ++index) {
+        if (organism->relations[index].occupied) {
+            total += organism->relations[index].maintenance;
+        }
+    }
+    for (size_t index = 0U; index < COMPOST_MAX_COMPOSITES; ++index) {
+        if (organism->composites[index].occupied) {
+            total += organism->composites[index].maintenance;
+        }
+    }
+    return total;
+}
+
+static compost_status_t forget_structure(
+    compost_organism_t *organism,
+    compost_structure_t *structure,
+    uint64_t *resorbed_mass
+)
+{
+    const bool material = structure->kind != COMPOST_STRUCTURE_ATOM;
+    uint64_t before = 0U;
+    uint64_t after = 0U;
+    if (material && compost_structural_mass(structure->strength, &before) != COMPOST_STATUS_OK) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    compost_forgetting_delta_t delta = {0};
+    if (compost_forgetting_delta(
+            structure->strength, structure->income_rate, structure->maintenance,
+            organism->config.income_decay, &delta) != COMPOST_STATUS_OK) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    if (material && compost_structural_mass(delta.strength_after, &after) != COMPOST_STATUS_OK) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    if (after > before) {
+        const uint64_t increase = after - before;
+        if (!add_u64(organism->body.structural_mass, increase, &organism->body.structural_mass)) {
+            return COMPOST_STATUS_INVALID_ARGUMENT;
+        }
+    } else if (before > after) {
+        const uint64_t decrease = before - after;
+        if (organism->body.structural_mass < decrease) {
+            return COMPOST_STATUS_INVALID_STATE;
+        }
+        organism->body.structural_mass -= decrease;
+        if (!add_u64(*resorbed_mass, decrease, resorbed_mass) ||
+            !add_u64(organism->material_flow.resorbed_mass, decrease, &organism->material_flow.resorbed_mass)) {
+            return COMPOST_STATUS_INVALID_ARGUMENT;
+        }
+    }
+    structure->strength = delta.strength_after;
+    structure->income_rate = delta.income_rate_after;
+    return COMPOST_STATUS_OK;
+}
+
+compost_status_t compost_organism_maintenance(
+    compost_organism_t *organism,
+    compost_maintenance_result_t *result
+)
+{
+    if (organism == NULL || result == NULL || !organism->initialized ||
+        organism->status != COMPOST_LIFECYCLE_ALIVE) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    compost_organism_t next = *organism;
+    compost_maintenance_result_t next_result = {0};
+    next_result.required = structure_maintenance(&next);
+    if (!finite(next_result.required)) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    next_result.paid = next.reserve < next_result.required ? next.reserve : next_result.required;
+    next_result.deficit = next_result.required - next_result.paid;
+    next.reserve -= next_result.paid;
+    for (size_t index = 0U; index < COMPOST_MAX_ATOMS; ++index) {
+        if (next.atoms[index].occupied && forget_structure(&next, &next.atoms[index], &next_result.resorbed_mass) != COMPOST_STATUS_OK) {
+            return COMPOST_STATUS_INVALID_ARGUMENT;
+        }
+    }
+    for (size_t index = 0U; index < COMPOST_MAX_RELATIONS; ++index) {
+        if (next.relations[index].occupied && forget_structure(&next, &next.relations[index], &next_result.resorbed_mass) != COMPOST_STATUS_OK) {
+            return COMPOST_STATUS_INVALID_ARGUMENT;
+        }
+    }
+    for (size_t index = 0U; index < COMPOST_MAX_COMPOSITES; ++index) {
+        if (next.composites[index].occupied && forget_structure(&next, &next.composites[index], &next_result.resorbed_mass) != COMPOST_STATUS_OK) {
+            return COMPOST_STATUS_INVALID_ARGUMENT;
+        }
+    }
+    if (next.age_in_cycles == UINT64_MAX) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    next.age_in_cycles += UINT64_C(1);
+    if (structure_count(&next) == 0U) {
+        next.status = COMPOST_LIFECYCLE_DEAD;
+        next.territory.alive = false;
+    }
+    *organism = next;
+    *result = next_result;
+    return COMPOST_STATUS_OK;
+}

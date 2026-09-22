@@ -76,6 +76,14 @@ int main(void)
         digesting.material_flow.rejected_mass != 0U) {
         return fail("deterministic digest");
     }
+    digesting.reserve = 10.0;
+    compost_maintenance_result_t maintenance = {0};
+    if (compost_organism_maintenance(&digesting, &maintenance) != COMPOST_STATUS_OK ||
+        maintenance.required <= 0.0 || maintenance.paid != maintenance.required ||
+        maintenance.deficit != 0.0 || digesting.age_in_cycles != 1U ||
+        digesting.status != COMPOST_LIFECYCLE_ALIVE) {
+        return fail("maintenance slice");
+    }
     compost_organism_destroy(&digesting);
     return 0;
 }
