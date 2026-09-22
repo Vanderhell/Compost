@@ -23,3 +23,25 @@ jobs:
           python -m pip install pytest
       - name: Run complete test suite
         run: python -m pytest -q
+
+  native:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select compiler
+        run: |
+          if [ "${{ matrix.compiler }}" = "clang" ]; then
+            echo "CC=clang" >> "$GITHUB_ENV"
+          else
+            echo "CC=gcc" >> "$GITHUB_ENV"
+          fi
+      - name: Configure native core
+        run: cmake -S native -B native/build-ci -DCMAKE_BUILD_TYPE=Debug -DCOMPOST_BUILD_TESTS=ON
+      - name: Build native core
+        run: cmake --build native/build-ci --parallel
+      - name: Run native tests
+        run: ctest --test-dir native/build-ci --output-on-failure
