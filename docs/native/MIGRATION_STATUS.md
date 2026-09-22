@@ -24,7 +24,7 @@
 | Reproduction assessment | DIFFERENTIAL_PASS | `biology_rules.reproduction_allowed` | Pure eligibility/score differential cases pass; automatic candidate policy remains pending |
 | Material-flow accounting | DIFFERENTIAL_PASS | `sandbox_runtime.MaterialFlow` | Native conservation validator, external/resorption FIFO accounting, cross-edge resorption, and division transfer pass bounded tests; full sandbox ledger differential remains pending |
 
-| Selected structural partition | PORTING | `AutonomousOrganism._commit_skeleton_partition` | Selector, viability plan, and partition transaction pass native GCC/MSVC tests; Python differential campaign and full policy integration remain pending |
+| Selected structural partition | DIFFERENTIAL_PASS | `AutonomousOrganism._commit_skeleton_partition` | Selector, viability plan, and partition transaction pass native GCC/MSVC tests plus bounded Python/sandbox mass/reserve/body differential coverage; automatic candidate policy and full integration remain pending |
 | Native parallel runtime | DEFERRED | Existing Python parallel runtime | See `PARALLEL_RUNTIME.md`; single-thread semantic parity is required first |
 
 ## Domain decisions in this checkpoint
