@@ -12,15 +12,16 @@ for the native units that currently have matching Python reference functions:
 
 The test requires `COMPOST_NATIVE_LIBRARY`. If the variable is absent it is
 skipped; if it names a missing file the test fails. There is no silent native
-to Python fallback.
+to Python fallback. The current bounded campaign contains five tests,
+including an eight-step lifecycle replay with field-by-field snapshot checks.
 
 ## Current status
 
 The full per-step Python/C campaign is **NOT READY**. The native organism is
-not yet a complete lifecycle engine, and this environment currently does not
-provide a Python interpreter for executing the Python suite. No 1,000,000-step
-claim is made. The selected partition transaction has native conservation
-fixtures, but has not yet been compared field-by-field against the Python
+not yet a complete lifecycle engine. The current native-backed Python run is
+green (`5 passed`), and the complete Python regression suite is green
+(`189 passed, 5 skipped, 3 subtests passed`), but the selected partition
+transaction has not yet been compared field-by-field against the Python
 division transaction. The bounded replay deliberately uses a long first food
 stream so starvation-driven structural removal is outside this checkpoint's
 current native scope; the full starvation/gut/division campaign remains open.

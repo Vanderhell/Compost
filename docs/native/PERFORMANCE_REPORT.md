@@ -3,7 +3,8 @@
 ## Status
 
 This is an initial direct-C smoke benchmark, not a claim about simulator
-performance. Python reference and Python↔C FFI measurements are still pending.
+performance. Python reference and Python↔C FFI benchmark measurements remain
+pending; the FFI test suite is now available for correctness checks.
 
 ## Workload
 
@@ -36,6 +37,5 @@ iterations (`400000` bytes each), min `0.554000000`, median `0.555000000`, max
 `0.560000000` CPU seconds, median `180180.180` steps/sec. This measures only
 the bounded direct-C digest checkpoint.
 
-No Python or FFI number is recorded until the Python interpreter is available
-and the native backend can be run against the same canonical workload. No
-speedup claim is permitted from this report alone.
+No Python or FFI throughput number is recorded yet. No speedup claim is
+permitted from this report alone.

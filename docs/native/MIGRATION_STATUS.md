@@ -3,7 +3,7 @@
 | Unit | Status | Python reference | Notes |
 | --- | --- | --- | --- |
 | Foundation init/destroy/snapshot | PORTING | `compost_organism_init`, `compost_organism_snapshot` | Scalar foundation only; no simulation behavior yet |
-| Structural mass | PORTING | `biology_rules.structural_mass` | C unit boundaries pass; Python/C differential harness is pending |
+| Structural mass | DIFFERENTIAL_PASS | `biology_rules.structural_mass` | C unit boundaries and Python/C differential cases pass |
 | Activity cost accounting | PORTING | `ActivityLedger.add_activity` | C unit tests pass; Python/C FFI differential campaign is pending |
 | Settlement threshold/basal cost | PORTING | `ActivityLedger.settlement_threshold`, `basal_cost` | Pure functions added to C API |
 | Forgetting delta | PORTING | `biology_rules.forgetting_delta` | Pure C delta, no organism mutation |
@@ -20,8 +20,8 @@
 | Python backend selector/loader | PORTING | Existing Python runtime | Explicit `python`/`native` handles plus native step/snapshot/plan adapters; CI acceptance runs, CLI wiring and full lifecycle acceptance remain pending |
 | Direct-C benchmark | PORTING | Performance phase | Reproducible digest smoke benchmark; Python/FFI comparison pending |
 | Public API robustness tests | PORTING | C API failure contract | Null, NaN, transactional failure, and idempotent destroy coverage |
-| Lazy metabolism delta | PORTING | `biology_rules.lazy_metabolism_delta` | C logarithmic composition added; tolerance-based reference comparison and FFI campaign remain pending |
-| Reproduction assessment | PORTING | `biology_rules.reproduction_allowed` | Pure eligibility/score function and selected-region native transaction added; automatic candidate policy remains pending |
+| Lazy metabolism delta | DIFFERENTIAL_PASS | `biology_rules.lazy_metabolism_delta` | Tolerance-based Python/C differential cases pass |
+| Reproduction assessment | DIFFERENTIAL_PASS | `biology_rules.reproduction_allowed` | Pure eligibility/score differential cases pass; automatic candidate policy remains pending |
 | Material-flow accounting | PORTING | `sandbox_runtime.MaterialFlow` | Native conservation validator, FIFO accounting, cross-edge resorption, and division transfer added; external payload gut remains pending |
 
 | Selected structural partition | PORTING | `AutonomousOrganism._commit_skeleton_partition` | Selector, viability plan, and partition transaction pass native GCC/MSVC tests; Python differential campaign and full policy integration remain pending |

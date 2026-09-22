@@ -40,6 +40,11 @@ The existing regression suites cover the reference transaction, including:
 - repeated/nested divisions and world material totals;
 - no duplicate object identity after partition.
 
+The independent cross-split audit distinguishes living structural mass from
+resorbed material already present in the gut. Its verified equation is
+`created = living_after + resorbed`; adding gut mass to `living_after` would
+count the same resorbed material twice.
+
 `tests/test_skeleton_division.py`, `tests/test_structural_mass.py`, and
 `tests/test_material_flow.py` are the current evidence set. The new canonical
 oracle includes structural state and material-flow counters, so future native
