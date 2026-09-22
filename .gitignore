@@ -34,3 +34,4 @@ Thumbs.db
 
 # Local runtime world (captured research runs live in experiments/)
 sandbox/
+/build-native
