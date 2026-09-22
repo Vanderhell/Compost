@@ -4,7 +4,7 @@
 
 The native test suite now checks null arguments, invalid floating-point input,
 failed-operation state preservation, repeated destroy, opaque handle errors, and
-bounded table behavior through the public C APIs. GCC and MSVC Debug builds run
+bounded table behavior through the public C APIs. GCC Debug and MSVC Release builds run
 these tests under CTest. The current Windows evidence includes GCC Debug,
 GCC Release, and MSVC Release runs, with all seven tests passing in each run
 where the fuzz target is enabled.
