@@ -23,13 +23,20 @@ not yet a complete lifecycle engine. The current native-backed Python run is
 green (`6 passed`), and the complete Python regression suite is green
 (`189 passed, 6 skipped, 3 subtests passed`), but the selected partition
 transaction has not yet been compared field-by-field against the Python
-division transaction. The bounded replay deliberately uses a long first food
-stream so starvation-driven structural removal is outside this checkpoint's
-current native scope; the full starvation/gut/division campaign remains open.
+division transaction. The native checkpoint now includes deterministic
+starvation removal and dead-step no-ops; the full external-gut, corpse, and
+division campaign remains open.
 
 The native-only paired replay test now executes 10,000 deterministic steps and
 compares state digests and step counters after every step. It is a determinism
 regression gate, not a substitute for Python/reference differential evidence.
+
+The current Python/reference campaign executes 40 deterministic payload
+scenarios for 256 cycles each, for `10,240` aggregate steps. It compares
+cursor, lifecycle status, age, body counts/mass, reserve, atoms, relations,
+and composites after every step. This is bounded to the migrated
+single-organism checkpoint and is not the required 1,000,000-step
+full-population acceptance campaign.
 
 ## Acceptance requirement
 
