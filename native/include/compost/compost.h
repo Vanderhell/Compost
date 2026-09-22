@@ -388,13 +388,15 @@ compost_status_t compost_organism_step(
     compost_cycle_result_t *result
 );
 
-/* Queues external bytes and copies their nutrition into bounded owned chunks. */
+/* Queues external bytes and copies their nutrition into bounded owned chunks.
+ * On failure, the organism and all caller-owned input remain unchanged. */
 compost_status_t compost_organism_enqueue_external(
     compost_organism_t *organism,
     const compost_step_input_t *input
 );
 
-/* Processes the FIFO gut up to capacity, including external and resorbed material. */
+/* Processes the FIFO gut up to capacity, including external and resorbed
+ * material. On failure, the organism and result remain unchanged. */
 compost_status_t compost_organism_process_gut(
     compost_organism_t *organism,
     uint64_t capacity,
