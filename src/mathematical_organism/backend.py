@@ -233,6 +233,19 @@ class NativeBackend:
         self._check(status, "compost_create")
         if not self._context.value:
             raise NativeBackendError("native create returned a null context")
+        initial_snapshot = _Snapshot()
+        status = self._library.compost_context_snapshot(self._context, ctypes.byref(initial_snapshot))
+        if status != 0:
+            self._library.compost_destroy(self._context)
+            self._context = ctypes.c_void_p()
+            self._check(status, "compost_context_snapshot")
+        if int(initial_snapshot.abi_version) != self.ABI_VERSION:
+            self._library.compost_destroy(self._context)
+            self._context = ctypes.c_void_p()
+            raise NativeBackendError(
+                f"native ABI mismatch: expected {self.ABI_VERSION}, "
+                f"got {int(initial_snapshot.abi_version)}"
+            )
 
     def _configure_symbols(self) -> None:
         library = self._library
