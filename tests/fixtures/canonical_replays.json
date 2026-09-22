@@ -1,0 +1,26 @@
+[
+  {
+    "name": "birth-and-feeding",
+    "payload": "ABABABABABAB",
+    "config": {"birth_reserve": 10.0, "reproduction_minimum_body": 2},
+    "cycles": 12
+  },
+  {
+    "name": "starvation-and-death",
+    "payload": "A",
+    "config": {"birth_reserve": 0.0},
+    "cycles": 8
+  },
+  {
+    "name": "structure-and-metabolism",
+    "payload": "ABCABCABCABCABCABC",
+    "config": {"birth_reserve": 10.0, "metabolic_minimum_work": 4},
+    "cycles": 24
+  },
+  {
+    "name": "empty-food",
+    "payload": "",
+    "config": {"birth_reserve": 1.0},
+    "cycles": 4
+  }
+]

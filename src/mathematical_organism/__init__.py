@@ -4,6 +4,7 @@ from .config import OrganismConfig
 from .organism import IngestResult, MathematicalOrganism
 from .oracle import OracleComparison, OracleHarness, ReplayOracle
 from .lifecycle import LifecycleConfig, MathematicalLifeOrganism, MathematicalLifePopulation
+from .canonical import canonical_bytes, canonical_digest, canonical_state
 
 __all__ = [
     "IngestResult",
@@ -15,4 +16,7 @@ __all__ = [
     "LifecycleConfig",
     "MathematicalLifeOrganism",
     "MathematicalLifePopulation",
+    "canonical_bytes",
+    "canonical_digest",
+    "canonical_state",
 ]
