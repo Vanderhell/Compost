@@ -94,6 +94,14 @@ class _DivisionPlan(ctypes.Structure):
     ]
 
 
+class _DivisionResult(ctypes.Structure):
+    _fields_ = [
+        ("child_structural_mass", ctypes.c_uint64),
+        ("cross_split_mass", ctypes.c_uint64),
+        ("parent_reserve_after_cost", ctypes.c_double),
+    ]
+
+
 class _Body(ctypes.Structure):
     _fields_ = [
         ("structural_mass", ctypes.c_uint64),
@@ -238,6 +246,16 @@ class NativeBackend:
         library.compost_context_select_partition.restype = ctypes.c_int
         library.compost_context_plan_division.argtypes = [ctypes.c_void_p, ctypes.POINTER(_DivisionPlan)]
         library.compost_context_plan_division.restype = ctypes.c_int
+        library.compost_context_partition.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_uint64,
+            ctypes.POINTER(ctypes.c_uint8),
+            ctypes.c_size_t,
+            ctypes.c_double,
+            ctypes.POINTER(ctypes.c_void_p),
+            ctypes.POINTER(_DivisionResult),
+        ]
+        library.compost_context_partition.restype = ctypes.c_int
 
     @staticmethod
     def _check(status: int, operation: str) -> None:
@@ -304,9 +322,26 @@ class NativeBackend:
                 "relation_count": int(snapshot.body.relation_count),
                 "composite_count": int(snapshot.body.composite_count),
             },
+            "material_flow": {
+                field: int(getattr(snapshot.material_flow, field))
+                for field, _ctype in _MaterialFlow._fields_
+            },
+            "activity": {
+                "metabolic_debt": float(snapshot.activity.metabolic_debt),
+                "energy_spent": float(snapshot.activity.energy_spent),
+                "settlements": int(snapshot.activity.settlements),
+                "counters": {
+                    field: int(getattr(snapshot.activity.counters, field))
+                    for field, _ctype in _ActivityCounters._fields_
+                },
+            },
             "atoms": self._structures(snapshot.atoms),
             "relations": self._structures(snapshot.relations),
             "composites": self._structures(snapshot.composites),
+            "gut": tuple(
+                (int(snapshot.gut[index].mass), int(snapshot.gut[index].origin))
+                for index in range(snapshot.gut_head, snapshot.gut_head + snapshot.gut_count)
+            ),
             "territory": tuple(int(snapshot.territory.path[index]) for index in range(snapshot.territory.depth)),
             "activated_receptors": tuple(
                 index for index in range(256)
@@ -375,6 +410,36 @@ class NativeBackend:
             "parent_income": float(plan.parent_income),
             "parent_maintenance": float(plan.parent_maintenance),
             "birth_gain": float(plan.birth_gain),
+        }
+
+    def partition(self, child_atoms: tuple[int, ...], *, child_id: int, birth_cost: float = 1.0) -> tuple["NativeBackend", dict[str, float | int]]:
+        """Commit a selected partition and return an owned child backend."""
+        if not self._context or not self._context.value:
+            raise NativeBackendError("native backend is closed")
+        values = tuple(int(value) for value in child_atoms)
+        atom_buffer = (ctypes.c_uint8 * len(values))(*values)
+        child_context = ctypes.c_void_p()
+        result = _DivisionResult()
+        status = self._library.compost_context_partition(
+            self._context,
+            ctypes.c_uint64(child_id),
+            atom_buffer,
+            len(values),
+            birth_cost,
+            ctypes.byref(child_context),
+            ctypes.byref(result),
+        )
+        self._check(status, "compost_context_partition")
+        if not child_context.value:
+            raise NativeBackendError("native partition returned a null child context")
+        child = object.__new__(NativeBackend)
+        child.library_path = self.library_path
+        child._library = self._library
+        child._context = child_context
+        return child, {
+            "child_structural_mass": int(result.child_structural_mass),
+            "cross_split_mass": int(result.cross_split_mass),
+            "parent_reserve_after_cost": float(result.parent_reserve_after_cost),
         }
 
     def close(self) -> None:

@@ -84,6 +84,42 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             plan = backend.division_plan()
             self.assertFalse(plan["candidate_found"])
 
+    def test_native_partition_preserves_structural_mass_independently(self) -> None:
+        with NativeBackend(self.library_path, organism_id=10) as parent:
+            parent.digest(b"ABCD", (10.0,) * 4)
+            before = parent.snapshot()
+            child, result = parent.partition((ord("A"), ord("B")), child_id=11)
+            with child:
+                parent_after = parent.snapshot()
+                child_after = child.snapshot()
+            parent_dynamic_before = before["body"]["structural_mass"] - 256
+            parent_dynamic_after = parent_after["body"]["structural_mass"] - 256
+            child_dynamic_after = child_after["body"]["structural_mass"] - 256
+            self.assertEqual(result["child_structural_mass"], child_dynamic_after)
+            self.assertGreater(result["cross_split_mass"], 0)
+            self.assertEqual(
+                parent_dynamic_before + sum(mass for mass, _origin in before["gut"]),
+                parent_dynamic_after
+                + child_dynamic_after
+                + sum(mass for mass, _origin in parent_after["gut"]),
+            )
+            self.assertEqual(
+                parent_after["material_flow"]["structural_created_mass"]
+                + parent_after["material_flow"]["structural_transferred_in"],
+                parent_dynamic_after
+                + parent_after["material_flow"]["resorbed_mass"]
+                + parent_after["material_flow"]["structural_transferred_out"],
+            )
+            self.assertEqual(
+                child_after["material_flow"]["structural_created_mass"]
+                + child_after["material_flow"]["structural_transferred_in"],
+                child_dynamic_after
+                + child_after["material_flow"]["resorbed_mass"]
+                + child_after["material_flow"]["structural_transferred_out"],
+            )
+            self.assertEqual(child_after["reserve"], 0.0)
+            self.assertEqual(parent_after["reserve"], result["parent_reserve_after_cost"])
+
     def test_structural_mass_matches_reference(self) -> None:
         for strength in (0.0, 0.25, 1.0, 1.5, 4.0, 8.0, 16.0, 1024.0):
             native_mass = ctypes.c_uint64()
