@@ -339,8 +339,11 @@ class NativeBackend:
             "relations": self._structures(snapshot.relations),
             "composites": self._structures(snapshot.composites),
             "gut": tuple(
-                (int(snapshot.gut[index].mass), int(snapshot.gut[index].origin))
-                for index in range(snapshot.gut_head, snapshot.gut_head + snapshot.gut_count)
+                (
+                    int(snapshot.gut[(snapshot.gut_head + offset) % 128].mass),
+                    int(snapshot.gut[(snapshot.gut_head + offset) % 128].origin),
+                )
+                for offset in range(snapshot.gut_count)
             ),
             "territory": tuple(int(snapshot.territory.path[index]) for index in range(snapshot.territory.depth)),
             "activated_receptors": tuple(
