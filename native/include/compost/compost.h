@@ -14,6 +14,7 @@ extern "C" {
 #define COMPOST_MAX_ATOMS 256U
 #define COMPOST_MAX_RELATIONS 512U
 #define COMPOST_MAX_COMPOSITES 512U
+#define COMPOST_MAX_GUT_CHUNKS 128U
 
 typedef enum compost_status {
     COMPOST_STATUS_OK = 0,
@@ -63,6 +64,16 @@ typedef struct compost_structure {
     double income_rate;
 } compost_structure_t;
 
+typedef enum compost_material_origin {
+    COMPOST_MATERIAL_EXTERNAL = 0,
+    COMPOST_MATERIAL_RESORPTION = 1
+} compost_material_origin_t;
+
+typedef struct compost_gut_chunk {
+    uint64_t mass;
+    compost_material_origin_t origin;
+} compost_gut_chunk_t;
+
 typedef struct compost_body {
     uint64_t structural_mass;
     uint64_t atom_count;
@@ -77,6 +88,8 @@ typedef struct compost_material_flow {
     uint64_t resorbed_mass;
     uint64_t processed_mass;
     uint64_t expelled_mass;
+    uint64_t external_expelled_mass;
+    uint64_t resorption_expelled_mass;
     uint64_t structural_created_mass;
     uint64_t structural_transferred_in;
     uint64_t structural_transferred_out;
@@ -157,6 +170,9 @@ typedef struct compost_snapshot {
     compost_structure_t relations[COMPOST_MAX_RELATIONS];
     compost_structure_t composites[COMPOST_MAX_COMPOSITES];
     uint64_t activated_receptors[4];
+    compost_gut_chunk_t gut[COMPOST_MAX_GUT_CHUNKS];
+    uint32_t gut_head;
+    uint32_t gut_count;
 } compost_snapshot_t;
 
 typedef struct compost_organism {
@@ -178,6 +194,9 @@ typedef struct compost_organism {
     compost_structure_t relations[COMPOST_MAX_RELATIONS];
     compost_structure_t composites[COMPOST_MAX_COMPOSITES];
     uint64_t activated_receptors[4];
+    compost_gut_chunk_t gut[COMPOST_MAX_GUT_CHUNKS];
+    uint32_t gut_head;
+    uint32_t gut_count;
     bool initialized;
 } compost_organism_t;
 
@@ -279,6 +298,17 @@ compost_status_t compost_organism_digest(
 compost_status_t compost_organism_maintenance(
     compost_organism_t *organism,
     compost_maintenance_result_t *result
+);
+
+compost_status_t compost_organism_enqueue_resorbed(
+    compost_organism_t *organism,
+    uint64_t mass
+);
+
+compost_status_t compost_organism_process_resorption(
+    compost_organism_t *organism,
+    uint64_t capacity,
+    uint64_t *processed
 );
 
 #ifdef __cplusplus

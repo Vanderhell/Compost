@@ -18,6 +18,10 @@ capacity. They keep transactional state copies bounded while the allocator-backe
 container design is still pending; exceeding a table returns an error and never
 silently drops a structure.
 
+Resorption material uses a 128-entry FIFO chunk ring. External FOOD payloads
+are intentionally not admitted to this accounting-only queue because payload
+bytes and per-byte nutrition must remain available to the digestion input API.
+
 A zeroed allocator selects the library's `malloc`/`free` adapter. A custom
 allocator must provide both callbacks and remains owned by the caller; the core
 only stores the callback pair and context. Initialization has no partial

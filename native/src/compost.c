@@ -140,6 +140,9 @@ compost_status_t compost_organism_snapshot(
     memcpy(snapshot->relations, organism->relations, sizeof(snapshot->relations));
     memcpy(snapshot->composites, organism->composites, sizeof(snapshot->composites));
     memcpy(snapshot->activated_receptors, organism->activated_receptors, sizeof(snapshot->activated_receptors));
+    memcpy(snapshot->gut, organism->gut, sizeof(snapshot->gut));
+    snapshot->gut_head = organism->gut_head;
+    snapshot->gut_count = organism->gut_count;
     return COMPOST_STATUS_OK;
 }
 
@@ -632,5 +635,60 @@ compost_status_t compost_organism_maintenance(
     }
     *organism = next;
     *result = next_result;
+    return COMPOST_STATUS_OK;
+}
+
+compost_status_t compost_organism_enqueue_resorbed(
+    compost_organism_t *organism,
+    uint64_t mass
+)
+{
+    if (organism == NULL || !organism->initialized || mass == 0U ||
+        organism->gut_count >= COMPOST_MAX_GUT_CHUNKS) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    const uint32_t slot = (organism->gut_head + organism->gut_count) % COMPOST_MAX_GUT_CHUNKS;
+    organism->gut[slot].mass = mass;
+    organism->gut[slot].origin = COMPOST_MATERIAL_RESORPTION;
+    organism->gut_count += 1U;
+    if (!add_u64(organism->material_flow.resorbed_mass, mass, &organism->material_flow.resorbed_mass)) {
+        organism->gut_count -= 1U;
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    return COMPOST_STATUS_OK;
+}
+
+compost_status_t compost_organism_process_resorption(
+    compost_organism_t *organism,
+    uint64_t capacity,
+    uint64_t *processed
+)
+{
+    if (organism == NULL || processed == NULL || !organism->initialized) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    compost_organism_t next = *organism;
+    uint64_t total = 0U;
+    while (capacity > 0U && next.gut_count > 0U) {
+        compost_gut_chunk_t *chunk = &next.gut[next.gut_head];
+        if (chunk->origin != COMPOST_MATERIAL_RESORPTION || chunk->mass == 0U) {
+            return COMPOST_STATUS_INVALID_STATE;
+        }
+        const uint64_t amount = chunk->mass < capacity ? chunk->mass : capacity;
+        chunk->mass -= amount;
+        capacity -= amount;
+        if (!add_u64(total, amount, &total) ||
+            !add_u64(next.material_flow.processed_mass, amount, &next.material_flow.processed_mass) ||
+            !add_u64(next.material_flow.expelled_mass, amount, &next.material_flow.expelled_mass) ||
+            !add_u64(next.material_flow.resorption_expelled_mass, amount, &next.material_flow.resorption_expelled_mass)) {
+            return COMPOST_STATUS_INVALID_ARGUMENT;
+        }
+        if (chunk->mass == 0U) {
+            next.gut_head = (next.gut_head + 1U) % COMPOST_MAX_GUT_CHUNKS;
+            next.gut_count -= 1U;
+        }
+    }
+    *organism = next;
+    *processed = total;
     return COMPOST_STATUS_OK;
 }

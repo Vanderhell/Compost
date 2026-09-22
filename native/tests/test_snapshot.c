@@ -84,6 +84,17 @@ int main(void)
         digesting.status != COMPOST_LIFECYCLE_ALIVE) {
         return fail("maintenance slice");
     }
+    if (compost_organism_enqueue_resorbed(&digesting, 10U) != COMPOST_STATUS_OK ||
+        digesting.gut_count != 1U || digesting.material_flow.resorbed_mass != 10U) {
+        return fail("resorption enqueue");
+    }
+    uint64_t processed = 0U;
+    if (compost_organism_process_resorption(&digesting, 4U, &processed) != COMPOST_STATUS_OK ||
+        processed != 4U || digesting.gut_count != 1U ||
+        digesting.gut[digesting.gut_head].mass != 6U ||
+        digesting.material_flow.resorption_expelled_mass != 4U) {
+        return fail("resorption FIFO");
+    }
     compost_organism_destroy(&digesting);
     return 0;
 }
