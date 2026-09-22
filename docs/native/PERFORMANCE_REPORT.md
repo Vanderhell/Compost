@@ -32,10 +32,10 @@ native/build-release-bench/compost_benchmark_digest
 
 ## Evidence boundary
 
-Observed on the current Windows GCC toolchain: `5` repetitions of `100000`
-iterations (`400000` bytes each), min `0.554000000`, median `0.555000000`, max
-`0.560000000` CPU seconds, median `180180.180` steps/sec. This measures only
-the bounded direct-C digest checkpoint.
+Observed on the current Windows MinGW GCC toolchain: `5` repetitions of
+`100000` iterations (`400000` bytes each), min `0.606000000`, median
+`0.614000000`, max `0.623000000` CPU seconds, median `162866.450` steps/sec.
+This measures only the bounded direct-C digest checkpoint.
 
 No Python or FFI throughput number is recorded yet. No speedup claim is
 permitted from this report alone.
