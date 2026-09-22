@@ -129,6 +129,32 @@ int main(void)
         compost_organism_verify_material_conservation(&digesting) != COMPOST_STATUS_OK) {
         return fail("weakest structure");
     }
+    compost_organism_t consolidating = {0};
+    uint64_t consolidated = 0U;
+    uint64_t relation_mass = 0U;
+    if (compost_organism_init(&consolidating, &config, NULL, UINT64_C(10)) != COMPOST_STATUS_OK ||
+        compost_structural_mass(4.0, &relation_mass) != COMPOST_STATUS_OK) {
+        return fail("consolidation setup");
+    }
+    consolidating.relations[0].occupied = true;
+    consolidating.relations[0].kind = COMPOST_STRUCTURE_RELATION;
+    consolidating.relations[0].left = 1U;
+    consolidating.relations[0].right = 2U;
+    consolidating.relations[0].strength = 4.0;
+    consolidating.relations[0].maintenance = 0.5;
+    consolidating.relations[0].evidence = 2.0;
+    consolidating.relations[0].income_rate = 1.0;
+    consolidating.body.relation_count = 1U;
+    consolidating.body.structural_mass += relation_mass;
+    consolidating.material_flow.structural_created_mass = relation_mass;
+    if (compost_organism_consolidate(&consolidating, 0.3, 0.1, &consolidated) != COMPOST_STATUS_OK ||
+        consolidated != 1U || consolidating.body.relation_count != 0U ||
+        consolidating.body.composite_count != 1U ||
+        compost_organism_verify_material_conservation(&consolidating) != COMPOST_STATUS_OK) {
+        compost_organism_destroy(&consolidating);
+        return fail("consolidation transition");
+    }
+    compost_organism_destroy(&consolidating);
     compost_organism_t stepping = {0};
     compost_cycle_result_t cycle = {0};
     if (compost_organism_init(&stepping, &config, NULL, UINT64_C(9)) != COMPOST_STATUS_OK ||

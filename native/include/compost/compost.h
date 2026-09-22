@@ -360,6 +360,14 @@ compost_status_t compost_organism_maintenance(
     compost_maintenance_result_t *result
 );
 
+/* Applies deterministic relation-to-composite consolidation candidates. */
+compost_status_t compost_organism_consolidate(
+    compost_organism_t *organism,
+    double composite_maintenance,
+    double consolidation_formation_cost,
+    uint64_t *consolidated_count
+);
+
 /* Versioned opaque ABI; internal organism layout is not exposed through it. */
 compost_status_t compost_create(
     const compost_config_t *config,

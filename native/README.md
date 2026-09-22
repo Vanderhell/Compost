@@ -7,9 +7,10 @@ behavioral oracle.
 
 The current native behavior includes pure biology rules, byte digestion,
 maintenance/forgetting, resorption accounting, deterministic partition
-selection, selected structural partition transactions, and a transactional
-digest-plus-maintenance step. It is not yet the complete lifecycle engine:
-full external gut payload handling, consolidation policy, population
+selection, selected structural partition transactions, consolidation
+transitions, and a transactional digest-plus-maintenance step. It is not yet
+the complete lifecycle engine: full external gut payload handling, step-level
+consolidation/viability integration, population
 scheduling, and long Python/C per-step differential validation remain pending.
 
 ## Ownership and allocation

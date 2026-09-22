@@ -1031,6 +1031,82 @@ compost_status_t compost_organism_maintenance(
     return COMPOST_STATUS_OK;
 }
 
+compost_status_t compost_organism_consolidate(
+    compost_organism_t *organism,
+    double composite_maintenance,
+    double consolidation_formation_cost,
+    uint64_t *consolidated_count
+)
+{
+    if (organism == NULL || consolidated_count == NULL || !organism->initialized ||
+        !finite(composite_maintenance) || composite_maintenance <= 0.0 ||
+        !finite(consolidation_formation_cost) || consolidation_formation_cost < 0.0) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    compost_organism_t next = *organism;
+    uint64_t total = 0U;
+    for (;;) {
+        compost_structure_t *candidate = NULL;
+        for (size_t index = 0U; index < COMPOST_MAX_RELATIONS; ++index) {
+            compost_structure_t *relation = &next.relations[index];
+            if (!relation->occupied) continue;
+            const double evidence_scale = relation->evidence > 1.0 ? relation->evidence : 1.0;
+            const double before = relation->maintenance * evidence_scale;
+            const double after = composite_maintenance * evidence_scale;
+            const double useful_evidence = relation->evidence * (relation->strength / evidence_scale);
+            if (!finite(before) || !finite(after) || !finite(useful_evidence) ||
+                !(after + consolidation_formation_cost < before) ||
+                !(useful_evidence > consolidation_formation_cost)) continue;
+            if (candidate == NULL || relation->left < candidate->left ||
+                (relation->left == candidate->left && relation->right < candidate->right)) {
+                candidate = relation;
+            }
+        }
+        if (candidate == NULL) break;
+        compost_structure_t *composite = free_structure(next.composites, COMPOST_MAX_COMPOSITES);
+        if (composite == NULL) return COMPOST_STATUS_INVALID_STATE;
+        uint64_t relation_mass = 0U;
+        uint64_t composite_mass = 0U;
+        if (compost_structural_mass(candidate->strength, &relation_mass) != COMPOST_STATUS_OK) {
+            return COMPOST_STATUS_INVALID_STATE;
+        }
+        *composite = *candidate;
+        composite->kind = COMPOST_STRUCTURE_COMPOSITE;
+        composite->maintenance = composite_maintenance;
+        if (compost_structural_mass(composite->strength, &composite_mass) != COMPOST_STATUS_OK) {
+            return COMPOST_STATUS_INVALID_STATE;
+        }
+        memset(candidate, 0, sizeof(*candidate));
+        if (next.body.relation_count == 0U) return COMPOST_STATUS_INVALID_STATE;
+        --next.body.relation_count;
+        ++next.body.composite_count;
+        if (composite_mass > relation_mass) {
+            const uint64_t increase = composite_mass - relation_mass;
+            if (!add_u64(next.body.structural_mass, increase, &next.body.structural_mass) ||
+                !add_u64(next.material_flow.structural_created_mass, increase,
+                         &next.material_flow.structural_created_mass)) {
+                return COMPOST_STATUS_INVALID_ARGUMENT;
+            }
+        } else if (relation_mass > composite_mass) {
+            const uint64_t decrease = relation_mass - composite_mass;
+            if (next.body.structural_mass < decrease ||
+                append_resorption_chunk(&next, decrease) != COMPOST_STATUS_OK ||
+                !add_u64(next.material_flow.resorbed_mass, decrease, &next.material_flow.resorbed_mass)) {
+                return COMPOST_STATUS_INVALID_STATE;
+            }
+            next.body.structural_mass -= decrease;
+        }
+        if (!add_u64(next.activity.counters.composites_created, UINT64_C(1),
+                     &next.activity.counters.composites_created) ||
+            !add_u64(total, UINT64_C(1), &total)) {
+            return COMPOST_STATUS_INVALID_ARGUMENT;
+        }
+    }
+    *organism = next;
+    *consolidated_count = total;
+    return COMPOST_STATUS_OK;
+}
+
 compost_status_t compost_organism_enqueue_resorbed(
     compost_organism_t *organism,
     uint64_t mass

@@ -11,6 +11,7 @@
 | Bounded organism structural state | PORTING | `MathematicalLifeOrganism` structures | 256 atoms and 512 relation/composite validation bounds |
 | Deterministic byte digestion checkpoint | PORTING | `MathematicalLifePopulation._digest` | Explicit food/nutrition view; maintenance/gut/division tail not yet included |
 | Composed deterministic step checkpoint | PORTING | `MathematicalLifePopulation._cycle_one` | Native digest+maintenance transaction with explicit result; consolidation, full gut, and lifecycle policy remain pending |
+| Consolidation transition | PORTING | `MathematicalLifePopulation._consolidate` | Deterministic relation-to-composite mutation added with explicit composite parameters; step integration and differential campaign remain pending |
 | Eager maintenance/forgetting slice | PORTING | `MathematicalLifePopulation._maintain_and_resorb` | Reserve settlement, forgetting, age, and empty-body death; weakest-member resorption deferred |
 | Resorption FIFO accounting | PORTING | `AutonomousOrganism.enqueue_resorbed_material`, `process_gut` | 128 bounded chunks; external payload FIFO remains pending |
 | Weakest-structure transition | PORTING | `AutonomousCore.remove_weakest` | Deterministic tie-break; incident-member cleanup and critical-bridge protection pending |
