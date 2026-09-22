@@ -10,6 +10,9 @@ GCC Release, and MSVC Debug runs, with all six tests passing in each run.
 The division fixture additionally verifies duplicate/whole-region rejection,
 unchanged parent state, and an untouched child output on failed partition
 calls.
+The lifecycle fixtures additionally cover deterministic starvation resorption,
+mass-ledger verification, and a dead-state step no-op with invalid-input
+validation preserved.
 The native source also passes the strict Clang C17 object compilation with the
 MinGW target; a complete Clang link/test run remains unavailable because the
 standalone Windows Clang environment lacks the required CRT libraries.
