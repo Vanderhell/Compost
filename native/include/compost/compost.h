@@ -258,6 +258,20 @@ typedef struct compost_division_result {
     double parent_reserve_after_cost;
 } compost_division_result_t;
 
+typedef struct compost_division_plan {
+    bool candidate_found;
+    bool allowed;
+    uint8_t child_atoms[COMPOST_MAX_ATOMS];
+    size_t child_atom_count;
+    double boundary_ratio;
+    double boundary_maintenance;
+    double child_income;
+    double child_maintenance;
+    double parent_income;
+    double parent_maintenance;
+    double birth_gain;
+} compost_division_plan_t;
+
 /* A zeroed allocator selects the library's malloc/free-backed defaults. */
 compost_status_t compost_config_default(compost_config_t *config);
 
@@ -458,6 +472,12 @@ compost_status_t compost_organism_select_partition(
     size_t child_atom_capacity,
     size_t *child_atom_count,
     double *selected_ratio
+);
+
+/* Evaluates the selected boundary against the native lifecycle viability rule. */
+compost_status_t compost_organism_plan_division(
+    const compost_organism_t *organism,
+    compost_division_plan_t *plan
 );
 
 /* Weakens or removes one deterministically selected live structure. */

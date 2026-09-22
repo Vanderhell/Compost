@@ -1436,6 +1436,72 @@ compost_status_t compost_organism_select_partition(
     return COMPOST_STATUS_OK;
 }
 
+compost_status_t compost_organism_plan_division(
+    const compost_organism_t *organism,
+    compost_division_plan_t *plan
+)
+{
+    if (organism == NULL || plan == NULL || !organism->initialized ||
+        organism->status != COMPOST_LIFECYCLE_ALIVE) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    memset(plan, 0, sizeof(*plan));
+    size_t selected_count = 0U;
+    double ratio = 0.0;
+    const compost_status_t selection = compost_organism_select_partition(
+        organism,
+        organism->config.boundary_ratio_limit,
+        plan->child_atoms,
+        COMPOST_MAX_ATOMS,
+        &selected_count,
+        &ratio
+    );
+    if (selection == COMPOST_STATUS_INVALID_STATE) {
+        return COMPOST_STATUS_OK;
+    }
+    if (selection != COMPOST_STATUS_OK) return selection;
+    plan->candidate_found = true;
+    plan->child_atom_count = selected_count;
+    plan->boundary_ratio = ratio;
+    bool selected[COMPOST_MAX_ATOMS] = {false};
+    for (size_t index = 0U; index < selected_count; ++index) selected[(size_t)plan->child_atoms[index]] = true;
+    for (size_t index = 0U; index < COMPOST_MAX_ATOMS; ++index) {
+        const compost_structure_t *atom = &organism->atoms[index];
+        if (!atom->occupied) continue;
+        double *income = selected[(size_t)atom->left] ? &plan->child_income : &plan->parent_income;
+        double *maintenance = selected[(size_t)atom->left] ? &plan->child_maintenance : &plan->parent_maintenance;
+        *income += atom->income_rate;
+        *maintenance += atom->maintenance;
+    }
+    for (size_t collection = 0U; collection < 2U; ++collection) {
+        const compost_structure_t *structures = collection == 0U ? organism->relations : organism->composites;
+        const size_t structure_count = collection == 0U ? COMPOST_MAX_RELATIONS : COMPOST_MAX_COMPOSITES;
+        for (size_t index = 0U; index < structure_count; ++index) {
+            const compost_structure_t *structure = &structures[index];
+            if (!structure->occupied || atom_for_key(organism, structure->left) == NULL ||
+                atom_for_key(organism, structure->right) == NULL) continue;
+            const bool left_selected = selected[(size_t)structure->left];
+            const bool right_selected = selected[(size_t)structure->right];
+            if (left_selected && right_selected) {
+                plan->child_income += structure->income_rate;
+                plan->child_maintenance += structure->maintenance;
+            } else if (!left_selected && !right_selected) {
+                plan->parent_income += structure->income_rate;
+                plan->parent_maintenance += structure->maintenance;
+            } else {
+                plan->boundary_maintenance += structure->maintenance;
+            }
+        }
+    }
+    plan->birth_gain = organism->config.division_horizon * plan->boundary_maintenance - organism->config.birth_cost;
+    plan->allowed = finite(plan->child_income) && finite(plan->child_maintenance) &&
+        finite(plan->parent_income) && finite(plan->parent_maintenance) && finite(plan->birth_gain) &&
+        plan->child_income > plan->child_maintenance &&
+        plan->parent_income > plan->parent_maintenance &&
+        organism->reserve >= organism->config.birth_cost && plan->birth_gain > 0.0;
+    return COMPOST_STATUS_OK;
+}
+
 compost_status_t compost_organism_partition(
     compost_organism_t *parent,
     compost_organism_t *child,

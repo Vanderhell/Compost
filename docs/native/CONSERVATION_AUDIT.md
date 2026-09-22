@@ -52,10 +52,10 @@ selected-region partition transaction. The transaction transfers internal
 atoms/edges without cloning, routes cross-split edge mass to parent resorption,
 charges parent birth cost, initializes child reserve to zero, splits territory,
 and records transferred mass. GCC/MSVC tests cover one cross-split fixture.
-The deterministic two-way boundary selector is now also ported and tested;
-energy/maintenance viability policy, adversarial fixture breadth, and Python/C
-differential comparison remain pending, so the native gate is not allowed to
-pass yet.
+The deterministic two-way boundary selector and native energy/maintenance
+viability plan are now also ported and tested; adversarial fixture breadth and
+Python/C differential comparison remain pending, so the native gate is not
+allowed to pass yet.
 
 Required native fixtures before integration:
 

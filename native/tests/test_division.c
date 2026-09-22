@@ -72,6 +72,16 @@ int main(void)
         compost_organism_destroy(&parent);
         return fail("seed conservation");
     }
+    parent.config.boundary_ratio_limit = 0.5;
+    compost_division_plan_t plan = {0};
+    if (compost_organism_plan_division(&parent, &plan) != COMPOST_STATUS_OK ||
+        !plan.candidate_found || !plan.allowed || plan.child_atom_count != 2U ||
+        plan.child_atoms[0] != 1U || plan.child_atoms[1] != 2U ||
+        plan.birth_gain <= 0.0 || plan.child_income <= plan.child_maintenance ||
+        plan.parent_income <= plan.parent_maintenance) {
+        compost_organism_destroy(&parent);
+        return fail("division viability plan");
+    }
     uint8_t selected[COMPOST_MAX_ATOMS] = {0};
     size_t selected_count = 0U;
     double selected_ratio = 0.0;
