@@ -398,6 +398,16 @@ compost_status_t compost_organism_partition(
     compost_division_result_t *result
 );
 
+/* Selects the lowest-ratio two-way boundary using deterministic tie-breaks. */
+compost_status_t compost_organism_select_partition(
+    const compost_organism_t *organism,
+    double boundary_ratio_limit,
+    uint8_t *child_atoms,
+    size_t child_atom_capacity,
+    size_t *child_atom_count,
+    double *selected_ratio
+);
+
 /* Weakens or removes one deterministically selected live structure. */
 compost_status_t compost_organism_weaken_weakest(
     compost_organism_t *organism,

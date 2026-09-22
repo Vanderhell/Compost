@@ -1085,6 +1085,159 @@ static compost_status_t partition_mass(
     return COMPOST_STATUS_OK;
 }
 
+static bool boundary_matches(uint8_t left, uint8_t right, uint8_t boundary_left, uint8_t boundary_right)
+{
+    return (left == boundary_left && right == boundary_right) ||
+           (left == boundary_right && right == boundary_left);
+}
+
+static const compost_structure_t *atom_for_key(const compost_organism_t *organism, uint8_t key)
+{
+    for (size_t index = 0U; index < COMPOST_MAX_ATOMS; ++index) {
+        const compost_structure_t *atom = &organism->atoms[index];
+        if (atom->occupied && atom->left == key) return atom;
+    }
+    return NULL;
+}
+
+static compost_status_t label_components(
+    const compost_organism_t *organism,
+    bool skip_boundary,
+    uint8_t boundary_left,
+    uint8_t boundary_right,
+    uint8_t labels[COMPOST_MAX_ATOMS],
+    uint8_t *component_count
+)
+{
+    for (size_t index = 0U; index < COMPOST_MAX_ATOMS; ++index) labels[index] = UINT8_MAX;
+    uint8_t count = 0U;
+    for (size_t seed = 0U; seed < COMPOST_MAX_ATOMS; ++seed) {
+        if (atom_for_key(organism, (uint8_t)seed) == NULL || labels[seed] != UINT8_MAX) continue;
+        if (count == UINT8_MAX) return COMPOST_STATUS_INVALID_STATE;
+        uint8_t queue[COMPOST_MAX_ATOMS] = {0};
+        size_t head = 0U;
+        size_t tail = 1U;
+        queue[0] = (uint8_t)seed;
+        labels[seed] = count;
+        while (head < tail) {
+            const uint8_t current = queue[head++];
+            for (size_t collection = 0U; collection < 2U; ++collection) {
+                const compost_structure_t *structures = collection == 0U ? organism->relations : organism->composites;
+                const size_t structure_count = collection == 0U ? COMPOST_MAX_RELATIONS : COMPOST_MAX_COMPOSITES;
+                for (size_t index = 0U; index < structure_count; ++index) {
+                    const compost_structure_t *structure = &structures[index];
+                    if (!structure->occupied || structure->left == structure->right ||
+                        (skip_boundary && boundary_matches(structure->left, structure->right, boundary_left, boundary_right)) ||
+                        (structure->left != current && structure->right != current)) continue;
+                    const uint8_t neighbour = structure->left == current ? structure->right : structure->left;
+                    if (atom_for_key(organism, neighbour) == NULL || labels[(size_t)neighbour] != UINT8_MAX) continue;
+                    if (tail >= COMPOST_MAX_ATOMS) return COMPOST_STATUS_INVALID_STATE;
+                    labels[(size_t)neighbour] = count;
+                    queue[tail++] = neighbour;
+                }
+            }
+        }
+        ++count;
+    }
+    *component_count = count;
+    return COMPOST_STATUS_OK;
+}
+
+compost_status_t compost_organism_select_partition(
+    const compost_organism_t *organism,
+    double boundary_ratio_limit,
+    uint8_t *child_atoms,
+    size_t child_atom_capacity,
+    size_t *child_atom_count,
+    double *selected_ratio
+)
+{
+    if (organism == NULL || child_atoms == NULL || child_atom_count == NULL || selected_ratio == NULL ||
+        !organism->initialized || !finite(boundary_ratio_limit) ||
+        !(boundary_ratio_limit > 0.0 && boundary_ratio_limit < 1.0)) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    *child_atom_count = 0U;
+    *selected_ratio = 0.0;
+    uint8_t baseline_labels[COMPOST_MAX_ATOMS] = {0};
+    uint8_t baseline_count = 0U;
+    if (organism->body.atom_count < 2U ||
+        label_components(organism, false, 0U, 0U, baseline_labels, &baseline_count) != COMPOST_STATUS_OK ||
+        baseline_count != 1U) {
+        return COMPOST_STATUS_INVALID_STATE;
+    }
+    bool seen[COMPOST_MAX_ATOMS][COMPOST_MAX_ATOMS] = {{false}};
+    bool best_selected[COMPOST_MAX_ATOMS] = {false};
+    bool found = false;
+    double best_ratio = INFINITY;
+    uint8_t best_left = UINT8_MAX;
+    uint8_t best_right = UINT8_MAX;
+    for (size_t collection = 0U; collection < 2U; ++collection) {
+        const compost_structure_t *structures = collection == 0U ? organism->relations : organism->composites;
+        const size_t structure_count = collection == 0U ? COMPOST_MAX_RELATIONS : COMPOST_MAX_COMPOSITES;
+        for (size_t index = 0U; index < structure_count; ++index) {
+            const compost_structure_t *edge = &structures[index];
+            if (!edge->occupied || edge->left == edge->right ||
+                atom_for_key(organism, edge->left) == NULL || atom_for_key(organism, edge->right) == NULL) continue;
+            uint8_t left = edge->left;
+            uint8_t right = edge->right;
+            if (left > right) {
+                const uint8_t swap = left;
+                left = right;
+                right = swap;
+            }
+            if (seen[(size_t)left][(size_t)right]) continue;
+            seen[(size_t)left][(size_t)right] = true;
+            uint8_t labels[COMPOST_MAX_ATOMS] = {0};
+            uint8_t component_count = 0U;
+            if (label_components(organism, true, left, right, labels, &component_count) != COMPOST_STATUS_OK || component_count != 2U) continue;
+            size_t sizes[2] = {0U, 0U};
+            uint8_t first[2] = {UINT8_MAX, UINT8_MAX};
+            for (size_t atom = 0U; atom < COMPOST_MAX_ATOMS; ++atom) {
+                if (labels[atom] < 2U) {
+                    ++sizes[labels[atom]];
+                    if (first[labels[atom]] == UINT8_MAX) first[labels[atom]] = (uint8_t)atom;
+                }
+            }
+            const uint8_t child_label = sizes[0] < sizes[1] || (sizes[0] == sizes[1] && first[0] < first[1])
+                ? UINT8_C(0) : UINT8_C(1);
+            double boundary_strength = 0.0;
+            for (size_t edge_collection = 0U; edge_collection < 2U; ++edge_collection) {
+                const compost_structure_t *boundary_edges = edge_collection == 0U ? organism->relations : organism->composites;
+                const size_t boundary_count = edge_collection == 0U ? COMPOST_MAX_RELATIONS : COMPOST_MAX_COMPOSITES;
+                for (size_t boundary_index = 0U; boundary_index < boundary_count; ++boundary_index) {
+                    const compost_structure_t *boundary_edge = &boundary_edges[boundary_index];
+                    if (boundary_edge->occupied && boundary_matches(boundary_edge->left, boundary_edge->right, left, right)) {
+                        boundary_strength += boundary_edge->strength;
+                    }
+                }
+            }
+            const compost_structure_t *left_atom = atom_for_key(organism, left);
+            const compost_structure_t *right_atom = atom_for_key(organism, right);
+            if (left_atom == NULL || right_atom == NULL) continue;
+            const double denominator = left_atom->strength + right_atom->strength + boundary_strength;
+            const double ratio = denominator > 0.0 ? boundary_strength / denominator : 1.0;
+            if (!finite(ratio) || ratio >= boundary_ratio_limit ||
+                (found && (ratio > best_ratio || (ratio == best_ratio &&
+                    (left > best_left || (left == best_left && right >= best_right)))))) continue;
+            found = true;
+            best_ratio = ratio;
+            best_left = left;
+            best_right = right;
+            for (size_t atom = 0U; atom < COMPOST_MAX_ATOMS; ++atom) best_selected[atom] = labels[atom] == child_label;
+        }
+    }
+    if (!found) return COMPOST_STATUS_INVALID_STATE;
+    size_t count = 0U;
+    for (size_t atom = 0U; atom < COMPOST_MAX_ATOMS; ++atom) if (best_selected[atom]) ++count;
+    *child_atom_count = count;
+    *selected_ratio = best_ratio;
+    if (child_atom_capacity < count) return COMPOST_STATUS_BUFFER_TOO_SMALL;
+    size_t output = 0U;
+    for (size_t atom = 0U; atom < COMPOST_MAX_ATOMS; ++atom) if (best_selected[atom]) child_atoms[output++] = (uint8_t)atom;
+    return COMPOST_STATUS_OK;
+}
+
 compost_status_t compost_organism_partition(
     compost_organism_t *parent,
     compost_organism_t *child,

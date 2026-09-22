@@ -72,6 +72,16 @@ int main(void)
         compost_organism_destroy(&parent);
         return fail("seed conservation");
     }
+    uint8_t selected[COMPOST_MAX_ATOMS] = {0};
+    size_t selected_count = 0U;
+    double selected_ratio = 0.0;
+    if (compost_organism_select_partition(&parent, 0.5, selected, COMPOST_MAX_ATOMS,
+                                          &selected_count, &selected_ratio) != COMPOST_STATUS_OK ||
+        selected_count != 2U || selected[0] != 1U || selected[1] != 2U ||
+        selected_ratio < 0.2857 || selected_ratio > 0.2858) {
+        compost_organism_destroy(&parent);
+        return fail("partition selector");
+    }
     if (compost_organism_partition(&parent, &child, UINT64_C(11), region, 2U, 1.0, &result) != COMPOST_STATUS_OK ||
         result.child_structural_mass != UINT64_C(7) || result.cross_split_mass != UINT64_C(4) ||
         result.parent_reserve_after_cost != 99.0 || parent.territory.depth != 1U ||
