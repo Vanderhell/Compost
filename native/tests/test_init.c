@@ -20,7 +20,8 @@ int main(void)
     if (status != COMPOST_STATUS_OK || !organism.initialized) {
         return fail("organism init");
     }
-    if (organism.organism_id != UINT64_C(42) || organism.status != COMPOST_LIFECYCLE_ALIVE) {
+    if (organism.organism_id != UINT64_C(42) || organism.status != COMPOST_LIFECYCLE_ALIVE ||
+        organism.reserve != 1.0) {
         return fail("initial state");
     }
     if (compost_organism_init(&organism, &config, NULL, UINT64_C(43)) != COMPOST_STATUS_INVALID_STATE) {

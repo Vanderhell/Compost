@@ -58,7 +58,8 @@ static bool valid_config(const compost_config_t *config)
            finite(config->atom_maintenance) && config->atom_maintenance > 0.0 &&
            finite(config->relation_maintenance) && config->relation_maintenance > 0.0 &&
            finite(config->atom_formation_cost) && config->atom_formation_cost > 0.0 &&
-           finite(config->relation_formation_cost) && config->relation_formation_cost > 0.0;
+           finite(config->relation_formation_cost) && config->relation_formation_cost > 0.0 &&
+           finite(config->birth_reserve) && config->birth_reserve >= 0.0;
 }
 
 compost_status_t compost_create(
@@ -127,6 +128,7 @@ compost_status_t compost_config_default(compost_config_t *config)
     config->relation_maintenance = 0.5;
     config->atom_formation_cost = 0.35;
     config->relation_formation_cost = 1.25;
+    config->birth_reserve = 1.0;
     return COMPOST_STATUS_OK;
 }
 
@@ -150,6 +152,7 @@ compost_status_t compost_organism_init(
     organism->config = *config;
     organism->organism_id = organism_id;
     organism->status = COMPOST_LIFECYCLE_ALIVE;
+    organism->reserve = config->birth_reserve;
     organism->body.structural_mass = UINT64_C(256);
     organism->territory.organism_id = organism_id;
     organism->territory.alive = true;

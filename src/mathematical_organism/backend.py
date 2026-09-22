@@ -30,6 +30,7 @@ class _Config(ctypes.Structure):
         ("relation_maintenance", ctypes.c_double),
         ("atom_formation_cost", ctypes.c_double),
         ("relation_formation_cost", ctypes.c_double),
+        ("birth_reserve", ctypes.c_double),
     ]
 
 

@@ -45,6 +45,7 @@ typedef struct compost_config {
     double relation_maintenance;
     double atom_formation_cost;
     double relation_formation_cost;
+    double birth_reserve;
 } compost_config_t;
 
 typedef enum compost_structure_kind {
