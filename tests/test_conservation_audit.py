@@ -41,9 +41,10 @@ class IndependentConservationAuditTests(unittest.TestCase):
         assert child is not None
         after = self.dynamic_mass(parent) + self.dynamic_mass(child) + parent.gut_mass
         self.assertEqual(before, after)
+        living_after = self.dynamic_mass(parent) + self.dynamic_mass(child)
         self.assertEqual(
             parent.material_flow.structural_created_mass,
-            after + parent.material_flow.resorbed_mass,
+            living_after + parent.material_flow.resorbed_mass,
         )
         self.assertEqual(child.body.reserve, 0.0)
         self.assertEqual(parent.body.reserve, 39.0)
