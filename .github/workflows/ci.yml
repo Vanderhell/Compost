@@ -82,3 +82,14 @@ jobs:
         run: cmake --build native/build-msvc --config Release --parallel
       - name: Run MSVC native tests
         run: ctest --test-dir native/build-msvc -C Release --output-on-failure
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Windows differential harness
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install . pytest
+      - name: Run Windows Python/native differential tests
+        env:
+          COMPOST_NATIVE_LIBRARY: ${{ github.workspace }}/native/build-msvc/Release/compost_native.dll
+        run: python -m pytest -q tests/test_native_differential.py
