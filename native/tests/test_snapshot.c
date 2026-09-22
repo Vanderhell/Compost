@@ -100,6 +100,38 @@ int main(void)
         compost_organism_verify_material_conservation(&digesting) != COMPOST_STATUS_OK) {
         return fail("deterministic digest");
     }
+    compost_organism_t gutting = {0};
+    compost_gut_process_result_t gut_result = {0};
+    const uint8_t queued_food[] = {1U, 2U, 1U};
+    const double queued_nutrition[] = {1.0, 2.0, 3.0};
+    const compost_step_input_t queued_input = {queued_food, queued_nutrition, 3U};
+    if (compost_organism_init(&gutting, &config, NULL, UINT64_C(18)) != COMPOST_STATUS_OK ||
+        compost_organism_enqueue_external(&gutting, &queued_input) != COMPOST_STATUS_OK ||
+        gutting.gut_count != 1U || gutting.gut[gutting.gut_head].mass != 3U ||
+        gutting.gut[gutting.gut_head].payload_length != 3U ||
+        gutting.material_flow.input_mass != 3U ||
+        compost_organism_verify_material_conservation(&gutting) != COMPOST_STATUS_OK) {
+        compost_organism_destroy(&gutting);
+        return fail("external gut enqueue");
+    }
+    if (compost_organism_process_gut(&gutting, 2U, &gut_result) != COMPOST_STATUS_OK ||
+        gut_result.processed_mass != 2U || gut_result.assimilated_mass != 2U ||
+        gut_result.rejected_mass != 0U || gutting.gut_count != 1U ||
+        gutting.gut[gutting.gut_head].mass != 1U ||
+        gutting.gut[gutting.gut_head].payload_length != 1U ||
+        gutting.gut[gutting.gut_head].payload[0] != 1U ||
+        compost_organism_verify_material_conservation(&gutting) != COMPOST_STATUS_OK) {
+        compost_organism_destroy(&gutting);
+        return fail("external gut partial processing");
+    }
+    if (compost_organism_process_gut(&gutting, 2U, &gut_result) != COMPOST_STATUS_OK ||
+        gut_result.processed_mass != 1U || gut_result.assimilated_mass != 1U ||
+        gutting.gut_count != 0U || gutting.material_flow.assimilated_mass != 3U ||
+        compost_organism_verify_material_conservation(&gutting) != COMPOST_STATUS_OK) {
+        compost_organism_destroy(&gutting);
+        return fail("external gut completion");
+    }
+    compost_organism_destroy(&gutting);
     digesting.reserve = 10.0;
     compost_maintenance_result_t maintenance = {0};
     if (compost_organism_maintenance(&digesting, &maintenance) != COMPOST_STATUS_OK ||

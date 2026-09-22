@@ -100,6 +100,24 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             plan = backend.division_plan()
             self.assertFalse(plan["candidate_found"])
 
+    def test_public_python_adapter_runs_native_external_gut_fifo(self) -> None:
+        with NativeBackend(self.library_path, organism_id=100) as backend:
+            backend.enqueue_external(b"\x01\x02\x01", (1.0, 2.0, 3.0))
+            queued = backend.snapshot()["gut"]
+            self.assertEqual(queued, ((3, 0, b"\x01\x02\x01", (1.0, 2.0, 3.0)),))
+            first = backend.process_gut(2)
+            self.assertEqual(first, {
+                "processed_mass": 2,
+                "assimilated_mass": 2,
+                "rejected_mass": 0,
+                "expelled_mass": 0,
+            })
+            remaining = backend.snapshot()["gut"]
+            self.assertEqual(remaining, ((1, 0, b"\x01", (3.0,)),))
+            second = backend.process_gut(2)
+            self.assertEqual(second["processed_mass"], 1)
+            self.assertEqual(backend.snapshot()["gut"], ())
+
     def test_native_partition_preserves_structural_mass_independently(self) -> None:
         with NativeBackend(self.library_path, organism_id=10) as parent:
             parent.digest(b"ABCD", (10.0,) * 4)
@@ -114,10 +132,10 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             self.assertEqual(result["child_structural_mass"], child_dynamic_after)
             self.assertGreater(result["cross_split_mass"], 0)
             self.assertEqual(
-                parent_dynamic_before + sum(mass for mass, _origin in before["gut"]),
+                parent_dynamic_before + sum(item[0] for item in before["gut"]),
                 parent_dynamic_after
                 + child_dynamic_after
-                + sum(mass for mass, _origin in parent_after["gut"]),
+                + sum(item[0] for item in parent_after["gut"]),
             )
             self.assertEqual(
                 parent_after["material_flow"]["structural_created_mass"]

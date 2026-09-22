@@ -14,7 +14,7 @@
 | Consolidation transition | DIFFERENTIAL_PASS | `MathematicalLifePopulation._consolidate` | Deterministic relation-to-composite mutation and capacity/bridge handling pass bounded differential coverage; full policy integration remains pending |
 | Native deterministic replay | DIFFERENTIAL_PASS | Deterministic reference contract | Forty deterministic scenarios × 256 cycles pass in the default campaign; a local 1,000,000-step Python/native replay also passes with first-step mismatch reporting; full lifecycle/reference scope remains pending |
 | Eager maintenance/forgetting slice | DIFFERENTIAL_PASS | `MathematicalLifePopulation._maintain_and_resorb` | Reserve settlement, forgetting, deterministic starvation resorption, age, and empty-body death pass bounded differential coverage |
-| Resorption FIFO accounting | PORTING | `AutonomousOrganism.enqueue_resorbed_material`, `process_gut` | 128 bounded chunks; external payload FIFO remains pending |
+| Resorption/external FIFO accounting | DIFFERENTIAL_PASS | `AutonomousOrganism.enqueue_external_material`, `process_gut` | Native ABI v3 owns bounded payload/nutrition chunks, partial FIFO processing, resorption accounting, and Python adapter tests; full sandbox differential integration remains pending |
 | Weakest-structure transition | PORTING | `AutonomousCore.remove_weakest` | Deterministic tie-break and capacity-pressure critical-bridge protection are covered; full weakest-structure policy remains pending |
 | Opaque native ABI | PORTING | Python reference boundary | `compost_create/destroy/snapshot/digest/state_digest/select_partition/plan_division/partition`; opaque Python adapter and ABI failure handling pass |
 | Python backend selector/loader | PORTING | Existing Python runtime | Explicit `python`/`native` handles, native step/snapshot/partition adapters, and `checkpoint --backend` CLI mode; full lifecycle acceptance remains pending |
@@ -22,7 +22,7 @@
 | Public API robustness tests | PORTING | C API failure contract | Null, NaN, transactional failure, and idempotent destroy coverage |
 | Lazy metabolism delta | DIFFERENTIAL_PASS | `biology_rules.lazy_metabolism_delta` | Tolerance-based Python/C differential cases pass |
 | Reproduction assessment | DIFFERENTIAL_PASS | `biology_rules.reproduction_allowed` | Pure eligibility/score differential cases pass; automatic candidate policy remains pending |
-| Material-flow accounting | DIFFERENTIAL_PASS | `sandbox_runtime.MaterialFlow` | Native conservation validator, FIFO accounting, cross-edge resorption, and division transfer pass bounded tests; external payload gut remains pending |
+| Material-flow accounting | DIFFERENTIAL_PASS | `sandbox_runtime.MaterialFlow` | Native conservation validator, external/resorption FIFO accounting, cross-edge resorption, and division transfer pass bounded tests; full sandbox ledger differential remains pending |
 
 | Selected structural partition | PORTING | `AutonomousOrganism._commit_skeleton_partition` | Selector, viability plan, and partition transaction pass native GCC/MSVC tests; Python differential campaign and full policy integration remain pending |
 | Native parallel runtime | DEFERRED | Existing Python parallel runtime | See `PARALLEL_RUNTIME.md`; single-thread semantic parity is required first |

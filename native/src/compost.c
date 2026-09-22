@@ -162,6 +162,25 @@ compost_status_t compost_context_step(
     return compost_organism_step(&context->organism, input, result);
 }
 
+compost_status_t compost_context_enqueue_external(
+    compost_context_t *context,
+    const compost_step_input_t *input
+)
+{
+    if (context == NULL) return COMPOST_STATUS_INVALID_ARGUMENT;
+    return compost_organism_enqueue_external(&context->organism, input);
+}
+
+compost_status_t compost_context_process_gut(
+    compost_context_t *context,
+    uint64_t capacity,
+    compost_gut_process_result_t *result
+)
+{
+    if (context == NULL) return COMPOST_STATUS_INVALID_ARGUMENT;
+    return compost_organism_process_gut(&context->organism, capacity, result);
+}
+
 compost_status_t compost_context_partition(
     compost_context_t *parent,
     uint64_t child_id,
@@ -474,6 +493,11 @@ uint64_t compost_organism_state_digest(const compost_organism_t *organism)
     for (size_t index = 0U; index < COMPOST_MAX_GUT_CHUNKS; ++index) {
         digest = digest_u64(digest, organism->gut[index].mass);
         digest = digest_u32(digest, (uint32_t)organism->gut[index].origin);
+        digest = digest_u32(digest, organism->gut[index].payload_length);
+        for (size_t byte = 0U; byte < COMPOST_MAX_GUT_CHUNK_BYTES; ++byte) {
+            digest = digest_u8(digest, organism->gut[index].payload[byte]);
+            digest = digest_double(digest, organism->gut[index].nutrition[byte]);
+        }
     }
     digest = digest_u32(digest, organism->gut_head);
     return digest_u32(digest, organism->gut_count);
@@ -986,6 +1010,131 @@ compost_status_t compost_organism_digest(
     return COMPOST_STATUS_OK;
 }
 
+compost_status_t compost_organism_enqueue_external(
+    compost_organism_t *organism,
+    const compost_step_input_t *input
+)
+{
+    if (organism == NULL || input == NULL || !organism->initialized ||
+        organism->status != COMPOST_LIFECYCLE_ALIVE ||
+        (input->length > 0U && (input->food == NULL || input->nutrition == NULL))) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    compost_organism_t next = *organism;
+    size_t offset = 0U;
+    size_t required_chunks = input->length / COMPOST_MAX_GUT_CHUNK_BYTES;
+    if ((input->length % COMPOST_MAX_GUT_CHUNK_BYTES) != 0U) ++required_chunks;
+    if (required_chunks > (size_t)(COMPOST_MAX_GUT_CHUNKS - next.gut_count)) {
+        return COMPOST_STATUS_BUFFER_TOO_SMALL;
+    }
+    for (size_t index = 0U; index < input->length; ++index) {
+        if (!finite(input->nutrition[index])) return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    if (!add_u64(next.material_flow.input_mass, (uint64_t)input->length,
+                 &next.material_flow.input_mass)) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    while (offset < input->length) {
+        const size_t amount = (input->length - offset) < COMPOST_MAX_GUT_CHUNK_BYTES
+            ? input->length - offset : COMPOST_MAX_GUT_CHUNK_BYTES;
+        const uint32_t slot = (next.gut_head + next.gut_count) % COMPOST_MAX_GUT_CHUNKS;
+        compost_gut_chunk_t *chunk = &next.gut[slot];
+        memset(chunk, 0, sizeof(*chunk));
+        chunk->mass = (uint64_t)amount;
+        chunk->origin = COMPOST_MATERIAL_EXTERNAL;
+        chunk->payload_length = (uint32_t)amount;
+        memcpy(chunk->payload, input->food + offset, amount * sizeof(chunk->payload[0]));
+        memcpy(chunk->nutrition, input->nutrition + offset, amount * sizeof(chunk->nutrition[0]));
+        ++next.gut_count;
+        offset += amount;
+    }
+    *organism = next;
+    return COMPOST_STATUS_OK;
+}
+
+compost_status_t compost_organism_process_gut(
+    compost_organism_t *organism,
+    uint64_t capacity,
+    compost_gut_process_result_t *result
+)
+{
+    if (organism == NULL || result == NULL || !organism->initialized ||
+        organism->status != COMPOST_LIFECYCLE_ALIVE) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    compost_organism_t next = *organism;
+    compost_gut_process_result_t next_result = {0};
+    uint64_t resorbed_processed = 0U;
+    while (capacity > 0U && next.gut_count > 0U) {
+        compost_gut_chunk_t *chunk = &next.gut[next.gut_head];
+        if (chunk->mass == 0U ||
+            (chunk->origin == COMPOST_MATERIAL_EXTERNAL &&
+             (chunk->payload_length == 0U || chunk->payload_length != chunk->mass)) ||
+            (chunk->origin != COMPOST_MATERIAL_EXTERNAL &&
+             chunk->origin != COMPOST_MATERIAL_RESORPTION)) {
+            return COMPOST_STATUS_INVALID_STATE;
+        }
+        const uint64_t amount = chunk->mass < capacity ? chunk->mass : capacity;
+        if (chunk->origin == COMPOST_MATERIAL_EXTERNAL) {
+            compost_step_input_t input = {
+                chunk->payload, chunk->nutrition, (size_t)amount
+            };
+            compost_step_result_t digestion = {0};
+            compost_status_t status = compost_organism_digest(&next, &input, &digestion);
+            if (status != COMPOST_STATUS_OK || next.material_flow.input_mass < amount) {
+                return status == COMPOST_STATUS_OK ? COMPOST_STATUS_INVALID_STATE : status;
+            }
+            next.material_flow.input_mass -= amount;
+            if (!add_u64(next_result.assimilated_mass, digestion.assimilated_mass,
+                         &next_result.assimilated_mass) ||
+                !add_u64(next_result.rejected_mass, digestion.rejected_mass,
+                         &next_result.rejected_mass) ||
+                !add_u64(next_result.expelled_mass, digestion.rejected_mass,
+                         &next_result.expelled_mass)) {
+                return COMPOST_STATUS_INVALID_ARGUMENT;
+            }
+            const size_t consumed = (size_t)amount;
+            const size_t remaining = (size_t)chunk->mass - consumed;
+            if (remaining > 0U) {
+                memmove(chunk->payload, chunk->payload + consumed, remaining * sizeof(chunk->payload[0]));
+                memmove(chunk->nutrition, chunk->nutrition + consumed, remaining * sizeof(chunk->nutrition[0]));
+            }
+            chunk->payload_length = (uint32_t)remaining;
+            chunk->mass = (uint64_t)remaining;
+        } else {
+            chunk->mass -= amount;
+            if (!add_u64(resorbed_processed, amount, &resorbed_processed) ||
+                !add_u64(next.material_flow.processed_mass, amount, &next.material_flow.processed_mass) ||
+                !add_u64(next.material_flow.expelled_mass, amount, &next.material_flow.expelled_mass) ||
+                !add_u64(next.material_flow.resorption_expelled_mass, amount,
+                         &next.material_flow.resorption_expelled_mass) ||
+                !add_u64(next_result.expelled_mass, amount, &next_result.expelled_mass)) {
+                return COMPOST_STATUS_INVALID_ARGUMENT;
+            }
+        }
+        capacity -= amount;
+        if (!add_u64(next_result.processed_mass, amount, &next_result.processed_mass)) {
+            return COMPOST_STATUS_INVALID_ARGUMENT;
+        }
+        if (chunk->mass == 0U) {
+            memset(chunk, 0, sizeof(*chunk));
+            next.gut_head = (next.gut_head + 1U) % COMPOST_MAX_GUT_CHUNKS;
+            --next.gut_count;
+        }
+    }
+    if (resorbed_processed > 0U) {
+        compost_activity_counters_t counters = {0};
+        counters.resorbed_processed_bytes = resorbed_processed;
+        if (compost_activity_ledger_add(&next.activity, &counters, next.body.structural_mass,
+                                        &DEFAULT_ACTIVITY_COSTS) != COMPOST_STATUS_OK) {
+            return COMPOST_STATUS_INVALID_ARGUMENT;
+        }
+    }
+    *organism = next;
+    *result = next_result;
+    return COMPOST_STATUS_OK;
+}
+
 compost_status_t compost_organism_step(
     compost_organism_t *organism,
     const compost_step_input_t *input,
@@ -1036,6 +1185,7 @@ static compost_status_t append_resorption_chunk(compost_organism_t *organism, ui
     if (mass == 0U) return COMPOST_STATUS_OK;
     if (organism->gut_count >= COMPOST_MAX_GUT_CHUNKS) return COMPOST_STATUS_INVALID_STATE;
     const uint32_t slot = (organism->gut_head + organism->gut_count) % COMPOST_MAX_GUT_CHUNKS;
+    memset(&organism->gut[slot], 0, sizeof(organism->gut[slot]));
     organism->gut[slot].mass = mass;
     organism->gut[slot].origin = COMPOST_MATERIAL_RESORPTION;
     organism->gut_count += 1U;

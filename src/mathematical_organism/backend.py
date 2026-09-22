@@ -59,6 +59,15 @@ class _Result(ctypes.Structure):
     ]
 
 
+class _GutProcessResult(ctypes.Structure):
+    _fields_ = [
+        ("processed_mass", ctypes.c_uint64),
+        ("assimilated_mass", ctypes.c_uint64),
+        ("rejected_mass", ctypes.c_uint64),
+        ("expelled_mass", ctypes.c_uint64),
+    ]
+
+
 class _MaintenanceResult(ctypes.Structure):
     _fields_ = [
         ("required", ctypes.c_double),
@@ -162,7 +171,13 @@ class _Territory(ctypes.Structure):
 
 
 class _GutChunk(ctypes.Structure):
-    _fields_ = [("mass", ctypes.c_uint64), ("origin", ctypes.c_int)]
+    _fields_ = [
+        ("mass", ctypes.c_uint64),
+        ("origin", ctypes.c_int),
+        ("payload_length", ctypes.c_uint32),
+        ("payload", ctypes.c_uint8 * 16),
+        ("nutrition", ctypes.c_double * 16),
+    ]
 
 
 class _Snapshot(ctypes.Structure):
@@ -193,7 +208,7 @@ class _Snapshot(ctypes.Structure):
 class NativeBackend:
     """Small explicit ctypes adapter for the versioned native ABI."""
 
-    ABI_VERSION = 2
+    ABI_VERSION = 3
     MAX_ATOMS = 256
 
     def __init__(self, library: str | Path, *, organism_id: int = 0) -> None:
@@ -231,6 +246,12 @@ class NativeBackend:
         library.compost_context_digest.restype = ctypes.c_int
         library.compost_context_step.argtypes = [ctypes.c_void_p, ctypes.POINTER(_Input), ctypes.POINTER(_CycleResult)]
         library.compost_context_step.restype = ctypes.c_int
+        library.compost_context_enqueue_external.argtypes = [ctypes.c_void_p, ctypes.POINTER(_Input)]
+        library.compost_context_enqueue_external.restype = ctypes.c_int
+        library.compost_context_process_gut.argtypes = [
+            ctypes.c_void_p, ctypes.c_uint64, ctypes.POINTER(_GutProcessResult)
+        ]
+        library.compost_context_process_gut.restype = ctypes.c_int
         library.compost_context_state_digest.argtypes = [ctypes.c_void_p]
         library.compost_context_state_digest.restype = ctypes.c_uint64
         library.compost_context_snapshot.argtypes = [ctypes.c_void_p, ctypes.POINTER(_Snapshot)]
@@ -281,6 +302,38 @@ class NativeBackend:
             "rejected_mass": int(result.rejected_mass),
             "relations_created": int(result.relations_created),
             "relations_strengthened": int(result.relations_strengthened),
+        }
+
+    def enqueue_external(self, food: bytes | bytearray, nutrition: tuple[float, ...] | None = None) -> None:
+        """Copy ordered external material into the native FIFO gut."""
+        if not self._context or not self._context.value:
+            raise NativeBackendError("native backend is closed")
+        payload = bytes(food)
+        values = tuple(1.0 for _ in payload) if nutrition is None else nutrition
+        if len(values) != len(payload):
+            raise ValueError("food and nutrition lengths differ")
+        food_buffer = (ctypes.c_uint8 * len(payload))(*payload)
+        nutrition_buffer = (ctypes.c_double * len(values))(*values)
+        native_input = _Input(food_buffer, nutrition_buffer, len(payload))
+        status = self._library.compost_context_enqueue_external(
+            self._context, ctypes.byref(native_input)
+        )
+        self._check(status, "compost_context_enqueue_external")
+
+    def process_gut(self, capacity: int) -> dict[str, int]:
+        """Process at most capacity units from the native FIFO gut."""
+        if not self._context or not self._context.value:
+            raise NativeBackendError("native backend is closed")
+        result = _GutProcessResult()
+        status = self._library.compost_context_process_gut(
+            self._context, ctypes.c_uint64(capacity), ctypes.byref(result)
+        )
+        self._check(status, "compost_context_process_gut")
+        return {
+            "processed_mass": int(result.processed_mass),
+            "assimilated_mass": int(result.assimilated_mass),
+            "rejected_mass": int(result.rejected_mass),
+            "expelled_mass": int(result.expelled_mass),
         }
 
     def state_digest(self) -> int:
@@ -342,6 +395,8 @@ class NativeBackend:
                 (
                     int(snapshot.gut[(snapshot.gut_head + offset) % 128].mass),
                     int(snapshot.gut[(snapshot.gut_head + offset) % 128].origin),
+                    bytes(snapshot.gut[(snapshot.gut_head + offset) % 128].payload[:snapshot.gut[(snapshot.gut_head + offset) % 128].payload_length]),
+                    tuple(float(value) for value in snapshot.gut[(snapshot.gut_head + offset) % 128].nutrition[:snapshot.gut[(snapshot.gut_head + offset) % 128].payload_length]),
                 )
                 for offset in range(snapshot.gut_count)
             ),

@@ -6,12 +6,13 @@ an explicit Python ctypes adapter. The Python implementation remains the
 behavioral oracle.
 
 The current native behavior includes pure biology rules, byte digestion,
-maintenance/forgetting, resorption accounting, deterministic partition
-selection, selected structural partition transactions, consolidation
-transitions, and a transactional digest-plus-maintenance step. It is not yet
-the complete lifecycle engine: full external gut payload handling, step-level
-consolidation/viability integration, population
-scheduling, and long Python/C per-step differential validation remain pending.
+bounded external-gut payload enqueue/process, maintenance/forgetting,
+resorption accounting, deterministic partition selection, selected structural
+partition transactions, consolidation transitions, and a transactional
+digest-plus-maintenance step. It is not yet the complete lifecycle engine:
+step-level consolidation/viability integration, population scheduling, corpse
+interaction, and full Python sandbox per-step differential validation remain
+pending.
 
 ## Ownership and allocation
 
@@ -28,9 +29,10 @@ capacity. They keep transactional state copies bounded while the allocator-backe
 container design is still pending; exceeding a table returns an error and never
 silently drops a structure.
 
-Resorption material uses a 128-entry FIFO chunk ring. External FOOD payloads
-are intentionally not admitted to this accounting-only queue because payload
-bytes and per-byte nutrition must remain available to the digestion input API.
+The gut uses a 128-entry FIFO chunk ring. Each external chunk owns up to 16
+bytes and matching binary64 nutrition values; longer input is split into
+ordered chunks. Enqueue and processing are transactional and preserve the
+material-flow conservation equations.
 
 A zeroed allocator selects the library's `malloc`/`free` adapter. A custom
 allocator must provide both callbacks and remains owned by the caller; the core

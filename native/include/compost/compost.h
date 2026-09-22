@@ -9,12 +9,13 @@
 extern "C" {
 #endif
 
-#define COMPOST_NATIVE_ABI_VERSION UINT32_C(2)
+#define COMPOST_NATIVE_ABI_VERSION UINT32_C(3)
 #define COMPOST_MAX_TERRITORY_DEPTH 64U
 #define COMPOST_MAX_ATOMS 256U
 #define COMPOST_MAX_RELATIONS 512U
 #define COMPOST_MAX_COMPOSITES 512U
 #define COMPOST_MAX_GUT_CHUNKS 128U
+#define COMPOST_MAX_GUT_CHUNK_BYTES 16U
 
 typedef enum compost_status {
     COMPOST_STATUS_OK = 0,
@@ -80,6 +81,9 @@ typedef enum compost_material_origin {
 typedef struct compost_gut_chunk {
     uint64_t mass;
     compost_material_origin_t origin;
+    uint32_t payload_length;
+    uint8_t payload[COMPOST_MAX_GUT_CHUNK_BYTES];
+    double nutrition[COMPOST_MAX_GUT_CHUNK_BYTES];
 } compost_gut_chunk_t;
 
 typedef struct compost_body {
@@ -237,6 +241,13 @@ typedef struct compost_step_result {
     uint64_t relations_strengthened;
 } compost_step_result_t;
 
+typedef struct compost_gut_process_result {
+    uint64_t processed_mass;
+    uint64_t assimilated_mass;
+    uint64_t rejected_mass;
+    uint64_t expelled_mass;
+} compost_gut_process_result_t;
+
 typedef struct compost_maintenance_result {
     double required;
     double paid;
@@ -377,6 +388,19 @@ compost_status_t compost_organism_step(
     compost_cycle_result_t *result
 );
 
+/* Queues external bytes and copies their nutrition into bounded owned chunks. */
+compost_status_t compost_organism_enqueue_external(
+    compost_organism_t *organism,
+    const compost_step_input_t *input
+);
+
+/* Processes the FIFO gut up to capacity, including external and resorbed material. */
+compost_status_t compost_organism_process_gut(
+    compost_organism_t *organism,
+    uint64_t capacity,
+    compost_gut_process_result_t *result
+);
+
 /* Applies the eager reference maintenance/forgetting slice and advances age. */
 compost_status_t compost_organism_maintenance(
     compost_organism_t *organism,
@@ -412,6 +436,15 @@ compost_status_t compost_context_step(
     compost_context_t *context,
     const compost_step_input_t *input,
     compost_cycle_result_t *result
+);
+compost_status_t compost_context_enqueue_external(
+    compost_context_t *context,
+    const compost_step_input_t *input
+);
+compost_status_t compost_context_process_gut(
+    compost_context_t *context,
+    uint64_t capacity,
+    compost_gut_process_result_t *result
 );
 
 compost_status_t compost_context_partition(
