@@ -10,6 +10,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from mathematical_organism.biology_rules import lazy_metabolism_delta, structural_mass
+from mathematical_organism.backend import NativeBackend
 from mathematical_organism.lifecycle import LifecycleConfig, LivingStructure, MathematicalLifeOrganism
 from mathematical_organism.biology_rules import reproduction_allowed
 
@@ -44,9 +45,11 @@ def _native_library() -> ctypes.CDLL | None:
 class NativePureRuleDifferentialTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.library = _native_library()
-        if cls.library is None:
+        value = os.environ.get("COMPOST_NATIVE_LIBRARY")
+        if not value:
             raise unittest.SkipTest("COMPOST_NATIVE_LIBRARY is not configured")
+        cls.library_path = Path(value).resolve()
+        cls.library = _native_library()
         cls.library.compost_structural_mass.argtypes = [ctypes.c_double, ctypes.POINTER(ctypes.c_uint64)]
         cls.library.compost_structural_mass.restype = ctypes.c_int
         cls.library.compost_lazy_metabolism_delta.argtypes = [
@@ -67,6 +70,14 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             ctypes.POINTER(_ReproductionAssessment),
         ]
         cls.library.compost_reproduction_assessment.restype = ctypes.c_int
+
+    def test_public_python_adapter_runs_native_step(self) -> None:
+        with NativeBackend(self.library_path, organism_id=99) as backend:
+            before = backend.state_digest()
+            result = backend.step(b"\x04\x05", (1.0, 1.0))
+            self.assertNotEqual(before, backend.state_digest())
+            self.assertEqual(result["consumed_bytes"], 2)
+            self.assertEqual(result["assimilated_mass"], 2)
 
     def test_structural_mass_matches_reference(self) -> None:
         for strength in (0.0, 0.25, 1.0, 1.5, 4.0, 8.0, 16.0, 1024.0):
