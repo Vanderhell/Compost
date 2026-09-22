@@ -96,7 +96,8 @@ int main(void)
         step.consumed_bytes != 3U || step.assimilated_mass != 3U ||
         step.relations_created != 2U || digesting.body.atom_count != 2U ||
         digesting.body.relation_count != 2U || digesting.cursor != 3U ||
-        digesting.material_flow.rejected_mass != 0U) {
+        digesting.material_flow.rejected_mass != 0U ||
+        compost_organism_verify_material_conservation(&digesting) != COMPOST_STATUS_OK) {
         return fail("deterministic digest");
     }
     digesting.reserve = 10.0;
@@ -107,21 +108,25 @@ int main(void)
         digesting.status != COMPOST_LIFECYCLE_ALIVE) {
         return fail("maintenance slice");
     }
+    digesting.material_flow.structural_created_mass += 10U;
     if (compost_organism_enqueue_resorbed(&digesting, 10U) != COMPOST_STATUS_OK ||
-        digesting.gut_count != 1U || digesting.material_flow.resorbed_mass != 10U) {
+        digesting.gut_count != 1U || digesting.material_flow.resorbed_mass != 10U ||
+        compost_organism_verify_material_conservation(&digesting) != COMPOST_STATUS_OK) {
         return fail("resorption enqueue");
     }
     uint64_t processed = 0U;
     if (compost_organism_process_resorption(&digesting, 4U, &processed) != COMPOST_STATUS_OK ||
         processed != 4U || digesting.gut_count != 1U ||
         digesting.gut[digesting.gut_head].mass != 6U ||
-        digesting.material_flow.resorption_expelled_mass != 4U) {
+        digesting.material_flow.resorption_expelled_mass != 4U ||
+        compost_organism_verify_material_conservation(&digesting) != COMPOST_STATUS_OK) {
         return fail("resorption FIFO");
     }
     bool changed = false;
     uint64_t weakened_mass = 0U;
     if (compost_organism_weaken_weakest(&digesting, &changed, &weakened_mass) != COMPOST_STATUS_OK ||
-        !changed || weakened_mass != 1U || digesting.gut_count != 2U) {
+        !changed || weakened_mass != 1U || digesting.gut_count != 2U ||
+        compost_organism_verify_material_conservation(&digesting) != COMPOST_STATUS_OK) {
         return fail("weakest structure");
     }
     compost_organism_destroy(&digesting);

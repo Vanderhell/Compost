@@ -370,6 +370,11 @@ compost_status_t compost_organism_process_resorption(
     uint64_t *processed
 );
 
+/* Verifies external, resorption, and structural conservation ledgers. */
+compost_status_t compost_organism_verify_material_conservation(
+    const compost_organism_t *organism
+);
+
 /* Weakens or removes one deterministically selected live structure. */
 compost_status_t compost_organism_weaken_weakest(
     compost_organism_t *organism,

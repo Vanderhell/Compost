@@ -47,11 +47,13 @@ differential failures can identify the first conservation field.
 
 ## Native status
 
-`NOT READY`: C currently has bounded atom/relation/composite state and local
-resorption accounting, but no reproduction/division transaction. The native
-gate is not allowed to pass until a C partition implementation is compared to
-the Python transaction and an independent conservation calculation on every
-adversarial fixture.
+`NOT READY`: C now exposes an independent material-conservation validator for
+external input, resorption FIFO, and dynamic structural mass. It also accounts
+for structural mass changes during relation strengthening, forgetting, and
+weakening. However, C still has no reproduction/division transaction, so the
+native gate is not allowed to pass until a C partition implementation is
+compared to the Python transaction and an independent conservation calculation
+on every adversarial fixture.
 
 Required native fixtures before integration:
 

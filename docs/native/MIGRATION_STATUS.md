@@ -19,7 +19,7 @@
 | Public API robustness tests | PORTING | C API failure contract | Null, NaN, transactional failure, and idempotent destroy coverage |
 | Lazy metabolism delta | PORTING | `biology_rules.lazy_metabolism_delta` | C logarithmic composition added; tolerance-based reference comparison and FFI campaign remain pending |
 | Reproduction assessment | PORTING | `biology_rules.reproduction_allowed` | Pure eligibility/score function added; native child transaction remains pending |
-| Material-flow accounting | NOT_STARTED | `sandbox_runtime.MaterialFlow` | Requires native container/state design |
+| Material-flow accounting | PORTING | `sandbox_runtime.MaterialFlow` | Native conservation validator and FIFO accounting added; external payload gut and division transfer remain pending |
 
 ## Domain decisions in this checkpoint
 
