@@ -194,6 +194,15 @@ compost_status_t compost_context_select_partition(
     );
 }
 
+compost_status_t compost_context_plan_division(
+    const compost_context_t *context,
+    compost_division_plan_t *plan
+)
+{
+    if (context == NULL) return COMPOST_STATUS_INVALID_ARGUMENT;
+    return compost_organism_plan_division(&context->organism, plan);
+}
+
 compost_status_t compost_config_default(compost_config_t *config)
 {
     if (config == NULL) {

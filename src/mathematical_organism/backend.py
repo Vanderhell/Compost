@@ -78,6 +78,22 @@ class _CycleResult(ctypes.Structure):
     ]
 
 
+class _DivisionPlan(ctypes.Structure):
+    _fields_ = [
+        ("candidate_found", ctypes.c_bool),
+        ("allowed", ctypes.c_bool),
+        ("child_atoms", ctypes.c_uint8 * 256),
+        ("child_atom_count", ctypes.c_size_t),
+        ("boundary_ratio", ctypes.c_double),
+        ("boundary_maintenance", ctypes.c_double),
+        ("child_income", ctypes.c_double),
+        ("child_maintenance", ctypes.c_double),
+        ("parent_income", ctypes.c_double),
+        ("parent_maintenance", ctypes.c_double),
+        ("birth_gain", ctypes.c_double),
+    ]
+
+
 class NativeBackend:
     """Small explicit ctypes adapter for the versioned native ABI."""
 
@@ -130,6 +146,8 @@ class NativeBackend:
             ctypes.POINTER(ctypes.c_double),
         ]
         library.compost_context_select_partition.restype = ctypes.c_int
+        library.compost_context_plan_division.argtypes = [ctypes.c_void_p, ctypes.POINTER(_DivisionPlan)]
+        library.compost_context_plan_division.restype = ctypes.c_int
 
     @staticmethod
     def _check(status: int, operation: str) -> None:
@@ -205,6 +223,26 @@ class NativeBackend:
         )
         self._check(status, "compost_context_select_partition")
         return tuple(int(atoms[index]) for index in range(count.value)), float(ratio.value)
+
+    def division_plan(self) -> dict[str, object]:
+        """Return the native lifecycle viability plan without mutating state."""
+        if not self._context or not self._context.value:
+            raise NativeBackendError("native backend is closed")
+        plan = _DivisionPlan()
+        status = self._library.compost_context_plan_division(self._context, ctypes.byref(plan))
+        self._check(status, "compost_context_plan_division")
+        return {
+            "candidate_found": bool(plan.candidate_found),
+            "allowed": bool(plan.allowed),
+            "child_atoms": tuple(int(plan.child_atoms[index]) for index in range(plan.child_atom_count)),
+            "boundary_ratio": float(plan.boundary_ratio),
+            "boundary_maintenance": float(plan.boundary_maintenance),
+            "child_income": float(plan.child_income),
+            "child_maintenance": float(plan.child_maintenance),
+            "parent_income": float(plan.parent_income),
+            "parent_maintenance": float(plan.parent_maintenance),
+            "birth_gain": float(plan.birth_gain),
+        }
 
     def close(self) -> None:
         if self._context and self._context.value:

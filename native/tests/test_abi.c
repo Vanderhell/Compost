@@ -23,6 +23,7 @@ int main(void)
     uint8_t selected_atoms[COMPOST_MAX_ATOMS] = {0};
     size_t selected_count = 0U;
     double selected_ratio = 0.0;
+    compost_division_plan_t plan = {0};
     uint64_t initial_digest = 0U;
     uint64_t changed_digest = 0U;
     if (COMPOST_NATIVE_ABI_VERSION != UINT32_C(2) ||
@@ -41,6 +42,10 @@ int main(void)
         selected_count != 1U || selected_atoms[0] != 4U || selected_ratio < 0.3333 || selected_ratio > 0.3334) {
         compost_destroy(context);
         return fail("opaque selector ABI");
+    }
+    if (compost_context_plan_division(context, &plan) != COMPOST_STATUS_OK || plan.candidate_found) {
+        compost_destroy(context);
+        return fail("opaque viability ABI");
     }
     if (compost_context_partition(context, UINT64_C(13), child_atoms, 1U, 1.0, &child, &division) != COMPOST_STATUS_OK ||
         child == NULL || compost_context_snapshot(child, &snapshot) != COMPOST_STATUS_OK ||

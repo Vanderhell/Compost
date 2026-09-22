@@ -81,6 +81,8 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             selected, ratio = backend.select_partition(0.5)
             self.assertEqual(selected, (4,))
             self.assertAlmostEqual(ratio, 1.0 / 3.0, places=12)
+            plan = backend.division_plan()
+            self.assertFalse(plan["candidate_found"])
 
     def test_structural_mass_matches_reference(self) -> None:
         for strength in (0.0, 0.25, 1.0, 1.5, 4.0, 8.0, 16.0, 1024.0):

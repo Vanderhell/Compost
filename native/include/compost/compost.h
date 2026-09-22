@@ -430,6 +430,10 @@ compost_status_t compost_context_select_partition(
     size_t *child_atom_count,
     double *selected_ratio
 );
+compost_status_t compost_context_plan_division(
+    const compost_context_t *context,
+    compost_division_plan_t *plan
+);
 
 compost_status_t compost_organism_enqueue_resorbed(
     compost_organism_t *organism,
