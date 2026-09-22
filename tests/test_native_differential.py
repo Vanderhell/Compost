@@ -124,7 +124,7 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
         nutrition = (1.0, 2.0, 3.0)
         reference = AutonomousOrganism("ORG-ROOT")
         reference.enqueue_external_material(payload, nutrition)
-        reference.result.available_nutrition_total += len(payload)
+        reference.result.available_nutrition_total += sum(nutrition)
         expected = reference.process_gut(2)
         with NativeBackend(self.library_path, organism_id=0) as backend:
             backend.enqueue_external(bytes(payload), nutrition)
@@ -146,6 +146,32 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
         self.assertEqual(snapshot["body"]["atom_count"], len(reference.body.atoms))
         self.assertEqual(snapshot["body"]["relation_count"], len(reference.body.relations))
         self.assertEqual(snapshot["body"]["structural_mass"], reference.body.full_body_mass())
+
+    def test_partition_transaction_matches_sandbox_oracle(self) -> None:
+        payload = (1, 2, 3, 4)
+        nutrition = (10.0,) * len(payload)
+        reference = AutonomousOrganism("ORG-ROOT")
+        reference.result.available_nutrition_total += sum(nutrition)
+        reference.enqueue_external_material(payload, nutrition)
+        reference.process_gut(len(payload))
+        reference_child = reference._commit_skeleton_partition({1, 2}, require_maturity=False)
+        self.assertIsNotNone(reference_child)
+        with NativeBackend(self.library_path, organism_id=0) as backend:
+            backend.digest(bytes(payload), nutrition)
+            native_child, native_result = backend.partition((1, 2), child_id=1, birth_cost=1.0)
+            with native_child:
+                native_parent = backend.snapshot()
+                native_child_snapshot = native_child.snapshot()
+        assert reference_child is not None
+        reference_trace = reference.division_material_traces[-1]
+        self.assertEqual(native_result["child_structural_mass"], reference_child.body.full_body_mass() - 256)
+        self.assertEqual(native_result["cross_split_mass"], reference_trace.cross_split_relation_mass + reference_trace.cross_split_composite_mass)
+        self.assertEqual(native_parent["body"]["structural_mass"], reference.body.full_body_mass())
+        self.assertEqual(native_child_snapshot["body"]["structural_mass"], reference_child.body.full_body_mass())
+        self.assertAlmostEqual(native_parent["reserve"], reference.body.reserve, places=12)
+        self.assertEqual(native_child_snapshot["reserve"], reference_child.body.reserve)
+        self.assertEqual(native_child_snapshot["body"]["relation_count"], len(reference_child.body.relations))
+        self.assertEqual(native_child_snapshot["body"]["composite_count"], len(reference_child.body.composites))
 
     def test_native_partition_preserves_structural_mass_independently(self) -> None:
         with NativeBackend(self.library_path, organism_id=10) as parent:
