@@ -238,6 +238,12 @@ typedef struct compost_maintenance_result {
     uint64_t resorbed_mass;
 } compost_maintenance_result_t;
 
+typedef struct compost_division_result {
+    uint64_t child_structural_mass;
+    uint64_t cross_split_mass;
+    double parent_reserve_after_cost;
+} compost_division_result_t;
+
 /* A zeroed allocator selects the library's malloc/free-backed defaults. */
 compost_status_t compost_config_default(compost_config_t *config);
 
@@ -373,6 +379,23 @@ compost_status_t compost_organism_process_resorption(
 /* Verifies external, resorption, and structural conservation ledgers. */
 compost_status_t compost_organism_verify_material_conservation(
     const compost_organism_t *organism
+);
+
+/*
+ * Commits a selected structural partition. The child atom list is a borrowed
+ * read-only view and must contain unique live atom keys. On success structures
+ * are transferred, never copied; cross-partition edges are resorbed by the
+ * parent; the child reserve is zero; and birth_cost is charged to the parent.
+ * Candidate selection and viability policy remain outside this transaction.
+ */
+compost_status_t compost_organism_partition(
+    compost_organism_t *parent,
+    compost_organism_t *child,
+    uint64_t child_id,
+    const uint8_t *child_atoms,
+    size_t child_atom_count,
+    double birth_cost,
+    compost_division_result_t *result
 );
 
 /* Weakens or removes one deterministically selected live structure. */

@@ -1040,6 +1040,178 @@ compost_status_t compost_organism_verify_material_conservation(
     return COMPOST_STATUS_OK;
 }
 
+static bool key_in_region(const bool selected[COMPOST_MAX_ATOMS], uint8_t key)
+{
+    return selected[(size_t)key];
+}
+
+static compost_status_t remove_structure_entry(
+    compost_organism_t *organism,
+    compost_structure_t *structure,
+    uint64_t *resorbed_mass
+);
+
+static compost_status_t partition_mass(
+    const compost_organism_t *parent,
+    const bool selected[COMPOST_MAX_ATOMS],
+    uint64_t *moved_mass,
+    uint64_t *cross_mass,
+    uint64_t *cross_count
+)
+{
+    *moved_mass = 0U;
+    *cross_mass = 0U;
+    *cross_count = 0U;
+    for (size_t collection = 0U; collection < 2U; ++collection) {
+        const compost_structure_t *structures = collection == 0U ? parent->relations : parent->composites;
+        const size_t count = collection == 0U ? COMPOST_MAX_RELATIONS : COMPOST_MAX_COMPOSITES;
+        for (size_t index = 0U; index < count; ++index) {
+            const compost_structure_t *structure = &structures[index];
+            if (!structure->occupied) continue;
+            const bool left_selected = key_in_region(selected, structure->left);
+            const bool right_selected = key_in_region(selected, structure->right);
+            uint64_t mass = 0U;
+            if (compost_structural_mass(structure->strength, &mass) != COMPOST_STATUS_OK) {
+                return COMPOST_STATUS_INVALID_STATE;
+            }
+            if (left_selected && right_selected) {
+                if (!add_u64(*moved_mass, mass, moved_mass)) return COMPOST_STATUS_INVALID_STATE;
+            } else if (left_selected != right_selected) {
+                if (!add_u64(*cross_mass, mass, cross_mass) ||
+                    !add_u64(*cross_count, UINT64_C(1), cross_count)) return COMPOST_STATUS_INVALID_STATE;
+            }
+        }
+    }
+    return COMPOST_STATUS_OK;
+}
+
+compost_status_t compost_organism_partition(
+    compost_organism_t *parent,
+    compost_organism_t *child,
+    uint64_t child_id,
+    const uint8_t *child_atoms,
+    size_t child_atom_count,
+    double birth_cost,
+    compost_division_result_t *result
+)
+{
+    if (parent == NULL || child == NULL || result == NULL ||
+        !parent->initialized || parent->status != COMPOST_LIFECYCLE_ALIVE ||
+        child->initialized || child_atoms == NULL || child_atom_count == 0U ||
+        child_atom_count >= COMPOST_MAX_ATOMS || !finite(birth_cost) || birth_cost < 0.0 ||
+        parent->reserve < birth_cost || child_id == parent->organism_id ||
+        parent->territory.depth >= parent->config.max_territory_depth ||
+        parent->territory.local_birth_counter == UINT64_MAX) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    if (compost_organism_verify_material_conservation(parent) != COMPOST_STATUS_OK) {
+        return COMPOST_STATUS_INVALID_STATE;
+    }
+    bool selected[COMPOST_MAX_ATOMS] = {false};
+    size_t selected_count = 0U;
+    for (size_t index = 0U; index < child_atom_count; ++index) {
+        const uint8_t key = child_atoms[index];
+        if (selected[(size_t)key] || !find_structure(parent->atoms, COMPOST_MAX_ATOMS, key, 0U)) {
+            return COMPOST_STATUS_INVALID_ARGUMENT;
+        }
+        selected[(size_t)key] = true;
+        ++selected_count;
+    }
+    if (selected_count >= parent->body.atom_count) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    uint64_t moved_mass = 0U;
+    uint64_t cross_mass = 0U;
+    uint64_t cross_count = 0U;
+    if (partition_mass(parent, selected, &moved_mass, &cross_mass, &cross_count) != COMPOST_STATUS_OK ||
+        cross_count > COMPOST_MAX_GUT_CHUNKS ||
+        parent->gut_count > COMPOST_MAX_GUT_CHUNKS - (uint32_t)cross_count ||
+        moved_mass > parent->body.structural_mass ||
+        cross_mass > parent->body.structural_mass - moved_mass ||
+        parent->material_flow.structural_transferred_out > UINT64_MAX - moved_mass ||
+        parent->material_flow.resorbed_mass > UINT64_MAX - cross_mass ||
+        parent->reserve - birth_cost < 0.0) {
+        return COMPOST_STATUS_INVALID_STATE;
+    }
+    compost_organism_t next_parent = *parent;
+    if (compost_organism_init(child, &parent->config, NULL, child_id) != COMPOST_STATUS_OK) {
+        return COMPOST_STATUS_OUT_OF_MEMORY;
+    }
+    child->parent_id = parent->organism_id;
+    child->has_parent = true;
+    child->generation = parent->generation == UINT64_MAX ? UINT64_MAX : parent->generation + UINT64_C(1);
+    if (parent->generation == UINT64_MAX) {
+        compost_organism_destroy(child);
+        return COMPOST_STATUS_INVALID_STATE;
+    }
+    child->cursor = parent->cursor;
+    child->reserve = 0.0;
+    child->territory.depth = parent->territory.depth + 1U;
+    memcpy(child->territory.path, parent->territory.path, parent->territory.depth);
+    child->territory.path[parent->territory.depth] = UINT8_C(1);
+    child->territory.organism_id = child_id;
+    child->territory.alive = true;
+    next_parent.territory.path[next_parent.territory.depth] = UINT8_C(0);
+    next_parent.territory.depth += 1U;
+    next_parent.territory.local_birth_counter += UINT64_C(1);
+
+    for (size_t index = 0U; index < COMPOST_MAX_ATOMS; ++index) {
+        compost_structure_t *structure = &next_parent.atoms[index];
+        if (structure->occupied && selected[(size_t)structure->left]) {
+            child->atoms[index] = *structure;
+            memset(structure, 0, sizeof(*structure));
+            --next_parent.body.atom_count;
+            ++child->body.atom_count;
+        }
+    }
+    for (size_t collection = 0U; collection < 2U; ++collection) {
+        compost_structure_t *structures = collection == 0U ? next_parent.relations : next_parent.composites;
+        compost_structure_t *child_structures = collection == 0U ? child->relations : child->composites;
+        const size_t count = collection == 0U ? COMPOST_MAX_RELATIONS : COMPOST_MAX_COMPOSITES;
+        for (size_t index = 0U; index < count; ++index) {
+            compost_structure_t *structure = &structures[index];
+            if (!structure->occupied) continue;
+            const bool left_selected = selected[(size_t)structure->left];
+            const bool right_selected = selected[(size_t)structure->right];
+            if (left_selected && right_selected) {
+                child_structures[index] = *structure;
+                uint64_t mass = 0U;
+                if (compost_structural_mass(structure->strength, &mass) != COMPOST_STATUS_OK) {
+                    compost_organism_destroy(child);
+                    return COMPOST_STATUS_INVALID_STATE;
+                }
+                memset(structure, 0, sizeof(*structure));
+                next_parent.body.structural_mass -= mass;
+                if (collection == 0U) {
+                    --next_parent.body.relation_count;
+                    ++child->body.relation_count;
+                } else {
+                    --next_parent.body.composite_count;
+                    ++child->body.composite_count;
+                }
+                child->body.structural_mass += mass;
+            } else if (left_selected != right_selected) {
+                uint64_t ignored = 0U;
+                if (remove_structure_entry(&next_parent, structure, &ignored) != COMPOST_STATUS_OK) {
+                    compost_organism_destroy(child);
+                    return COMPOST_STATUS_INVALID_STATE;
+                }
+            }
+        }
+    }
+    next_parent.reserve -= birth_cost;
+    next_parent.material_flow.structural_transferred_out += moved_mass;
+    child->material_flow.structural_transferred_in = moved_mass;
+    next_parent.activity.counters.division_events += UINT64_C(1);
+    *result = (compost_division_result_t){
+        moved_mass,
+        cross_mass,
+        next_parent.reserve
+    };
+    *parent = next_parent;
+    return COMPOST_STATUS_OK;
+}
+
 static bool weaker(const compost_structure_t *left, const compost_structure_t *right)
 {
     if (right == NULL) return true;

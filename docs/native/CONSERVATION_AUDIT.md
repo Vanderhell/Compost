@@ -47,13 +47,14 @@ differential failures can identify the first conservation field.
 
 ## Native status
 
-`NOT READY`: C now exposes an independent material-conservation validator for
-external input, resorption FIFO, and dynamic structural mass. It also accounts
-for structural mass changes during relation strengthening, forgetting, and
-weakening. However, C still has no reproduction/division transaction, so the
-native gate is not allowed to pass until a C partition implementation is
-compared to the Python transaction and an independent conservation calculation
-on every adversarial fixture.
+`NOT READY`: C now exposes an independent material-conservation validator and a
+selected-region partition transaction. The transaction transfers internal
+atoms/edges without cloning, routes cross-split edge mass to parent resorption,
+charges parent birth cost, initializes child reserve to zero, splits territory,
+and records transferred mass. GCC/MSVC tests cover one cross-split fixture.
+Automatic candidate selection, adversarial fixture breadth, and Python/C
+differential comparison remain pending, so the native gate is not allowed to
+pass yet.
 
 Required native fixtures before integration:
 

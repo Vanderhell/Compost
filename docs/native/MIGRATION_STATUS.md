@@ -18,8 +18,10 @@
 | Direct-C benchmark | PORTING | Performance phase | Reproducible digest smoke benchmark; Python/FFI comparison pending |
 | Public API robustness tests | PORTING | C API failure contract | Null, NaN, transactional failure, and idempotent destroy coverage |
 | Lazy metabolism delta | PORTING | `biology_rules.lazy_metabolism_delta` | C logarithmic composition added; tolerance-based reference comparison and FFI campaign remain pending |
-| Reproduction assessment | PORTING | `biology_rules.reproduction_allowed` | Pure eligibility/score function added; native child transaction remains pending |
-| Material-flow accounting | PORTING | `sandbox_runtime.MaterialFlow` | Native conservation validator and FIFO accounting added; external payload gut and division transfer remain pending |
+| Reproduction assessment | PORTING | `biology_rules.reproduction_allowed` | Pure eligibility/score function and selected-region native transaction added; automatic candidate policy remains pending |
+| Material-flow accounting | PORTING | `sandbox_runtime.MaterialFlow` | Native conservation validator, FIFO accounting, cross-edge resorption, and division transfer added; external payload gut remains pending |
+
+| Selected structural partition | PORTING | `AutonomousOrganism._commit_skeleton_partition` | `compost_organism_partition` passes native GCC/MSVC tests; Python differential campaign and full policy integration remain pending |
 
 ## Domain decisions in this checkpoint
 
