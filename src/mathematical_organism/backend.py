@@ -92,7 +92,12 @@ class NativeBackend:
             self._library = ctypes.CDLL(str(self.library_path))
         except OSError as error:
             raise NativeBackendError(f"cannot load native library: {self.library_path}") from error
-        self._configure_symbols()
+        try:
+            self._configure_symbols()
+        except AttributeError as error:
+            raise NativeBackendError(
+                f"native library does not provide ABI version {self.ABI_VERSION}: {self.library_path}"
+            ) from error
         config = _Config()
         status = self._library.compost_config_default(ctypes.byref(config))
         self._check(status, "compost_config_default")
