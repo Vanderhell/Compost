@@ -32,9 +32,9 @@ native/build-release-bench/compost_benchmark_digest
 
 ## Evidence boundary
 
-Observed on the current Windows MinGW GCC toolchain: `5` repetitions of
-`100000` iterations (`400000` bytes each), min `0.664000000`, median
-`0.758000000`, max `0.798000000` CPU seconds, median `131926.121` steps/sec.
+Observed on the current Windows MSVC Release toolchain: `5` repetitions of
+`100000` iterations (`400000` bytes each), min `0.801000000`, median
+`0.808000000`, max `0.828000000` CPU seconds, median `123762.376` steps/sec.
 This measures only the bounded direct-C digest checkpoint.
 
 No speedup claim is permitted from the direct-C smoke benchmark alone.
@@ -43,9 +43,9 @@ No speedup claim is permitted from the direct-C smoke benchmark alone.
 
 `tools/benchmark_native_backends.py` runs the same bounded `AB` replay for
 both the Python reference and the current native checkpoint through ctypes.
-On the current Windows MinGW/GCC build, five repetitions of `10000` steps
-measured a Python median of `0.039220000` seconds (`254971.953` steps/sec)
-and a native-FFI median of `0.071254400` seconds (`140342.211` steps/sec).
+On the current Windows MSVC Release build, five repetitions of `10000` steps
+measured a Python median of `0.038265100` seconds (`261334.741` steps/sec)
+and a native-FFI median of `0.065498400` seconds (`152675.485` steps/sec).
 This is not a complete simulator comparison: it includes FFI overhead and the
 native checkpoint is still incomplete. It demonstrates that further native
 performance claims require a larger migrated workload and measurement of the
