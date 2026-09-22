@@ -120,6 +120,16 @@ compost_status_t compost_context_digest(
     return compost_organism_digest(&context->organism, input, result);
 }
 
+compost_status_t compost_context_step(
+    compost_context_t *context,
+    const compost_step_input_t *input,
+    compost_cycle_result_t *result
+)
+{
+    if (context == NULL) return COMPOST_STATUS_INVALID_ARGUMENT;
+    return compost_organism_step(&context->organism, input, result);
+}
+
 compost_status_t compost_context_partition(
     compost_context_t *parent,
     uint64_t child_id,
@@ -843,6 +853,31 @@ compost_status_t compost_organism_digest(
         !add_u64(next.cursor, (uint64_t)input->length, &next.cursor)) {
         return COMPOST_STATUS_INVALID_ARGUMENT;
     }
+    *organism = next;
+    *result = next_result;
+    return COMPOST_STATUS_OK;
+}
+
+compost_status_t compost_organism_step(
+    compost_organism_t *organism,
+    const compost_step_input_t *input,
+    compost_cycle_result_t *result
+)
+{
+    if (organism == NULL || input == NULL || result == NULL || !organism->initialized) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    compost_organism_t next = *organism;
+    compost_cycle_result_t next_result = {0};
+    compost_status_t status = compost_organism_digest(&next, input, &next_result.digestion);
+    if (status != COMPOST_STATUS_OK) {
+        return status;
+    }
+    status = compost_organism_maintenance(&next, &next_result.maintenance);
+    if (status != COMPOST_STATUS_OK) {
+        return status;
+    }
+    next_result.status_after = next.status;
     *organism = next;
     *result = next_result;
     return COMPOST_STATUS_OK;

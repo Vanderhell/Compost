@@ -129,6 +129,19 @@ int main(void)
         compost_organism_verify_material_conservation(&digesting) != COMPOST_STATUS_OK) {
         return fail("weakest structure");
     }
+    compost_organism_t stepping = {0};
+    compost_cycle_result_t cycle = {0};
+    if (compost_organism_init(&stepping, &config, NULL, UINT64_C(9)) != COMPOST_STATUS_OK ||
+        compost_organism_step(&stepping, &input, &cycle) != COMPOST_STATUS_OK ||
+        cycle.digestion.consumed_bytes != 3U || cycle.digestion.assimilated_mass != 3U ||
+        cycle.maintenance.paid <= 0.0 || cycle.status_after != COMPOST_LIFECYCLE_ALIVE ||
+        stepping.age_in_cycles != 1U || stepping.cursor != 3U ||
+        compost_organism_verify_material_conservation(&stepping) != COMPOST_STATUS_OK) {
+        compost_organism_destroy(&stepping);
+        compost_organism_destroy(&digesting);
+        return fail("transactional lifecycle step");
+    }
+    compost_organism_destroy(&stepping);
     compost_organism_destroy(&digesting);
     return 0;
 }

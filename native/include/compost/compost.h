@@ -238,6 +238,12 @@ typedef struct compost_maintenance_result {
     uint64_t resorbed_mass;
 } compost_maintenance_result_t;
 
+typedef struct compost_cycle_result {
+    compost_step_result_t digestion;
+    compost_maintenance_result_t maintenance;
+    compost_lifecycle_status_t status_after;
+} compost_cycle_result_t;
+
 typedef struct compost_division_result {
     uint64_t child_structural_mass;
     uint64_t cross_split_mass;
@@ -341,6 +347,13 @@ compost_status_t compost_organism_digest(
     compost_step_result_t *result
 );
 
+/* Composes digest and eager maintenance as one transactional step checkpoint. */
+compost_status_t compost_organism_step(
+    compost_organism_t *organism,
+    const compost_step_input_t *input,
+    compost_cycle_result_t *result
+);
+
 /* Applies the eager reference maintenance/forgetting slice and advances age. */
 compost_status_t compost_organism_maintenance(
     compost_organism_t *organism,
@@ -363,6 +376,11 @@ compost_status_t compost_context_digest(
     compost_context_t *context,
     const compost_step_input_t *input,
     compost_step_result_t *result
+);
+compost_status_t compost_context_step(
+    compost_context_t *context,
+    const compost_step_input_t *input,
+    compost_cycle_result_t *result
 );
 
 compost_status_t compost_context_partition(
