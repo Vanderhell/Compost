@@ -208,7 +208,7 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                     reference = population.organisms[0]
                     native = backend.snapshot()
                     prefix = f"scenario {scenario} step {cycle}"
-                    def evidence(field: str) -> str:
+                    def evidence(field: str) -> _FailureEvidence:
                         return _FailureEvidence(prefix, field, population, backend)
 
                     self.assertEqual(native["status"], 0 if reference.status is OrganismStatus.ALIVE else 1, evidence("status"))
