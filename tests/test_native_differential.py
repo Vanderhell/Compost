@@ -78,6 +78,9 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             self.assertNotEqual(before, backend.state_digest())
             self.assertEqual(result["consumed_bytes"], 2)
             self.assertEqual(result["assimilated_mass"], 2)
+            selected, ratio = backend.select_partition(0.5)
+            self.assertEqual(selected, (4,))
+            self.assertAlmostEqual(ratio, 1.0 / 3.0, places=12)
 
     def test_structural_mass_matches_reference(self) -> None:
         for strength in (0.0, 0.25, 1.0, 1.5, 4.0, 8.0, 16.0, 1024.0):

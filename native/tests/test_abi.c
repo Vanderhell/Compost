@@ -20,6 +20,9 @@ int main(void)
     compost_context_t *child = NULL;
     compost_division_result_t division = {0};
     const uint8_t child_atoms[] = {4U};
+    uint8_t selected_atoms[COMPOST_MAX_ATOMS] = {0};
+    size_t selected_count = 0U;
+    double selected_ratio = 0.0;
     uint64_t initial_digest = 0U;
     uint64_t changed_digest = 0U;
     if (COMPOST_NATIVE_ABI_VERSION != UINT32_C(2) ||
@@ -32,6 +35,12 @@ int main(void)
         snapshot.organism_id != UINT64_C(12) || snapshot.cursor != 2U) {
         compost_destroy(context);
         return fail("opaque ABI");
+    }
+    if (compost_context_select_partition(context, 0.5, selected_atoms, COMPOST_MAX_ATOMS,
+                                         &selected_count, &selected_ratio) != COMPOST_STATUS_OK ||
+        selected_count != 1U || selected_atoms[0] != 4U || selected_ratio < 0.3333 || selected_ratio > 0.3334) {
+        compost_destroy(context);
+        return fail("opaque selector ABI");
     }
     if (compost_context_partition(context, UINT64_C(13), child_atoms, 1U, 1.0, &child, &division) != COMPOST_STATUS_OK ||
         child == NULL || compost_context_snapshot(child, &snapshot) != COMPOST_STATUS_OK ||

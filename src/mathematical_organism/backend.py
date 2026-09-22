@@ -74,6 +74,7 @@ class NativeBackend:
     """Small explicit ctypes adapter for the versioned native ABI."""
 
     ABI_VERSION = 2
+    MAX_ATOMS = 256
 
     def __init__(self, library: str | Path, *, organism_id: int = 0) -> None:
         self.library_path = Path(library).resolve()
@@ -107,6 +108,15 @@ class NativeBackend:
         library.compost_context_step.restype = ctypes.c_int
         library.compost_context_state_digest.argtypes = [ctypes.c_void_p]
         library.compost_context_state_digest.restype = ctypes.c_uint64
+        library.compost_context_select_partition.argtypes = [
+            ctypes.c_void_p,
+            ctypes.c_double,
+            ctypes.POINTER(ctypes.c_uint8),
+            ctypes.c_size_t,
+            ctypes.POINTER(ctypes.c_size_t),
+            ctypes.POINTER(ctypes.c_double),
+        ]
+        library.compost_context_select_partition.restype = ctypes.c_int
 
     @staticmethod
     def _check(status: int, operation: str) -> None:
@@ -163,6 +173,24 @@ class NativeBackend:
             "maintenance_deficit": float(result.maintenance.deficit),
             "status_after": int(result.status_after),
         }
+
+    def select_partition(self, boundary_ratio_limit: float = 0.15) -> tuple[tuple[int, ...], float]:
+        """Return the native deterministic selected child region and ratio."""
+        if not self._context or not self._context.value:
+            raise NativeBackendError("native backend is closed")
+        atoms = (ctypes.c_uint8 * self.MAX_ATOMS)()
+        count = ctypes.c_size_t()
+        ratio = ctypes.c_double()
+        status = self._library.compost_context_select_partition(
+            self._context,
+            boundary_ratio_limit,
+            atoms,
+            self.MAX_ATOMS,
+            ctypes.byref(count),
+            ctypes.byref(ratio),
+        )
+        self._check(status, "compost_context_select_partition")
+        return tuple(int(atoms[index]) for index in range(count.value)), float(ratio.value)
 
     def close(self) -> None:
         if self._context and self._context.value:

@@ -14,7 +14,7 @@
 | Eager maintenance/forgetting slice | PORTING | `MathematicalLifePopulation._maintain_and_resorb` | Reserve settlement, forgetting, age, and empty-body death; weakest-member resorption deferred |
 | Resorption FIFO accounting | PORTING | `AutonomousOrganism.enqueue_resorbed_material`, `process_gut` | 128 bounded chunks; external payload FIFO remains pending |
 | Weakest-structure transition | PORTING | `AutonomousCore.remove_weakest` | Deterministic tie-break; incident-member cleanup and critical-bridge protection pending |
-| Opaque native ABI | PORTING | Python reference boundary | `compost_create/destroy/snapshot/digest/state_digest/partition`; Python loader and backend selection pending |
+| Opaque native ABI | PORTING | Python reference boundary | `compost_create/destroy/snapshot/digest/state_digest/select_partition/partition`; Python loader and backend selection pending |
 | Python backend selector/loader | PORTING | Existing Python runtime | Explicit `python`/`native` handles plus native step adapter; CLI wiring and acceptance run pending |
 | Direct-C benchmark | PORTING | Performance phase | Reproducible digest smoke benchmark; Python/FFI comparison pending |
 | Public API robustness tests | PORTING | C API failure contract | Null, NaN, transactional failure, and idempotent destroy coverage |

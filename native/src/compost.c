@@ -166,6 +166,26 @@ compost_status_t compost_context_partition(
     return COMPOST_STATUS_OK;
 }
 
+compost_status_t compost_context_select_partition(
+    const compost_context_t *context,
+    double boundary_ratio_limit,
+    uint8_t *child_atoms,
+    size_t child_atom_capacity,
+    size_t *child_atom_count,
+    double *selected_ratio
+)
+{
+    if (context == NULL) return COMPOST_STATUS_INVALID_ARGUMENT;
+    return compost_organism_select_partition(
+        &context->organism,
+        boundary_ratio_limit,
+        child_atoms,
+        child_atom_capacity,
+        child_atom_count,
+        selected_ratio
+    );
+}
+
 compost_status_t compost_config_default(compost_config_t *config)
 {
     if (config == NULL) {

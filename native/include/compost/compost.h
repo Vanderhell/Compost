@@ -392,6 +392,14 @@ compost_status_t compost_context_partition(
     compost_context_t **child,
     compost_division_result_t *result
 );
+compost_status_t compost_context_select_partition(
+    const compost_context_t *context,
+    double boundary_ratio_limit,
+    uint8_t *child_atoms,
+    size_t child_atom_capacity,
+    size_t *child_atom_count,
+    double *selected_ratio
+);
 
 compost_status_t compost_organism_enqueue_resorbed(
     compost_organism_t *organism,
