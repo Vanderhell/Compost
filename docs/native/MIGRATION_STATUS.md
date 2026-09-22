@@ -14,6 +14,7 @@
 | Resorption FIFO accounting | PORTING | `AutonomousOrganism.enqueue_resorbed_material`, `process_gut` | 128 bounded chunks; external payload FIFO remains pending |
 | Weakest-structure transition | PORTING | `AutonomousCore.remove_weakest` | Deterministic tie-break; incident-member cleanup and critical-bridge protection pending |
 | Opaque native ABI | PORTING | Python reference boundary | `compost_create/destroy/snapshot/digest`; Python loader and backend selection pending |
+| Python backend selector/loader | PORTING | Existing Python runtime | Explicit `python`/`native` handles; CLI wiring and acceptance run pending |
 | Lazy metabolism delta | NOT_STARTED | `biology_rules.lazy_metabolism_delta` | Deferred until float/rounding contract is tested |
 | Reproduction assessment | NOT_STARTED | `biology_rules.reproduction_allowed` | Requires lifecycle state representation |
 | Material-flow accounting | NOT_STARTED | `sandbox_runtime.MaterialFlow` | Requires native container/state design |
