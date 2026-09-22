@@ -7,6 +7,7 @@ from pathlib import Path
 import sys
 from typing import Sequence
 
+from .backend import NativeBackend, create_backend
 from .organism import MathematicalOrganism
 from .public_sandbox import PublicMultiprocessingSandbox, read_last_snapshot
 
@@ -125,6 +126,12 @@ def _public_parser() -> argparse.ArgumentParser:
     status = commands.add_parser("status", help="read the last read-only telemetry snapshot")
     status.add_argument("sandbox", type=Path)
     status.add_argument("--organisms", action="store_true", help="print every living organism from the saved snapshot")
+    checkpoint = commands.add_parser("checkpoint", help="run the bounded Python/native deterministic checkpoint")
+    checkpoint.add_argument("payload", nargs="?", default="ABCD")
+    checkpoint.add_argument("--backend", choices=("python", "native"), default="python")
+    checkpoint.add_argument("--library", type=Path, help="native library path; required for --backend native")
+    checkpoint.add_argument("--steps", type=int, default=1)
+    checkpoint.add_argument("--json", action="store_true")
     return parser
 
 
@@ -139,6 +146,28 @@ def _public_main(argv: Sequence[str]) -> int:
         print(f"TERMINATION: {snapshot.get('termination') or 'RUNNING'}")
         if snapshot.get("failure"):
             print(f"FAILURE: {snapshot['failure']}")
+        return 0
+    if args.command == "checkpoint":
+        if args.steps <= 0:
+            raise SystemExit("--steps must be positive")
+        if args.backend == "native":
+            if args.library is None:
+                raise SystemExit("--library is required with --backend native")
+            with create_backend("native", library=args.library) as backend:
+                assert isinstance(backend, NativeBackend)
+                for step in range(args.steps):
+                    payload = args.payload.encode("ascii") if step == 0 else b""
+                    backend.step(payload, (1.0,) * len(payload))
+                result = {"backend": "native", "steps": args.steps, "snapshot": backend.snapshot()}
+        else:
+            backend = create_backend("python", payload=args.payload)
+            for _ in range(args.steps):
+                backend.population.cycle()  # type: ignore[union-attr]
+            result = {"backend": "python", "steps": args.steps, "snapshot": backend.population.snapshot()}  # type: ignore[union-attr]
+        if args.json:
+            print(json.dumps(result, indent=2, sort_keys=True))
+        else:
+            print(f"CHECKPOINT backend={result['backend']} steps={args.steps}")
         return 0
     if args.block_size <= 0 or args.workers <= 0 or args.snapshot_seconds <= 0 or (args.max_seconds is not None and args.max_seconds <= 0):
         raise SystemExit("--block-size, --workers, --snapshot-seconds, and --max-seconds must be positive")
@@ -176,10 +205,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         commands.add_parser("run", help="run an autonomous multiprocessing sandbox")
         commands.add_parser("status", help="read the last sandbox telemetry snapshot")
         commands.add_parser("legacy", help="run the legacy deterministic sequence simulator")
-        parser.epilog = "Use 'run SANDBOX' or 'status SANDBOX'. Legacy simulation remains available as 'legacy [SEQUENCE ...]'."
+        commands.add_parser("checkpoint", help="run the bounded Python/native deterministic checkpoint")
+        parser.epilog = "Use 'run SANDBOX', 'status SANDBOX', or 'checkpoint --backend python'. Legacy simulation remains available as 'legacy [SEQUENCE ...]'."
         parser.print_help()
         return 0
-    if arguments and arguments[0] in {"run", "status"}:
+    if arguments and arguments[0] in {"run", "status", "checkpoint"}:
         return _public_main(arguments)
     if arguments[0] == "legacy":
         return _legacy_main(arguments[1:])
