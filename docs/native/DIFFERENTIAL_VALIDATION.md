@@ -38,8 +38,16 @@ and composites after every step. This is bounded to the migrated
 single-organism checkpoint and is not the required 1,000,000-step
 full-population acceptance campaign.
 
+When a field comparison fails, the assertion reports the first divergent
+field together with the Python `canonical_digest` and the native ABI
+`state_digest` from that same logical step. The evidence message is lazy, so
+successful campaigns do not pay the digest-construction cost.
+
 ## Acceptance requirement
 
 Before the final audit, the campaign must record seed, configuration, logical
-step count, both canonical digests, and the first divergent field for each
-case. A final acceptance run requires zero unexplained behavioral divergences.
+step count, both state digests, and the first divergent field for each case. A
+final acceptance run requires zero unexplained behavioral divergences. The
+native digest is currently an ABI-defined state digest rather than a claim
+that the incomplete native lifecycle already implements the full Python
+canonical schema.
