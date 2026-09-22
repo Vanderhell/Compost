@@ -176,45 +176,53 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                 self.assertTrue(actual.score < 0.0)
 
     def test_simple_lifecycle_replay_reports_first_divergent_field(self) -> None:
-        payload = "AB" * 128
-        population = MathematicalLifePopulation(payload)
-        with NativeBackend(self.library_path, organism_id=0) as backend:
-            for cycle in range(256):
-                population.cycle()
-                backend.step(payload.encode("ascii") if cycle == 0 else b"", (1.0,) * len(payload) if cycle == 0 else ())
-                reference = population.organisms[0]
-                native = backend.snapshot()
-                self.assertEqual(native["cursor"], reference.cursor, f"step {cycle}: cursor")
-                self.assertEqual(native["age_in_cycles"], reference.age_in_cycles, f"step {cycle}: age")
-                self.assertEqual(native["body"]["atom_count"], len(reference.atoms), f"step {cycle}: atom_count")
-                self.assertEqual(native["body"]["relation_count"], len(reference.relations), f"step {cycle}: relation_count")
-                self.assertEqual(native["body"]["composite_count"], len(reference.composites), f"step {cycle}: composite_count")
-                self.assertEqual(native["body"]["structural_mass"], reference.full_body_mass(), f"step {cycle}: structural_mass")
-                self.assertAlmostEqual(native["reserve"], reference.reserve, places=12, msg=f"step {cycle}: reserve")
-                native_atoms = {
-                    chr(left): (strength, maintenance, evidence, income)
-                    for left, _right, strength, maintenance, evidence, income in native["atoms"]
-                }
-                reference_atoms = {
-                    key: (item.strength, item.maintenance, item.evidence, item.income_rate)
-                    for key, item in reference.atoms.items()
-                }
-                self.assertEqual(set(native_atoms), set(reference_atoms), f"step {cycle}: atom keys")
-                for key in sorted(reference_atoms):
-                    for index, (actual, expected) in enumerate(zip(native_atoms[key], reference_atoms[key])):
-                        self.assertAlmostEqual(actual, expected, places=12, msg=f"step {cycle}: atom {key} field {index}")
-                native_relations = {
-                    (chr(left), chr(right)): (strength, maintenance, evidence, income)
-                    for left, right, strength, maintenance, evidence, income in native["relations"]
-                }
-                reference_relations = {
-                    key: (item.strength, item.maintenance, item.evidence, item.income_rate)
-                    for key, item in reference.relations.items()
-                }
-                self.assertEqual(set(native_relations), set(reference_relations), f"step {cycle}: relation keys")
-                for key in sorted(reference_relations):
-                    for index, (actual, expected) in enumerate(zip(native_relations[key], reference_relations[key])):
-                        self.assertAlmostEqual(actual, expected, places=12, msg=f"step {cycle}: relation {key} field {index}")
+        payloads = (
+            "AB" * 128,
+            "ABCD" * 64,
+            "ABBA" * 64,
+            "ABC" * 85,
+        )
+        for scenario in range(40):
+            payload = payloads[scenario % len(payloads)]
+            population = MathematicalLifePopulation(payload)
+            with NativeBackend(self.library_path, organism_id=scenario) as backend:
+                for cycle in range(256):
+                    population.cycle()
+                    backend.step(payload.encode("ascii") if cycle == 0 else b"", (1.0,) * len(payload) if cycle == 0 else ())
+                    reference = population.organisms[0]
+                    native = backend.snapshot()
+                    prefix = f"scenario {scenario} step {cycle}"
+                    self.assertEqual(native["cursor"], reference.cursor, f"{prefix}: cursor")
+                    self.assertEqual(native["age_in_cycles"], reference.age_in_cycles, f"{prefix}: age")
+                    self.assertEqual(native["body"]["atom_count"], len(reference.atoms), f"{prefix}: atom_count")
+                    self.assertEqual(native["body"]["relation_count"], len(reference.relations), f"{prefix}: relation_count")
+                    self.assertEqual(native["body"]["composite_count"], len(reference.composites), f"{prefix}: composite_count")
+                    self.assertEqual(native["body"]["structural_mass"], reference.full_body_mass(), f"{prefix}: structural_mass")
+                    self.assertAlmostEqual(native["reserve"], reference.reserve, places=12, msg=f"{prefix}: reserve")
+                    native_atoms = {
+                        chr(left): (strength, maintenance, evidence, income)
+                        for left, _right, strength, maintenance, evidence, income in native["atoms"]
+                    }
+                    reference_atoms = {
+                        key: (item.strength, item.maintenance, item.evidence, item.income_rate)
+                        for key, item in reference.atoms.items()
+                    }
+                    self.assertEqual(set(native_atoms), set(reference_atoms), f"{prefix}: atom keys")
+                    for key in sorted(reference_atoms):
+                        for index, (actual, expected) in enumerate(zip(native_atoms[key], reference_atoms[key])):
+                            self.assertAlmostEqual(actual, expected, places=12, msg=f"{prefix}: atom {key} field {index}")
+                    native_relations = {
+                        (chr(left), chr(right)): (strength, maintenance, evidence, income)
+                        for left, right, strength, maintenance, evidence, income in native["relations"]
+                    }
+                    reference_relations = {
+                        key: (item.strength, item.maintenance, item.evidence, item.income_rate)
+                        for key, item in reference.relations.items()
+                    }
+                    self.assertEqual(set(native_relations), set(reference_relations), f"{prefix}: relation keys")
+                    for key in sorted(reference_relations):
+                        for index, (actual, expected) in enumerate(zip(native_relations[key], reference_relations[key])):
+                            self.assertAlmostEqual(actual, expected, places=12, msg=f"{prefix}: relation {key} field {index}")
 
 
 if __name__ == "__main__":
