@@ -40,13 +40,27 @@ static compost_allocator_t effective_allocator(const compost_allocator_t *alloca
 }
 
 static bool finite(double value);
+static bool weaker(const compost_structure_t *left, const compost_structure_t *right);
 static compost_structure_t *weakest_structure(compost_organism_t *organism);
+static double structure_maintenance(const compost_organism_t *organism);
+static compost_status_t label_components(
+    const compost_organism_t *organism,
+    bool skip_boundary,
+    uint8_t boundary_left,
+    uint8_t boundary_right,
+    uint8_t labels[COMPOST_MAX_ATOMS],
+    uint8_t *component_count
+);
 static compost_status_t remove_structure_entry(
     compost_organism_t *organism,
     compost_structure_t *structure,
     uint64_t *resorbed_mass
 );
 static compost_status_t remove_weakest_for_pressure(
+    compost_organism_t *organism,
+    uint64_t *resorbed_mass
+);
+static compost_status_t remove_weakest_for_capacity(
     compost_organism_t *organism,
     uint64_t *resorbed_mass
 );
@@ -798,13 +812,16 @@ compost_status_t compost_organism_digest(
             return COMPOST_STATUS_INVALID_ARGUMENT;
         }
         if (atom == NULL) {
-            atom = free_structure(next.atoms, COMPOST_MAX_ATOMS);
-            if (atom == NULL || !add_double(next.reserve, atom_gain, &next.reserve)) {
-                return COMPOST_STATUS_INVALID_ARGUMENT;
+            if (next.body.atom_count > 0U &&
+                next.reserve < structure_maintenance(&next) + next.config.atom_maintenance) {
+                uint64_t removed_mass = 0U;
+                if (remove_weakest_for_capacity(&next, &removed_mass) != COMPOST_STATUS_OK) {
+                    continue;
+                }
             }
-            if (next.body.atom_count > 0U && next.reserve < next.config.atom_formation_cost) {
-                next.reserve -= atom_gain;
-                continue;
+            atom = free_structure(next.atoms, COMPOST_MAX_ATOMS);
+            if (atom == NULL) {
+                return COMPOST_STATUS_INVALID_ARGUMENT;
             }
             if (next.body.atom_count > 0U &&
                 !add_double(next.reserve, -next.config.atom_formation_cost, &next.reserve)) {
@@ -818,6 +835,9 @@ compost_status_t compost_organism_digest(
             atom->maintenance = next.config.atom_maintenance;
             atom->evidence = 1.0;
             atom->income_rate = atom_gain;
+            if (!add_double(next.reserve, atom_gain, &next.reserve)) {
+                return COMPOST_STATUS_INVALID_ARGUMENT;
+            }
             if (!add_u64(next.body.atom_count, UINT64_C(1), &next.body.atom_count)) {
                 return COMPOST_STATUS_INVALID_ARGUMENT;
             }
@@ -870,13 +890,19 @@ compost_status_t compost_organism_digest(
             return COMPOST_STATUS_INVALID_ARGUMENT;
         }
         if (relation == NULL) {
+            if (next.body.atom_count > 0U &&
+                next.reserve < structure_maintenance(&next) + next.config.relation_maintenance) {
+                uint64_t removed_mass = 0U;
+                if (remove_weakest_for_capacity(&next, &removed_mass) != COMPOST_STATUS_OK) {
+                    continue;
+                }
+            }
             if (next.reserve < next.config.relation_formation_cost) {
                 continue;
             }
             relation = free_structure(next.relations, COMPOST_MAX_RELATIONS);
             if (relation == NULL ||
-                !add_double(next.reserve, -next.config.relation_formation_cost, &next.reserve) ||
-                !add_double(next.reserve, relation_gain, &next.reserve)) {
+                !add_double(next.reserve, -next.config.relation_formation_cost, &next.reserve)) {
                 return COMPOST_STATUS_INVALID_ARGUMENT;
             }
             memset(relation, 0, sizeof(*relation));
@@ -888,6 +914,9 @@ compost_status_t compost_organism_digest(
             relation->maintenance = next.config.relation_maintenance;
             relation->evidence = 1.0;
             relation->income_rate = relation_gain;
+            if (!add_double(next.reserve, relation_gain, &next.reserve)) {
+                return COMPOST_STATUS_INVALID_ARGUMENT;
+            }
             uint64_t created_mass = 0U;
             if (add_mass_for_structure(&next.body, relation->strength, &created_mass) != COMPOST_STATUS_OK ||
                 next.body.structural_mass > next.config.max_body_mass ||
@@ -1400,6 +1429,93 @@ static compost_status_t label_components(
     return COMPOST_STATUS_OK;
 }
 
+static compost_status_t critical_bridge(
+    const compost_organism_t *organism,
+    const compost_structure_t *edge,
+    bool *critical
+)
+{
+    *critical = false;
+    if (edge->kind == COMPOST_STRUCTURE_ATOM || edge->left == edge->right) return COMPOST_STATUS_OK;
+    uint8_t baseline[COMPOST_MAX_ATOMS] = {0};
+    uint8_t without[COMPOST_MAX_ATOMS] = {0};
+    uint8_t baseline_count = 0U;
+    uint8_t without_count = 0U;
+    if (label_components(organism, false, 0U, 0U, baseline, &baseline_count) != COMPOST_STATUS_OK ||
+        label_components(organism, true, edge->left, edge->right, without, &without_count) != COMPOST_STATUS_OK) {
+        return COMPOST_STATUS_INVALID_STATE;
+    }
+    if (baseline_count != 1U || without_count <= baseline_count) return COMPOST_STATUS_OK;
+    for (uint8_t component = 0U; component < without_count; ++component) {
+        double strength = 0.0;
+        for (size_t index = 0U; index < COMPOST_MAX_ATOMS; ++index) {
+            if (without[index] == component) {
+                const compost_structure_t *atom = atom_for_key(organism, (uint8_t)index);
+                if (atom != NULL) strength += atom->strength;
+            }
+        }
+        if (!(strength > edge->strength)) return COMPOST_STATUS_OK;
+    }
+    *critical = true;
+    return COMPOST_STATUS_OK;
+}
+
+static compost_status_t remove_weakest_for_capacity(
+    compost_organism_t *organism,
+    uint64_t *resorbed_mass
+)
+{
+    compost_structure_t *best = NULL;
+    for (size_t collection = 0U; collection < 2U; ++collection) {
+        compost_structure_t *structures = collection == 0U ? organism->composites : organism->relations;
+        const size_t count = collection == 0U ? COMPOST_MAX_COMPOSITES : COMPOST_MAX_RELATIONS;
+        for (size_t index = 0U; index < count; ++index) {
+            compost_structure_t *candidate = &structures[index];
+            bool critical = false;
+            if (!candidate->occupied ||
+                critical_bridge(organism, candidate, &critical) != COMPOST_STATUS_OK || critical) continue;
+            if (weaker(candidate, best)) best = candidate;
+        }
+    }
+    for (size_t index = 0U; index < COMPOST_MAX_ATOMS; ++index) {
+        compost_structure_t *candidate = &organism->atoms[index];
+        if (!candidate->occupied) continue;
+        bool supported = false;
+        for (size_t collection = 0U; collection < 2U && !supported; ++collection) {
+            const compost_structure_t *structures = collection == 0U ? organism->relations : organism->composites;
+            const size_t count = collection == 0U ? COMPOST_MAX_RELATIONS : COMPOST_MAX_COMPOSITES;
+            for (size_t edge_index = 0U; edge_index < count; ++edge_index) {
+                const compost_structure_t *edge = &structures[edge_index];
+                if (edge->occupied && (edge->left == candidate->left || edge->right == candidate->left)) {
+                    supported = true;
+                    break;
+                }
+            }
+        }
+        if (!supported && weaker(candidate, best)) best = candidate;
+    }
+    if (best == NULL) return COMPOST_STATUS_INVALID_STATE;
+    const compost_structure_kind_t kind = best->kind;
+    const uint8_t symbol = best->left;
+    if (kind == COMPOST_STRUCTURE_ATOM) {
+        for (size_t index = 0U; index < COMPOST_MAX_RELATIONS; ++index) {
+            compost_structure_t *edge = &organism->relations[index];
+            if (edge->occupied && (edge->left == symbol || edge->right == symbol) &&
+                remove_structure_entry(organism, edge, resorbed_mass) != COMPOST_STATUS_OK) {
+                return COMPOST_STATUS_INVALID_STATE;
+            }
+        }
+        for (size_t index = 0U; index < COMPOST_MAX_COMPOSITES; ++index) {
+            compost_structure_t *edge = &organism->composites[index];
+            if (edge->occupied && (edge->left == symbol || edge->right == symbol) &&
+                remove_structure_entry(organism, edge, resorbed_mass) != COMPOST_STATUS_OK) {
+                return COMPOST_STATUS_INVALID_STATE;
+            }
+        }
+    }
+    return remove_structure_entry(organism, best, resorbed_mass);
+}
+
 compost_status_t compost_organism_select_partition(
     const compost_organism_t *organism,
     double boundary_ratio_limit,
@@ -1688,13 +1804,20 @@ compost_status_t compost_organism_partition(
     return COMPOST_STATUS_OK;
 }
 
+static int structure_kind_order(compost_structure_kind_t kind)
+{
+    if (kind == COMPOST_STRUCTURE_ATOM) return 0;
+    if (kind == COMPOST_STRUCTURE_COMPOSITE) return 1;
+    return 2;
+}
+
 static bool weaker(const compost_structure_t *left, const compost_structure_t *right)
 {
     if (right == NULL) return true;
     if (left->strength != right->strength) return left->strength < right->strength;
     if (left->evidence != right->evidence) return left->evidence < right->evidence;
     if (left->income_rate != right->income_rate) return left->income_rate < right->income_rate;
-    if (left->kind != right->kind) return left->kind < right->kind;
+    if (left->kind != right->kind) return structure_kind_order(left->kind) < structure_kind_order(right->kind);
     if (left->left != right->left) return left->left < right->left;
     return left->right < right->right;
 }
