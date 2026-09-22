@@ -1298,6 +1298,14 @@ compost_status_t compost_organism_process_resorption(
             next.gut_count -= 1U;
         }
     }
+    if (total > 0U) {
+        compost_activity_counters_t counters = {0};
+        counters.resorbed_processed_bytes = total;
+        if (compost_activity_ledger_add(&next.activity, &counters, next.body.structural_mass,
+                                        &DEFAULT_ACTIVITY_COSTS) != COMPOST_STATUS_OK) {
+            return COMPOST_STATUS_INVALID_ARGUMENT;
+        }
+    }
     *organism = next;
     *processed = total;
     return COMPOST_STATUS_OK;

@@ -185,6 +185,7 @@ int main(void)
         processed != 4U || digesting.gut_count != 1U ||
         digesting.gut[digesting.gut_head].mass != 6U ||
         digesting.material_flow.resorption_expelled_mass != 4U ||
+        digesting.activity.counters.resorbed_processed_bytes != 4U ||
         compost_organism_verify_material_conservation(&digesting) != COMPOST_STATUS_OK) {
         return fail("resorption FIFO");
     }
