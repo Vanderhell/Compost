@@ -38,6 +38,13 @@ and composites after every step. This is bounded to the migrated
 single-organism checkpoint and is not the required 1,000,000-step
 full-population acceptance campaign.
 
+A long-run replay was executed locally against the MSVC Release native DLL with
+`COMPOST_DIFFERENTIAL_CYCLES=25000`. It covered the same 40 deterministic
+scenarios for exactly `1,000,000` aggregate Python/native steps and passed in
+`414.21s` with zero divergences. This is strong single-organism evidence, but
+it is not yet the full population, external-gut, corpse, or parallel-runtime
+campaign.
+
 When a field comparison fails, the assertion reports the first divergent
 field together with the Python `canonical_digest` and the native ABI
 `state_digest` from that same logical step. The evidence message is lazy, so
