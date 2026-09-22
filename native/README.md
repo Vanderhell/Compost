@@ -12,6 +12,12 @@ container must use that allocator, record ownership in its containing object,
 and be released by `compost_organism_destroy` or a dedicated destroy function.
 There are no hidden pools, globals, singletons, or process-lifetime allocations.
 
+The current behavioral checkpoint uses explicit bounded arrays: 256 atoms and
+512 relations/composites. These are validation limits, not the final population
+capacity. They keep transactional state copies bounded while the allocator-backed
+container design is still pending; exceeding a table returns an error and never
+silently drops a structure.
+
 A zeroed allocator selects the library's `malloc`/`free` adapter. A custom
 allocator must provide both callbacks and remains owned by the caller; the core
 only stores the callback pair and context. Initialization has no partial

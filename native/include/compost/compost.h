@@ -11,6 +11,9 @@ extern "C" {
 
 #define COMPOST_NATIVE_ABI_VERSION UINT32_C(1)
 #define COMPOST_MAX_TERRITORY_DEPTH 64U
+#define COMPOST_MAX_ATOMS 256U
+#define COMPOST_MAX_RELATIONS 512U
+#define COMPOST_MAX_COMPOSITES 512U
 
 typedef enum compost_status {
     COMPOST_STATUS_OK = 0,
@@ -35,7 +38,30 @@ typedef struct compost_config {
     uint64_t max_body_mass;
     uint32_t max_territory_depth;
     double income_decay;
+    double atom_income;
+    double relation_income;
+    double atom_maintenance;
+    double relation_maintenance;
+    double atom_formation_cost;
+    double relation_formation_cost;
 } compost_config_t;
+
+typedef enum compost_structure_kind {
+    COMPOST_STRUCTURE_ATOM = 0,
+    COMPOST_STRUCTURE_RELATION = 1,
+    COMPOST_STRUCTURE_COMPOSITE = 2
+} compost_structure_kind_t;
+
+typedef struct compost_structure {
+    bool occupied;
+    compost_structure_kind_t kind;
+    uint8_t left;
+    uint8_t right;
+    double strength;
+    double maintenance;
+    double evidence;
+    double income_rate;
+} compost_structure_t;
 
 typedef struct compost_body {
     uint64_t structural_mass;
@@ -127,6 +153,10 @@ typedef struct compost_snapshot {
     compost_material_flow_t material_flow;
     compost_activity_ledger_t activity;
     compost_territory_t territory;
+    compost_structure_t atoms[COMPOST_MAX_ATOMS];
+    compost_structure_t relations[COMPOST_MAX_RELATIONS];
+    compost_structure_t composites[COMPOST_MAX_COMPOSITES];
+    uint64_t activated_receptors[4];
 } compost_snapshot_t;
 
 typedef struct compost_organism {
@@ -144,8 +174,26 @@ typedef struct compost_organism {
     compost_material_flow_t material_flow;
     compost_activity_ledger_t activity;
     compost_territory_t territory;
+    compost_structure_t atoms[COMPOST_MAX_ATOMS];
+    compost_structure_t relations[COMPOST_MAX_RELATIONS];
+    compost_structure_t composites[COMPOST_MAX_COMPOSITES];
+    uint64_t activated_receptors[4];
     bool initialized;
 } compost_organism_t;
+
+typedef struct compost_step_input {
+    const uint8_t *food;
+    const double *nutrition;
+    size_t length;
+} compost_step_input_t;
+
+typedef struct compost_step_result {
+    size_t consumed_bytes;
+    uint64_t assimilated_mass;
+    uint64_t rejected_mass;
+    uint64_t relations_created;
+    uint64_t relations_strengthened;
+} compost_step_result_t;
 
 /* A zeroed allocator selects the library's malloc/free-backed defaults. */
 compost_status_t compost_config_default(compost_config_t *config);
@@ -205,6 +253,18 @@ compost_status_t compost_maintenance_weakening_budget(
     double maintenance_deficit,
     uint64_t body_mass,
     uint64_t *budget
+);
+
+/*
+ * Deterministic byte digestion checkpoint. The environment owns input memory;
+ * the function never retains food pointers and performs no I/O. It mutates
+ * structural state and reserve but does not yet run the full maintenance,
+ * gut, division, or death tail of a logical lifecycle step.
+ */
+compost_status_t compost_organism_digest(
+    compost_organism_t *organism,
+    const compost_step_input_t *input,
+    compost_step_result_t *result
 );
 
 #ifdef __cplusplus

@@ -35,13 +35,26 @@ static compost_allocator_t effective_allocator(const compost_allocator_t *alloca
     return result;
 }
 
+static bool finite(double value);
+
+static const compost_activity_costs_t DEFAULT_ACTIVITY_COSTS = {
+    0.0, 0.001, 0.002, 0.002, 0.08, 0.01, 0.12, 0.02,
+    0.01, 0.10, 0.50, 0.001, 2.0, 0.01
+};
+
 static bool valid_config(const compost_config_t *config)
 {
     return config != NULL &&
            config->abi_version == COMPOST_NATIVE_ABI_VERSION &&
            config->max_body_mass > 0U &&
            config->max_territory_depth <= COMPOST_MAX_TERRITORY_DEPTH &&
-           config->income_decay > 0.0 && config->income_decay < 1.0;
+           config->income_decay > 0.0 && config->income_decay < 1.0 &&
+           finite(config->atom_income) && config->atom_income > 0.0 &&
+           finite(config->relation_income) && config->relation_income > 0.0 &&
+           finite(config->atom_maintenance) && config->atom_maintenance > 0.0 &&
+           finite(config->relation_maintenance) && config->relation_maintenance > 0.0 &&
+           finite(config->atom_formation_cost) && config->atom_formation_cost > 0.0 &&
+           finite(config->relation_formation_cost) && config->relation_formation_cost > 0.0;
 }
 
 compost_status_t compost_config_default(compost_config_t *config)
@@ -54,6 +67,12 @@ compost_status_t compost_config_default(compost_config_t *config)
     config->max_body_mass = UINT64_MAX;
     config->max_territory_depth = COMPOST_MAX_TERRITORY_DEPTH;
     config->income_decay = 0.8;
+    config->atom_income = 1.0;
+    config->relation_income = 0.8;
+    config->atom_maintenance = 0.25;
+    config->relation_maintenance = 0.5;
+    config->atom_formation_cost = 0.35;
+    config->relation_formation_cost = 1.25;
     return COMPOST_STATUS_OK;
 }
 
@@ -64,7 +83,8 @@ compost_status_t compost_organism_init(
     uint64_t organism_id
 )
 {
-    if (organism == NULL || !valid_config(config) || !valid_allocator(allocator)) {
+    if (organism == NULL || !valid_config(config) || !valid_allocator(allocator) ||
+        config->max_body_mass < UINT64_C(256)) {
         return COMPOST_STATUS_INVALID_ARGUMENT;
     }
     if (organism->initialized) {
@@ -76,6 +96,7 @@ compost_status_t compost_organism_init(
     organism->config = *config;
     organism->organism_id = organism_id;
     organism->status = COMPOST_LIFECYCLE_ALIVE;
+    organism->body.structural_mass = UINT64_C(256);
     organism->territory.organism_id = organism_id;
     organism->territory.alive = true;
     organism->initialized = true;
@@ -115,6 +136,10 @@ compost_status_t compost_organism_snapshot(
     snapshot->material_flow = organism->material_flow;
     snapshot->activity = organism->activity;
     snapshot->territory = organism->territory;
+    memcpy(snapshot->atoms, organism->atoms, sizeof(snapshot->atoms));
+    memcpy(snapshot->relations, organism->relations, sizeof(snapshot->relations));
+    memcpy(snapshot->composites, organism->composites, sizeof(snapshot->composites));
+    memcpy(snapshot->activated_receptors, organism->activated_receptors, sizeof(snapshot->activated_receptors));
     return COMPOST_STATUS_OK;
 }
 
@@ -291,5 +316,207 @@ compost_status_t compost_maintenance_weakening_budget(
         return COMPOST_STATUS_INVALID_ARGUMENT;
     }
     *budget = (uint64_t)quotient;
+    return COMPOST_STATUS_OK;
+}
+
+static compost_structure_t *find_structure(
+    compost_structure_t *structures,
+    size_t count,
+    uint8_t left,
+    uint8_t right
+)
+{
+    for (size_t index = 0U; index < count; ++index) {
+        if (structures[index].occupied && structures[index].left == left &&
+            structures[index].right == right) {
+            return &structures[index];
+        }
+    }
+    return NULL;
+}
+
+static compost_structure_t *free_structure(
+    compost_structure_t *structures,
+    size_t count
+)
+{
+    for (size_t index = 0U; index < count; ++index) {
+        if (!structures[index].occupied) {
+            return &structures[index];
+        }
+    }
+    return NULL;
+}
+
+static bool add_double(double left, double right, double *result)
+{
+    *result = left + right;
+    return finite(*result);
+}
+
+static compost_status_t add_mass_for_structure(
+    compost_body_t *body,
+    double strength,
+    uint64_t *created_mass
+)
+{
+    uint64_t mass = 0U;
+    if (compost_structural_mass(strength, &mass) != COMPOST_STATUS_OK ||
+        !add_u64(body->structural_mass, mass, &body->structural_mass) ||
+        !add_u64(body->structural_mass, UINT64_C(0), &body->structural_mass)) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    *created_mass = mass;
+    return COMPOST_STATUS_OK;
+}
+
+static void activate_receptor(compost_organism_t *organism, uint8_t symbol)
+{
+    const size_t cell = (size_t)symbol / 64U;
+    const uint32_t bit = (uint32_t)symbol % 64U;
+    organism->activated_receptors[cell] |= UINT64_C(1) << bit;
+}
+
+compost_status_t compost_organism_digest(
+    compost_organism_t *organism,
+    const compost_step_input_t *input,
+    compost_step_result_t *result
+)
+{
+    if (organism == NULL || input == NULL || result == NULL ||
+        !organism->initialized || organism->status != COMPOST_LIFECYCLE_ALIVE ||
+        (input->length > 0U && (input->food == NULL || input->nutrition == NULL))) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+
+    compost_organism_t next = *organism;
+    compost_step_result_t next_result = {0};
+    next_result.consumed_bytes = input->length;
+    compost_activity_counters_t counters = {0};
+    counters.bytes_eaten = (uint64_t)input->length;
+    counters.processed_bytes = (uint64_t)input->length;
+
+    for (size_t index = 0U; index < input->length; ++index) {
+        const double nutrition = input->nutrition[index];
+        if (!finite(nutrition)) {
+            return COMPOST_STATUS_INVALID_ARGUMENT;
+        }
+        if (nutrition <= 0.0) {
+            if (!add_u64(counters.rejected_bytes, UINT64_C(1), &counters.rejected_bytes)) {
+                return COMPOST_STATUS_INVALID_ARGUMENT;
+            }
+            continue;
+        }
+        const uint8_t symbol = input->food[index];
+        activate_receptor(&next, symbol);
+        compost_structure_t *atom = find_structure(next.atoms, COMPOST_MAX_ATOMS, symbol, 0U);
+        const double atom_gain = next.config.atom_income * nutrition;
+        if (!finite(atom_gain)) {
+            return COMPOST_STATUS_INVALID_ARGUMENT;
+        }
+        if (atom == NULL) {
+            atom = free_structure(next.atoms, COMPOST_MAX_ATOMS);
+            if (atom == NULL || !add_double(next.reserve, atom_gain, &next.reserve)) {
+                return COMPOST_STATUS_INVALID_ARGUMENT;
+            }
+            if (next.body.atom_count > 0U && next.reserve < next.config.atom_formation_cost) {
+                next.reserve -= atom_gain;
+                continue;
+            }
+            if (next.body.atom_count > 0U &&
+                !add_double(next.reserve, -next.config.atom_formation_cost, &next.reserve)) {
+                return COMPOST_STATUS_INVALID_ARGUMENT;
+            }
+            memset(atom, 0, sizeof(*atom));
+            atom->occupied = true;
+            atom->kind = COMPOST_STRUCTURE_ATOM;
+            atom->left = symbol;
+            atom->strength = nutrition;
+            atom->maintenance = next.config.atom_maintenance;
+            atom->evidence = 1.0;
+            atom->income_rate = atom_gain;
+            if (!add_u64(next.body.atom_count, UINT64_C(1), &next.body.atom_count)) {
+                return COMPOST_STATUS_INVALID_ARGUMENT;
+            }
+        } else {
+            if (!add_double(atom->strength, atom_gain, &atom->strength) ||
+                !add_double(atom->evidence, 1.0, &atom->evidence) ||
+                !add_double(atom->income_rate, atom_gain, &atom->income_rate) ||
+                !add_double(next.reserve, atom_gain, &next.reserve)) {
+                return COMPOST_STATUS_INVALID_ARGUMENT;
+            }
+        }
+        if (!add_u64(next_result.assimilated_mass, UINT64_C(1), &next_result.assimilated_mass)) {
+            return COMPOST_STATUS_INVALID_ARGUMENT;
+        }
+    }
+
+    for (size_t index = 0U; index + 1U < input->length; ++index) {
+        const double left_nutrition = input->nutrition[index];
+        const double right_nutrition = input->nutrition[index + 1U];
+        if (left_nutrition <= 0.0 || right_nutrition <= 0.0) {
+            continue;
+        }
+        const uint8_t left = input->food[index];
+        const uint8_t right = input->food[index + 1U];
+        const double pair_nutrition = left_nutrition < right_nutrition ? left_nutrition : right_nutrition;
+        compost_structure_t *relation = find_structure(next.relations, COMPOST_MAX_RELATIONS, left, right);
+        const double relation_gain = next.config.relation_income * pair_nutrition;
+        if (!finite(relation_gain)) {
+            return COMPOST_STATUS_INVALID_ARGUMENT;
+        }
+        if (relation == NULL) {
+            if (next.reserve < next.config.relation_formation_cost) {
+                continue;
+            }
+            relation = free_structure(next.relations, COMPOST_MAX_RELATIONS);
+            if (relation == NULL || !add_double(next.reserve, -next.config.relation_formation_cost, &next.reserve)) {
+                return COMPOST_STATUS_INVALID_ARGUMENT;
+            }
+            memset(relation, 0, sizeof(*relation));
+            relation->occupied = true;
+            relation->kind = COMPOST_STRUCTURE_RELATION;
+            relation->left = left;
+            relation->right = right;
+            relation->strength = pair_nutrition;
+            relation->maintenance = next.config.relation_maintenance;
+            relation->evidence = 1.0;
+            relation->income_rate = relation_gain;
+            uint64_t created_mass = 0U;
+            if (add_mass_for_structure(&next.body, relation->strength, &created_mass) != COMPOST_STATUS_OK ||
+                next.body.structural_mass > next.config.max_body_mass ||
+                !add_u64(next.body.relation_count, UINT64_C(1), &next.body.relation_count) ||
+                !add_u64(next.material_flow.structural_created_mass, created_mass, &next.material_flow.structural_created_mass) ||
+                !add_u64(counters.relations_created, UINT64_C(1), &counters.relations_created)) {
+                return COMPOST_STATUS_INVALID_ARGUMENT;
+            }
+            if (!add_u64(next_result.relations_created, UINT64_C(1), &next_result.relations_created)) {
+                return COMPOST_STATUS_INVALID_ARGUMENT;
+            }
+        } else {
+            if (!add_double(relation->strength, relation_gain, &relation->strength) ||
+                !add_double(relation->evidence, 1.0, &relation->evidence) ||
+                !add_double(relation->income_rate, relation_gain, &relation->income_rate) ||
+                !add_u64(counters.relations_strengthened, UINT64_C(1), &counters.relations_strengthened)) {
+                return COMPOST_STATUS_INVALID_ARGUMENT;
+            }
+            if (!add_u64(next_result.relations_strengthened, UINT64_C(1), &next_result.relations_strengthened)) {
+                return COMPOST_STATUS_INVALID_ARGUMENT;
+            }
+        }
+    }
+    counters.structural_mass_added = next.material_flow.structural_created_mass - organism->material_flow.structural_created_mass;
+    if (compost_activity_ledger_add(&next.activity, &counters, next.body.structural_mass, &DEFAULT_ACTIVITY_COSTS) != COMPOST_STATUS_OK) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    if (!add_u64(next.material_flow.input_mass, (uint64_t)input->length, &next.material_flow.input_mass) ||
+        !add_u64(next.material_flow.processed_mass, (uint64_t)input->length, &next.material_flow.processed_mass) ||
+        !add_u64(next.material_flow.assimilated_mass, next_result.assimilated_mass, &next.material_flow.assimilated_mass) ||
+        !add_u64(next.material_flow.rejected_mass, counters.rejected_bytes, &next.material_flow.rejected_mass) ||
+        !add_u64(next.cursor, (uint64_t)input->length, &next.cursor)) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    *organism = next;
+    *result = next_result;
     return COMPOST_STATUS_OK;
 }

@@ -63,5 +63,19 @@ int main(void)
         compost_maintenance_weakening_budget(0.0, 4U, &budget) != COMPOST_STATUS_OK || budget != 0U) {
         return fail("weakening budget");
     }
+    const uint8_t food[] = {1U, 2U, 1U};
+    const double nutrition[] = {1.0, 1.0, 1.0};
+    const compost_step_input_t input = {food, nutrition, sizeof(food)};
+    compost_step_result_t step = {0};
+    compost_organism_t digesting = {0};
+    if (compost_organism_init(&digesting, &config, NULL, UINT64_C(8)) != COMPOST_STATUS_OK ||
+        compost_organism_digest(&digesting, &input, &step) != COMPOST_STATUS_OK ||
+        step.consumed_bytes != 3U || step.assimilated_mass != 3U ||
+        step.relations_created != 2U || digesting.body.atom_count != 2U ||
+        digesting.body.relation_count != 2U || digesting.cursor != 3U ||
+        digesting.material_flow.rejected_mass != 0U) {
+        return fail("deterministic digest");
+    }
+    compost_organism_destroy(&digesting);
     return 0;
 }

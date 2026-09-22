@@ -8,6 +8,8 @@
 | Settlement threshold/basal cost | PORTING | `ActivityLedger.settlement_threshold`, `basal_cost` | Pure functions added to C API |
 | Forgetting delta | PORTING | `biology_rules.forgetting_delta` | Pure C delta, no organism mutation |
 | Maintenance weakening budget | PORTING | `biology_rules.maintenance_weakening_budget` | Positive deficit guarantees at least one unit |
+| Bounded organism structural state | PORTING | `MathematicalLifeOrganism` structures | 256 atoms and 512 relation/composite validation bounds |
+| Deterministic byte digestion checkpoint | PORTING | `MathematicalLifePopulation._digest` | Explicit food/nutrition view; maintenance/gut/division tail not yet included |
 | Lazy metabolism delta | NOT_STARTED | `biology_rules.lazy_metabolism_delta` | Deferred until float/rounding contract is tested |
 | Reproduction assessment | NOT_STARTED | `biology_rules.reproduction_allowed` | Requires lifecycle state representation |
 | Material-flow accounting | NOT_STARTED | `sandbox_runtime.MaterialFlow` | Requires native container/state design |
