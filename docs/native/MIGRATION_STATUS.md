@@ -23,6 +23,7 @@
 | Lazy metabolism delta | DIFFERENTIAL_PASS | `biology_rules.lazy_metabolism_delta` | Tolerance-based Python/C differential cases pass |
 | Reproduction assessment | DIFFERENTIAL_PASS | `biology_rules.reproduction_allowed` | Pure eligibility/score differential cases pass; automatic candidate policy remains pending |
 | Material-flow accounting | DIFFERENTIAL_PASS | `sandbox_runtime.MaterialFlow` | Native conservation validator, external/resorption FIFO accounting, cross-edge resorption, and division transfer pass bounded tests; full sandbox ledger differential remains pending |
+| Environment corpse-energy credit | DIFFERENTIAL_PASS | `AutonomousOrganism._consume_corpse` | Python-owned corpse lookup supplies an explicit energy amount to the native ABI; reserve credit and invalid-input rollback are differentially covered; corpse storage/territory lookup remain in Python |
 
 | Selected structural partition | DIFFERENTIAL_PASS | `AutonomousOrganism._commit_skeleton_partition` | Selector, viability plan, and partition transaction pass native GCC/MSVC tests plus bounded Python/sandbox mass/reserve/body differential coverage; automatic candidate policy and full integration remain pending |
 | Native parallel runtime | DEFERRED | Existing Python parallel runtime | See `PARALLEL_RUNTIME.md`; single-thread semantic parity is required first |
