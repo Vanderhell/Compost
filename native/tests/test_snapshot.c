@@ -108,6 +108,39 @@ int main(void)
         digesting.status != COMPOST_LIFECYCLE_ALIVE) {
         return fail("maintenance slice");
     }
+    compost_organism_t bridge = {0};
+    compost_step_result_t bridge_result = {0};
+    const uint8_t bridge_food[] = {4U};
+    const double bridge_nutrition[] = {1.0};
+    const compost_step_input_t bridge_input = {bridge_food, bridge_nutrition, 1U};
+    if (compost_organism_init(&bridge, &config, NULL, UINT64_C(13)) != COMPOST_STATUS_OK) {
+        compost_organism_destroy(&bridge);
+        compost_organism_destroy(&digesting);
+        return fail("bridge setup");
+    }
+    for (size_t index = 0U; index < 3U; ++index) {
+        bridge.atoms[index] = (compost_structure_t){true, COMPOST_STRUCTURE_ATOM,
+            (uint8_t)(index + 1U), 0U, 10.0, 0.25, 1.0, 10.0};
+    }
+    bridge.relations[0] = (compost_structure_t){true, COMPOST_STRUCTURE_RELATION,
+        1U, 2U, 8.0, 0.5, 1.0, 8.0};
+    bridge.relations[1] = (compost_structure_t){true, COMPOST_STRUCTURE_RELATION,
+        2U, 3U, 8.0, 0.5, 1.0, 8.0};
+    bridge.body.atom_count = 3U;
+    bridge.body.relation_count = 2U;
+    bridge.body.structural_mass = 264U;
+    bridge.material_flow.structural_created_mass = 8U;
+    bridge.reserve = 0.0;
+    if (compost_organism_digest(&bridge, &bridge_input, &bridge_result) != COMPOST_STATUS_OK ||
+        bridge_result.assimilated_mass != 0U || bridge_result.rejected_mass != 1U ||
+        bridge.body.atom_count != 3U || bridge.body.relation_count != 2U ||
+        bridge.material_flow.rejected_mass != 1U ||
+        compost_organism_verify_material_conservation(&bridge) != COMPOST_STATUS_OK) {
+        compost_organism_destroy(&bridge);
+        compost_organism_destroy(&digesting);
+        return fail("critical bridge capacity preservation");
+    }
+    compost_organism_destroy(&bridge);
     compost_organism_t starving = {0};
     compost_maintenance_result_t starving_result = {0};
     if (compost_organism_init(&starving, &config, NULL, UINT64_C(12)) != COMPOST_STATUS_OK) {

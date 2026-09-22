@@ -816,12 +816,21 @@ compost_status_t compost_organism_digest(
                 next.reserve < structure_maintenance(&next) + next.config.atom_maintenance) {
                 uint64_t removed_mass = 0U;
                 if (remove_weakest_for_capacity(&next, &removed_mass) != COMPOST_STATUS_OK) {
+                    if (!add_u64(counters.rejected_bytes, UINT64_C(1), &counters.rejected_bytes)) {
+                        return COMPOST_STATUS_INVALID_ARGUMENT;
+                    }
                     continue;
                 }
             }
             atom = free_structure(next.atoms, COMPOST_MAX_ATOMS);
             if (atom == NULL) {
                 return COMPOST_STATUS_INVALID_ARGUMENT;
+            }
+            if (next.body.atom_count > 0U && next.reserve < next.config.atom_formation_cost) {
+                if (!add_u64(counters.rejected_bytes, UINT64_C(1), &counters.rejected_bytes)) {
+                    return COMPOST_STATUS_INVALID_ARGUMENT;
+                }
+                continue;
             }
             if (next.body.atom_count > 0U &&
                 !add_double(next.reserve, -next.config.atom_formation_cost, &next.reserve)) {
@@ -954,6 +963,7 @@ compost_status_t compost_organism_digest(
         }
     }
     counters.structural_mass_added = next.material_flow.structural_created_mass - organism->material_flow.structural_created_mass;
+    next_result.rejected_mass = counters.rejected_bytes;
     if (compost_activity_ledger_add(&next.activity, &counters, next.body.structural_mass, &DEFAULT_ACTIVITY_COSTS) != COMPOST_STATUS_OK) {
         return COMPOST_STATUS_INVALID_ARGUMENT;
     }
