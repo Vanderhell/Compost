@@ -42,6 +42,7 @@ of Python/C equivalence while the native lifecycle remains incomplete.
 ## Evidence
 
 The native Debug/Release MSVC and GCC builds compile and pass the current
-CTest suite. A true
-Python-vs-C differential campaign remains blocked until the versioned ABI/FFI
-layer is introduced. No Python rule was changed in this checkpoint.
+CTest suite. The versioned ABI and Python pure-rule differential harness now
+exist and are executed in the CI native compiler matrix. The full lifecycle
+Python-vs-C campaign remains pending because the C lifecycle is incomplete.
+No Python rule was changed in this checkpoint.
