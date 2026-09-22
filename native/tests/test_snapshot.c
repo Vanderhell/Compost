@@ -132,6 +132,14 @@ int main(void)
         compost_organism_destroy(&digesting);
         return fail("starvation transition");
     }
+    compost_cycle_result_t dead_cycle = {0};
+    if (compost_organism_step(&starving, &input, &dead_cycle) != COMPOST_STATUS_OK ||
+        dead_cycle.digestion.consumed_bytes != 0U ||
+        dead_cycle.status_after != COMPOST_LIFECYCLE_DEAD || starving.age_in_cycles != 1U) {
+        compost_organism_destroy(&starving);
+        compost_organism_destroy(&digesting);
+        return fail("dead step no-op");
+    }
     compost_organism_destroy(&starving);
     digesting.material_flow.structural_created_mass += 10U;
     if (compost_organism_enqueue_resorbed(&digesting, 10U) != COMPOST_STATUS_OK ||

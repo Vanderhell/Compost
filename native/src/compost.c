@@ -981,6 +981,11 @@ compost_status_t compost_organism_step(
     if (organism == NULL || input == NULL || result == NULL || !organism->initialized) {
         return COMPOST_STATUS_INVALID_ARGUMENT;
     }
+    if (organism->status == COMPOST_LIFECYCLE_DEAD) {
+        *result = (compost_cycle_result_t){0};
+        result->status_after = COMPOST_LIFECYCLE_DEAD;
+        return COMPOST_STATUS_OK;
+    }
     compost_organism_t next = *organism;
     compost_cycle_result_t next_result = {0};
     compost_status_t status = compost_organism_digest(&next, input, &next_result.digestion);
