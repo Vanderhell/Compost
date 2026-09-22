@@ -11,6 +11,7 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from mathematical_organism.biology_rules import lazy_metabolism_delta, structural_mass
 from mathematical_organism.backend import NativeBackend
+from mathematical_organism.canonical import canonical_digest
 from mathematical_organism.lifecycle import LifecycleConfig, LivingStructure, MathematicalLifeOrganism, MathematicalLifePopulation, OrganismStatus
 from mathematical_organism.biology_rules import reproduction_allowed
 
@@ -30,6 +31,21 @@ class _ReproductionAssessment(ctypes.Structure):
         ("selected_count", ctypes.c_uint64),
         ("parent_reserve_after_cost", ctypes.c_double),
     ]
+
+
+class _FailureEvidence:
+    def __init__(self, prefix: str, field: str, reference: MathematicalLifePopulation, backend: NativeBackend) -> None:
+        self.prefix = prefix
+        self.field = field
+        self.reference = reference
+        self.backend = backend
+
+    def __str__(self) -> str:
+        return (
+            f"{self.prefix}: {self.field}; "
+            f"reference_digest={canonical_digest(self.reference)}; "
+            f"native_digest={self.backend.state_digest():016x}"
+        )
 
 
 def _native_library() -> ctypes.CDLL | None:
@@ -192,14 +208,17 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                     reference = population.organisms[0]
                     native = backend.snapshot()
                     prefix = f"scenario {scenario} step {cycle}"
-                    self.assertEqual(native["status"], 0 if reference.status is OrganismStatus.ALIVE else 1, f"{prefix}: status")
-                    self.assertEqual(native["cursor"], reference.cursor, f"{prefix}: cursor")
-                    self.assertEqual(native["age_in_cycles"], reference.age_in_cycles, f"{prefix}: age")
-                    self.assertEqual(native["body"]["atom_count"], len(reference.atoms), f"{prefix}: atom_count")
-                    self.assertEqual(native["body"]["relation_count"], len(reference.relations), f"{prefix}: relation_count")
-                    self.assertEqual(native["body"]["composite_count"], len(reference.composites), f"{prefix}: composite_count")
-                    self.assertEqual(native["body"]["structural_mass"], reference.full_body_mass(), f"{prefix}: structural_mass")
-                    self.assertAlmostEqual(native["reserve"], reference.reserve, places=12, msg=f"{prefix}: reserve")
+                    def evidence(field: str) -> str:
+                        return _FailureEvidence(prefix, field, population, backend)
+
+                    self.assertEqual(native["status"], 0 if reference.status is OrganismStatus.ALIVE else 1, evidence("status"))
+                    self.assertEqual(native["cursor"], reference.cursor, evidence("cursor"))
+                    self.assertEqual(native["age_in_cycles"], reference.age_in_cycles, evidence("age"))
+                    self.assertEqual(native["body"]["atom_count"], len(reference.atoms), evidence("atom_count"))
+                    self.assertEqual(native["body"]["relation_count"], len(reference.relations), evidence("relation_count"))
+                    self.assertEqual(native["body"]["composite_count"], len(reference.composites), evidence("composite_count"))
+                    self.assertEqual(native["body"]["structural_mass"], reference.full_body_mass(), evidence("structural_mass"))
+                    self.assertAlmostEqual(native["reserve"], reference.reserve, places=12, msg=evidence("reserve"))
                     native_atoms = {
                         chr(left): (strength, maintenance, evidence, income)
                         for left, _right, strength, maintenance, evidence, income in native["atoms"]
@@ -208,10 +227,10 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                         key: (item.strength, item.maintenance, item.evidence, item.income_rate)
                         for key, item in reference.atoms.items()
                     }
-                    self.assertEqual(set(native_atoms), set(reference_atoms), f"{prefix}: atom keys")
+                    self.assertEqual(set(native_atoms), set(reference_atoms), evidence("atom keys"))
                     for key in sorted(reference_atoms):
                         for index, (actual, expected) in enumerate(zip(native_atoms[key], reference_atoms[key])):
-                            self.assertAlmostEqual(actual, expected, places=12, msg=f"{prefix}: atom {key} field {index}")
+                            self.assertAlmostEqual(actual, expected, places=12, msg=evidence(f"atom {key} field {index}"))
                     native_relations = {
                         (chr(left), chr(right)): (strength, maintenance, evidence, income)
                         for left, right, strength, maintenance, evidence, income in native["relations"]
@@ -220,10 +239,10 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                         key: (item.strength, item.maintenance, item.evidence, item.income_rate)
                         for key, item in reference.relations.items()
                     }
-                    self.assertEqual(set(native_relations), set(reference_relations), f"{prefix}: relation keys")
+                    self.assertEqual(set(native_relations), set(reference_relations), evidence("relation keys"))
                     for key in sorted(reference_relations):
                         for index, (actual, expected) in enumerate(zip(native_relations[key], reference_relations[key])):
-                            self.assertAlmostEqual(actual, expected, places=12, msg=f"{prefix}: relation {key} field {index}")
+                            self.assertAlmostEqual(actual, expected, places=12, msg=evidence(f"relation {key} field {index}"))
                     native_composites = {
                         (chr(left), chr(right)): (strength, maintenance, evidence, income)
                         for left, right, strength, maintenance, evidence, income in native["composites"]
@@ -232,10 +251,10 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                         key: (item.strength, item.maintenance, item.evidence, item.income_rate)
                         for key, item in reference.composites.items()
                     }
-                    self.assertEqual(set(native_composites), set(reference_composites), f"{prefix}: composite keys")
+                    self.assertEqual(set(native_composites), set(reference_composites), evidence("composite keys"))
                     for key in sorted(reference_composites):
                         for index, (actual, expected) in enumerate(zip(native_composites[key], reference_composites[key])):
-                            self.assertAlmostEqual(actual, expected, places=12, msg=f"{prefix}: composite {key} field {index}")
+                            self.assertAlmostEqual(actual, expected, places=12, msg=evidence(f"composite {key} field {index}"))
 
 
 if __name__ == "__main__":
