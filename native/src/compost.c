@@ -301,6 +301,10 @@ compost_status_t compost_organism_snapshot(
     if (!organism->initialized) {
         return COMPOST_STATUS_INVALID_STATE;
     }
+    if (organism->status != COMPOST_LIFECYCLE_ALIVE &&
+        organism->status != COMPOST_LIFECYCLE_DEAD) {
+        return COMPOST_STATUS_INVALID_STATE;
+    }
     memset(snapshot, 0, sizeof(*snapshot));
     snapshot->abi_version = COMPOST_NATIVE_ABI_VERSION;
     snapshot->organism_id = organism->organism_id;

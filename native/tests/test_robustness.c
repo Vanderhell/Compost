@@ -47,5 +47,14 @@ int main(void)
     if (compost_organism_snapshot(&organism, &after) != COMPOST_STATUS_INVALID_STATE) {
         return fail("destroyed state");
     }
+    if (compost_organism_init(&organism, &config, NULL, 4U) != COMPOST_STATUS_OK) {
+        return fail("corrupt state setup");
+    }
+    organism.status = (compost_lifecycle_status_t)99;
+    if (compost_organism_snapshot(&organism, &after) != COMPOST_STATUS_INVALID_STATE) {
+        compost_organism_destroy(&organism);
+        return fail("invalid lifecycle enum");
+    }
+    compost_organism_destroy(&organism);
     return 0;
 }
