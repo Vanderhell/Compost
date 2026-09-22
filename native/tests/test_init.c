@@ -30,5 +30,11 @@ int main(void)
     if (organism.initialized) {
         return fail("destroy state");
     }
+    uint64_t mass = 0U;
+    if (compost_structural_mass(1.0, &mass) != COMPOST_STATUS_OK || mass != 1U ||
+        compost_structural_mass(8.0, &mass) != COMPOST_STATUS_OK || mass != 4U ||
+        compost_structural_mass(0.5, &mass) != COMPOST_STATUS_OK || mass != 0U) {
+        return fail("structural mass");
+    }
     return 0;
 }

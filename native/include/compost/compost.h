@@ -56,15 +56,49 @@ typedef struct compost_material_flow {
     uint64_t structural_transferred_out;
 } compost_material_flow_t;
 
-typedef struct compost_activity_ledger {
+typedef struct compost_activity_costs {
+    double byte;
+    double digest_per_kib;
+    double reject_per_kib;
+    double resorption_per_kib;
+    double relation_created;
+    double relation_strengthened;
+    double composite_created;
+    double composite_strengthened;
+    double structural_mass_delta;
+    double resorption;
+    double division;
+    double basal_mass;
+    double settlement_base;
+    double settlement_mass_scale;
+} compost_activity_costs_t;
+
+typedef struct compost_activity_counters {
     uint64_t bytes_eaten;
-    uint64_t processed_bytes;
-    uint64_t rejected_bytes;
+    uint64_t relations_created;
+    uint64_t relations_strengthened;
+    uint64_t composites_created;
+    uint64_t composites_strengthened;
+    uint64_t structural_mass_added;
+    uint64_t structural_mass_lost;
     uint64_t resorption_events;
     uint64_t division_events;
+    uint64_t processed_bytes;
+    uint64_t rejected_bytes;
+    uint64_t resorbed_processed_bytes;
+} compost_activity_counters_t;
+
+typedef struct compost_activity_ledger {
     double metabolic_debt;
     double energy_spent;
+    uint64_t settlements;
+    compost_activity_counters_t counters;
 } compost_activity_ledger_t;
+
+typedef struct compost_forgetting_delta {
+    double strength_after;
+    double income_rate_after;
+} compost_forgetting_delta_t;
 
 typedef struct compost_territory {
     uint8_t path[COMPOST_MAX_TERRITORY_DEPTH];
@@ -134,6 +168,44 @@ compost_status_t compost_organism_snapshot(
 );
 
 const char *compost_status_name(compost_status_t status);
+
+/* Pure rule. Finite strength is required; negative strength returns mass zero. */
+compost_status_t compost_structural_mass(double strength, uint64_t *mass);
+
+/* Copies counters into the ledger and adds the exact Python reference cost. */
+compost_status_t compost_activity_ledger_add(
+    compost_activity_ledger_t *ledger,
+    const compost_activity_counters_t *counters,
+    uint64_t body_mass,
+    const compost_activity_costs_t *costs
+);
+
+compost_status_t compost_activity_settlement_threshold(
+    uint64_t body_mass,
+    const compost_activity_costs_t *costs,
+    double *threshold
+);
+
+compost_status_t compost_activity_basal_cost(
+    uint64_t body_mass,
+    const compost_activity_costs_t *costs,
+    double *cost
+);
+
+compost_status_t compost_forgetting_delta(
+    double strength,
+    double income_rate,
+    double maintenance,
+    double income_decay,
+    compost_forgetting_delta_t *delta
+);
+
+/* Returns zero for no deficit and at least one for every positive deficit. */
+compost_status_t compost_maintenance_weakening_budget(
+    double maintenance_deficit,
+    uint64_t body_mass,
+    uint64_t *budget
+);
 
 #ifdef __cplusplus
 }

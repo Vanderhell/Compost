@@ -1,0 +1,30 @@
+# Native migration status
+
+| Unit | Status | Python reference | Notes |
+| --- | --- | --- | --- |
+| Foundation init/destroy/snapshot | DIFFERENTIAL_PASS | `compost_organism_init`, `compost_organism_snapshot` | Scalar foundation only; no simulation behavior yet |
+| Structural mass | DIFFERENTIAL_PASS | `biology_rules.structural_mass` | Finite `double` domain; C uses checked status output |
+| Activity cost accounting | PORTING | `ActivityLedger.add_activity` | C unit tests pass; Python/C FFI differential campaign is pending |
+| Settlement threshold/basal cost | PORTING | `ActivityLedger.settlement_threshold`, `basal_cost` | Pure functions added to C API |
+| Forgetting delta | PORTING | `biology_rules.forgetting_delta` | Pure C delta, no organism mutation |
+| Maintenance weakening budget | PORTING | `biology_rules.maintenance_weakening_budget` | Positive deficit guarantees at least one unit |
+| Lazy metabolism delta | NOT_STARTED | `biology_rules.lazy_metabolism_delta` | Deferred until float/rounding contract is tested |
+| Reproduction assessment | NOT_STARTED | `biology_rules.reproduction_allowed` | Requires lifecycle state representation |
+| Material-flow accounting | NOT_STARTED | `sandbox_runtime.MaterialFlow` | Requires native container/state design |
+
+## Domain decisions in this checkpoint
+
+The C pure-rule API accepts finite IEEE-754 binary64 values and unsigned 64-bit
+counts. It returns an explicit invalid-argument status instead of attempting to
+represent Python's arbitrary-precision integer behavior or non-finite math.
+This is a native input-domain boundary, not a change to Python semantics.
+
+The checked C functions do not mutate outputs on validation or overflow failure
+except where documented by the foundation API. Integer counter addition is
+checked before committing the copied ledger.
+
+## Evidence
+
+The native Debug/Release MSVC and GCC builds compile the current tests. A true
+Python-vs-C differential campaign remains blocked until the versioned ABI/FFI
+layer is introduced. No Python rule was changed in this checkpoint.

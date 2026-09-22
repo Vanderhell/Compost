@@ -1,5 +1,6 @@
 #include "compost/compost.h"
 
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -133,4 +134,162 @@ const char *compost_status_name(compost_status_t status)
     default:
         return "UNKNOWN_STATUS";
     }
+}
+
+static bool finite(double value)
+{
+    return isfinite(value) != 0;
+}
+
+static bool add_u64(uint64_t left, uint64_t right, uint64_t *result)
+{
+    if (UINT64_MAX - left < right) {
+        return false;
+    }
+    *result = left + right;
+    return true;
+}
+
+static bool valid_costs(const compost_activity_costs_t *costs)
+{
+    if (costs == NULL) {
+        return false;
+    }
+    return finite(costs->byte) && finite(costs->digest_per_kib) &&
+           finite(costs->reject_per_kib) && finite(costs->resorption_per_kib) &&
+           finite(costs->relation_created) && finite(costs->relation_strengthened) &&
+           finite(costs->composite_created) && finite(costs->composite_strengthened) &&
+           finite(costs->structural_mass_delta) && finite(costs->resorption) &&
+           finite(costs->division) && finite(costs->basal_mass) &&
+           finite(costs->settlement_base) && finite(costs->settlement_mass_scale);
+}
+
+compost_status_t compost_structural_mass(double strength, uint64_t *mass)
+{
+    if (mass == NULL || !finite(strength)) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    if (strength < 1.0) {
+        *mass = UINT64_C(0);
+        return COMPOST_STATUS_OK;
+    }
+    const double logarithm = floor(log2(strength));
+    if (!finite(logarithm) || logarithm < 0.0 || logarithm > (double)(UINT64_MAX - 1U)) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    *mass = UINT64_C(1) + (uint64_t)logarithm;
+    return COMPOST_STATUS_OK;
+}
+
+compost_status_t compost_activity_ledger_add(
+    compost_activity_ledger_t *ledger,
+    const compost_activity_counters_t *counters,
+    uint64_t body_mass,
+    const compost_activity_costs_t *costs
+)
+{
+    if (ledger == NULL || counters == NULL || !valid_costs(costs)) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    (void)body_mass;
+    compost_activity_ledger_t next = *ledger;
+    const uint64_t *source = &counters->bytes_eaten;
+    uint64_t *destination = &next.counters.bytes_eaten;
+    const size_t count = sizeof(*counters) / sizeof(uint64_t);
+    for (size_t index = 0U; index < count; ++index) {
+        if (!add_u64(destination[index], source[index], &destination[index])) {
+            return COMPOST_STATUS_INVALID_ARGUMENT;
+        }
+    }
+    const double kib = 1024.0;
+    const double delta =
+        costs->byte * (double)counters->bytes_eaten +
+        costs->digest_per_kib * ((double)counters->processed_bytes / kib) +
+        costs->reject_per_kib * ((double)counters->rejected_bytes / kib) +
+        costs->resorption_per_kib * ((double)counters->resorbed_processed_bytes / kib) +
+        costs->relation_created * (double)counters->relations_created +
+        costs->relation_strengthened * (double)counters->relations_strengthened +
+        costs->composite_created * (double)counters->composites_created +
+        costs->composite_strengthened * (double)counters->composites_strengthened +
+        costs->structural_mass_delta * ((double)counters->structural_mass_added + (double)counters->structural_mass_lost) +
+        costs->resorption * (double)counters->resorption_events +
+        costs->division * (double)counters->division_events;
+    if (!finite(delta) || !finite(next.metabolic_debt + delta)) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    next.metabolic_debt += delta;
+    *ledger = next;
+    return COMPOST_STATUS_OK;
+}
+
+compost_status_t compost_activity_settlement_threshold(
+    uint64_t body_mass,
+    const compost_activity_costs_t *costs,
+    double *threshold
+)
+{
+    if (threshold == NULL || !valid_costs(costs)) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    *threshold = costs->settlement_base + costs->settlement_mass_scale * (double)body_mass;
+    return finite(*threshold) ? COMPOST_STATUS_OK : COMPOST_STATUS_INVALID_ARGUMENT;
+}
+
+compost_status_t compost_activity_basal_cost(
+    uint64_t body_mass,
+    const compost_activity_costs_t *costs,
+    double *cost
+)
+{
+    if (cost == NULL || !valid_costs(costs)) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    *cost = costs->basal_mass * (double)body_mass;
+    return finite(*cost) ? COMPOST_STATUS_OK : COMPOST_STATUS_INVALID_ARGUMENT;
+}
+
+compost_status_t compost_forgetting_delta(
+    double strength,
+    double income_rate,
+    double maintenance,
+    double income_decay,
+    compost_forgetting_delta_t *delta
+)
+{
+    if (delta == NULL || !finite(strength) || !finite(income_rate) ||
+        !finite(maintenance) || !finite(income_decay) ||
+        !(income_decay > 0.0 && income_decay < 1.0)) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    double strength_after = strength;
+    if (income_rate <= maintenance) {
+        const double decayed = strength * income_decay;
+        strength_after = decayed > 1.0 ? decayed : 1.0;
+    }
+    delta->strength_after = strength_after;
+    delta->income_rate_after = income_rate * income_decay;
+    return finite(delta->strength_after) && finite(delta->income_rate_after)
+        ? COMPOST_STATUS_OK : COMPOST_STATUS_INVALID_ARGUMENT;
+}
+
+compost_status_t compost_maintenance_weakening_budget(
+    double maintenance_deficit,
+    uint64_t body_mass,
+    uint64_t *budget
+)
+{
+    if (budget == NULL || !finite(maintenance_deficit)) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    if (maintenance_deficit <= 0.0) {
+        *budget = UINT64_C(0);
+        return COMPOST_STATUS_OK;
+    }
+    const uint64_t denominator = body_mass > 0U ? body_mass : UINT64_C(1);
+    const double quotient = ceil(maintenance_deficit / (double)denominator);
+    if (!finite(quotient) || quotient < 1.0 || quotient > (double)UINT64_MAX) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    *budget = (uint64_t)quotient;
+    return COMPOST_STATUS_OK;
 }
