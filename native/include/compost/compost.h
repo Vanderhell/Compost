@@ -146,6 +146,13 @@ typedef struct compost_lazy_metabolism_delta {
     uint64_t strength_decay_epochs;
 } compost_lazy_metabolism_delta_t;
 
+typedef struct compost_reproduction_assessment {
+    double score;
+    bool allowed;
+    uint64_t selected_count;
+    double parent_reserve_after_cost;
+} compost_reproduction_assessment_t;
+
 typedef struct compost_territory {
     uint8_t path[COMPOST_MAX_TERRITORY_DEPTH];
     uint32_t depth;
@@ -297,6 +304,16 @@ compost_status_t compost_lazy_metabolism_delta(
     double income_decay,
     uint64_t epochs,
     compost_lazy_metabolism_delta_t *delta
+);
+
+/* Pure reproduction eligibility; no child or parent state is mutated. */
+compost_status_t compost_reproduction_assessment(
+    uint64_t body_size,
+    double parent_reserve,
+    double birth_cost,
+    uint64_t reproduction_minimum_body,
+    uint64_t selected_count,
+    compost_reproduction_assessment_t *assessment
 );
 
 /* Returns zero for no deficit and at least one for every positive deficit. */

@@ -552,6 +552,27 @@ compost_status_t compost_lazy_metabolism_delta(
         ? COMPOST_STATUS_OK : COMPOST_STATUS_INVALID_ARGUMENT;
 }
 
+compost_status_t compost_reproduction_assessment(
+    uint64_t body_size,
+    double parent_reserve,
+    double birth_cost,
+    uint64_t reproduction_minimum_body,
+    uint64_t selected_count,
+    compost_reproduction_assessment_t *assessment
+)
+{
+    if (assessment == NULL || !finite(parent_reserve) || !finite(birth_cost) ||
+        parent_reserve < 0.0 || birth_cost < 0.0) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    assessment->score = selected_count >= 2U ? (double)selected_count : -INFINITY;
+    assessment->allowed = body_size >= reproduction_minimum_body &&
+        selected_count >= 2U && parent_reserve - birth_cost >= 0.0;
+    assessment->selected_count = selected_count;
+    assessment->parent_reserve_after_cost = parent_reserve - birth_cost;
+    return finite(assessment->parent_reserve_after_cost) ? COMPOST_STATUS_OK : COMPOST_STATUS_INVALID_ARGUMENT;
+}
+
 compost_status_t compost_maintenance_weakening_budget(
     double maintenance_deficit,
     uint64_t body_mass,

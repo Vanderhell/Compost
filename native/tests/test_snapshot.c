@@ -1,5 +1,6 @@
 #include "compost/compost.h"
 
+#include <math.h>
 #include <stdio.h>
 
 static int fail(const char *message)
@@ -67,6 +68,18 @@ int main(void)
     if (compost_lazy_metabolism_delta(5.0, 1.0, 0.5, 0.8, 10U, &lazy) != COMPOST_STATUS_OK ||
         lazy.strength_decay_epochs != 6U) {
         return fail("lazy metabolism threshold");
+    }
+    compost_reproduction_assessment_t reproduction = {0};
+    if (compost_reproduction_assessment(32U, 2.0, 1.0, 32U, 2U, &reproduction) != COMPOST_STATUS_OK ||
+        !reproduction.allowed || reproduction.score != 2.0 ||
+        reproduction.parent_reserve_after_cost != 1.0) {
+        return fail("reproduction assessment");
+    }
+    if (compost_reproduction_assessment(31U, 2.0, 1.0, 32U, 2U, &reproduction) != COMPOST_STATUS_OK ||
+        reproduction.allowed || reproduction.score != 2.0 ||
+        compost_reproduction_assessment(32U, 0.5, 1.0, 32U, 1U, &reproduction) != COMPOST_STATUS_OK ||
+        reproduction.allowed || reproduction.score != -INFINITY) {
+        return fail("reproduction boundaries");
     }
     uint64_t budget = 0U;
     if (compost_maintenance_weakening_budget(1.0, 4U, &budget) != COMPOST_STATUS_OK || budget != 1U ||
