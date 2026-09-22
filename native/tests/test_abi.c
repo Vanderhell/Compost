@@ -22,7 +22,7 @@ int main(void)
     const uint8_t child_atoms[] = {4U};
     uint64_t initial_digest = 0U;
     uint64_t changed_digest = 0U;
-    if (COMPOST_NATIVE_ABI_VERSION != UINT32_C(1) ||
+    if (COMPOST_NATIVE_ABI_VERSION != UINT32_C(2) ||
         compost_config_default(&config) != COMPOST_STATUS_OK ||
         compost_create(&config, UINT64_C(12), &context) != COMPOST_STATUS_OK ||
         context == NULL ||

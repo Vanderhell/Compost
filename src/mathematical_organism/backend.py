@@ -73,7 +73,7 @@ class _CycleResult(ctypes.Structure):
 class NativeBackend:
     """Small explicit ctypes adapter for the versioned native ABI."""
 
-    ABI_VERSION = 1
+    ABI_VERSION = 2
 
     def __init__(self, library: str | Path, *, organism_id: int = 0) -> None:
         self.library_path = Path(library).resolve()

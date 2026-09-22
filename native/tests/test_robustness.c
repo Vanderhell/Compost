@@ -26,6 +26,13 @@ int main(void)
         compost_organism_digest(NULL, &invalid, &result) != COMPOST_STATUS_INVALID_ARGUMENT) {
         return fail("null validation");
     }
+    if (compost_config_default(&config) != COMPOST_STATUS_OK) {
+        return fail("default config");
+    }
+    config.abi_version = UINT32_C(1);
+    if (compost_organism_init(&organism, &config, NULL, 3U) != COMPOST_STATUS_INVALID_ARGUMENT) {
+        return fail("ABI mismatch rejection");
+    }
     if (compost_config_default(&config) != COMPOST_STATUS_OK ||
         compost_organism_init(&organism, &config, NULL, 3U) != COMPOST_STATUS_OK ||
         compost_organism_snapshot(&organism, &before) != COMPOST_STATUS_OK ||
