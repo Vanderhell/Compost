@@ -20,6 +20,10 @@ target_include_directories(compost_native
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
+if(UNIX AND NOT APPLE)
+    target_link_libraries(compost_native PRIVATE m)
+endif()
+
 if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(compost_native PRIVATE
         -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Wshadow

@@ -140,6 +140,12 @@ typedef struct compost_forgetting_delta {
     double income_rate_after;
 } compost_forgetting_delta_t;
 
+typedef struct compost_lazy_metabolism_delta {
+    double strength_after;
+    double income_rate_after;
+    uint64_t strength_decay_epochs;
+} compost_lazy_metabolism_delta_t;
+
 typedef struct compost_territory {
     uint8_t path[COMPOST_MAX_TERRITORY_DEPTH];
     uint32_t depth;
@@ -281,6 +287,16 @@ compost_status_t compost_forgetting_delta(
     double maintenance,
     double income_decay,
     compost_forgetting_delta_t *delta
+);
+
+/* Composes the reference lazy metabolism recurrence without mutating state. */
+compost_status_t compost_lazy_metabolism_delta(
+    double strength,
+    double income_rate,
+    double maintenance,
+    double income_decay,
+    uint64_t epochs,
+    compost_lazy_metabolism_delta_t *delta
 );
 
 /* Returns zero for no deficit and at least one for every positive deficit. */

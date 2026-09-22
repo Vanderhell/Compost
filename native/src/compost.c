@@ -508,6 +508,50 @@ compost_status_t compost_forgetting_delta(
         ? COMPOST_STATUS_OK : COMPOST_STATUS_INVALID_ARGUMENT;
 }
 
+compost_status_t compost_lazy_metabolism_delta(
+    double strength,
+    double income_rate,
+    double maintenance,
+    double income_decay,
+    uint64_t epochs,
+    compost_lazy_metabolism_delta_t *delta
+)
+{
+    if (delta == NULL || !finite(strength) || !finite(income_rate) ||
+        !finite(maintenance) || !finite(income_decay) || maintenance < 0.0 ||
+        !(income_decay > 0.0 && income_decay < 1.0)) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    uint64_t decay_epochs = 0U;
+    if (epochs > 0U) {
+        if (income_rate <= maintenance) {
+            decay_epochs = epochs;
+        } else if (maintenance > 0.0) {
+            const double first_real = ceil(log(maintenance / income_rate) / log(income_decay));
+            if (!finite(first_real) || first_real < 0.0) {
+                return COMPOST_STATUS_INVALID_ARGUMENT;
+            }
+            if (first_real < (double)epochs) {
+                decay_epochs = (uint64_t)first_real;
+                while (decay_epochs > 0U &&
+                       income_rate * pow(income_decay, (double)(decay_epochs - 1U)) <= maintenance) {
+                    --decay_epochs;
+                }
+                while (decay_epochs < epochs &&
+                       income_rate * pow(income_decay, (double)decay_epochs) > maintenance) {
+                    ++decay_epochs;
+                }
+                decay_epochs = epochs - decay_epochs;
+            }
+        }
+    }
+    delta->strength_after = fmax(1.0, strength * pow(income_decay, (double)decay_epochs));
+    delta->income_rate_after = income_rate * pow(income_decay, (double)epochs);
+    delta->strength_decay_epochs = decay_epochs;
+    return finite(delta->strength_after) && finite(delta->income_rate_after)
+        ? COMPOST_STATUS_OK : COMPOST_STATUS_INVALID_ARGUMENT;
+}
+
 compost_status_t compost_maintenance_weakening_budget(
     double maintenance_deficit,
     uint64_t body_mass,

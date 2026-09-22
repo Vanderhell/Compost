@@ -58,6 +58,16 @@ int main(void)
         forgetting.strength_after != 4.0 || forgetting.income_rate_after != 0.0) {
         return fail("forgetting delta");
     }
+    compost_lazy_metabolism_delta_t lazy = {0};
+    if (compost_lazy_metabolism_delta(5.0, 0.0, 0.5, 0.8, 3U, &lazy) != COMPOST_STATUS_OK ||
+        lazy.strength_after < 2.559999 || lazy.strength_after > 2.560001 || lazy.income_rate_after != 0.0 ||
+        lazy.strength_decay_epochs != 3U) {
+        return fail("lazy metabolism delta");
+    }
+    if (compost_lazy_metabolism_delta(5.0, 1.0, 0.5, 0.8, 10U, &lazy) != COMPOST_STATUS_OK ||
+        lazy.strength_decay_epochs != 6U) {
+        return fail("lazy metabolism threshold");
+    }
     uint64_t budget = 0U;
     if (compost_maintenance_weakening_budget(1.0, 4U, &budget) != COMPOST_STATUS_OK || budget != 1U ||
         compost_maintenance_weakening_budget(0.0, 4U, &budget) != COMPOST_STATUS_OK || budget != 0U) {
