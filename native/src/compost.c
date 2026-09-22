@@ -102,6 +102,14 @@ compost_status_t compost_context_snapshot(
     return compost_organism_snapshot(&context->organism, snapshot);
 }
 
+uint64_t compost_context_state_digest(const compost_context_t *context)
+{
+    if (context == NULL) {
+        return UINT64_C(0);
+    }
+    return compost_organism_state_digest(&context->organism);
+}
+
 compost_status_t compost_context_digest(
     compost_context_t *context,
     const compost_step_input_t *input,
@@ -201,6 +209,149 @@ compost_status_t compost_organism_snapshot(
     snapshot->gut_head = organism->gut_head;
     snapshot->gut_count = organism->gut_count;
     return COMPOST_STATUS_OK;
+}
+
+static uint64_t digest_bytes(uint64_t digest, const void *data, size_t length)
+{
+    const unsigned char *bytes = data;
+    for (size_t index = 0U; index < length; ++index) {
+        digest ^= (uint64_t)bytes[index];
+        digest *= UINT64_C(1099511628211);
+    }
+    return digest;
+}
+
+static uint64_t digest_u8(uint64_t digest, uint8_t value)
+{
+    return digest_bytes(digest, &value, sizeof(value));
+}
+
+static uint64_t digest_u32(uint64_t digest, uint32_t value)
+{
+    for (unsigned int shift = 0U; shift < 32U; shift += 8U) {
+        digest = digest_u8(digest, (uint8_t)((value >> shift) & UINT32_C(0xff)));
+    }
+    return digest;
+}
+
+static uint64_t digest_u64(uint64_t digest, uint64_t value)
+{
+    for (unsigned int shift = 0U; shift < 64U; shift += 8U) {
+        digest = digest_u8(digest, (uint8_t)((value >> shift) & UINT64_C(0xff)));
+    }
+    return digest;
+}
+
+static uint64_t digest_bool(uint64_t digest, bool value)
+{
+    return digest_u8(digest, value ? UINT8_C(1) : UINT8_C(0));
+}
+
+static uint64_t digest_double(uint64_t digest, double value)
+{
+    uint64_t bits = 0U;
+    memcpy(&bits, &value, sizeof(bits));
+    return digest_u64(digest, bits);
+}
+
+static uint64_t digest_structure(uint64_t digest, const compost_structure_t *structure)
+{
+    digest = digest_bool(digest, structure->occupied);
+    digest = digest_u32(digest, (uint32_t)structure->kind);
+    digest = digest_u8(digest, structure->left);
+    digest = digest_u8(digest, structure->right);
+    digest = digest_double(digest, structure->strength);
+    digest = digest_double(digest, structure->maintenance);
+    digest = digest_double(digest, structure->evidence);
+    return digest_double(digest, structure->income_rate);
+}
+
+static uint64_t digest_config(uint64_t digest, const compost_config_t *config)
+{
+    digest = digest_u32(digest, config->abi_version);
+    digest = digest_u64(digest, config->seed);
+    digest = digest_u64(digest, config->max_body_mass);
+    digest = digest_u32(digest, config->max_territory_depth);
+    digest = digest_double(digest, config->income_decay);
+    digest = digest_double(digest, config->atom_income);
+    digest = digest_double(digest, config->relation_income);
+    digest = digest_double(digest, config->atom_maintenance);
+    digest = digest_double(digest, config->relation_maintenance);
+    digest = digest_double(digest, config->atom_formation_cost);
+    digest = digest_double(digest, config->relation_formation_cost);
+    return digest_double(digest, config->birth_reserve);
+}
+
+static uint64_t digest_material_flow(uint64_t digest, const compost_material_flow_t *flow)
+{
+    digest = digest_u64(digest, flow->input_mass);
+    digest = digest_u64(digest, flow->assimilated_mass);
+    digest = digest_u64(digest, flow->rejected_mass);
+    digest = digest_u64(digest, flow->resorbed_mass);
+    digest = digest_u64(digest, flow->processed_mass);
+    digest = digest_u64(digest, flow->expelled_mass);
+    digest = digest_u64(digest, flow->external_expelled_mass);
+    digest = digest_u64(digest, flow->resorption_expelled_mass);
+    digest = digest_u64(digest, flow->structural_created_mass);
+    digest = digest_u64(digest, flow->structural_transferred_in);
+    return digest_u64(digest, flow->structural_transferred_out);
+}
+
+static uint64_t digest_activity(uint64_t digest, const compost_activity_ledger_t *activity)
+{
+    digest = digest_double(digest, activity->metabolic_debt);
+    digest = digest_double(digest, activity->energy_spent);
+    digest = digest_u64(digest, activity->settlements);
+    digest = digest_u64(digest, activity->counters.bytes_eaten);
+    digest = digest_u64(digest, activity->counters.relations_created);
+    digest = digest_u64(digest, activity->counters.relations_strengthened);
+    digest = digest_u64(digest, activity->counters.composites_created);
+    digest = digest_u64(digest, activity->counters.composites_strengthened);
+    digest = digest_u64(digest, activity->counters.structural_mass_added);
+    digest = digest_u64(digest, activity->counters.structural_mass_lost);
+    digest = digest_u64(digest, activity->counters.resorption_events);
+    digest = digest_u64(digest, activity->counters.division_events);
+    digest = digest_u64(digest, activity->counters.processed_bytes);
+    digest = digest_u64(digest, activity->counters.rejected_bytes);
+    return digest_u64(digest, activity->counters.resorbed_processed_bytes);
+}
+
+uint64_t compost_organism_state_digest(const compost_organism_t *organism)
+{
+    if (organism == NULL || !organism->initialized) {
+        return UINT64_C(0);
+    }
+    uint64_t digest = UINT64_C(1469598103934665603);
+    digest = digest_config(digest, &organism->config);
+    digest = digest_u64(digest, organism->organism_id);
+    digest = digest_u64(digest, organism->parent_id);
+    digest = digest_bool(digest, organism->has_parent);
+    digest = digest_u64(digest, organism->generation);
+    digest = digest_u64(digest, organism->cursor);
+    digest = digest_u64(digest, organism->age_in_cycles);
+    digest = digest_u32(digest, (uint32_t)organism->status);
+    digest = digest_double(digest, organism->reserve);
+    digest = digest_u64(digest, organism->body.structural_mass);
+    digest = digest_u64(digest, organism->body.atom_count);
+    digest = digest_u64(digest, organism->body.relation_count);
+    digest = digest_u64(digest, organism->body.composite_count);
+    digest = digest_material_flow(digest, &organism->material_flow);
+    digest = digest_activity(digest, &organism->activity);
+    digest = digest_bytes(digest, organism->territory.path, sizeof(organism->territory.path));
+    digest = digest_u32(digest, organism->territory.depth);
+    digest = digest_u64(digest, organism->territory.organism_id);
+    digest = digest_u64(digest, organism->territory.local_birth_counter);
+    digest = digest_bool(digest, organism->territory.alive);
+    for (size_t index = 0U; index < COMPOST_MAX_ATOMS; ++index) digest = digest_structure(digest, &organism->atoms[index]);
+    for (size_t index = 0U; index < COMPOST_MAX_RELATIONS; ++index) digest = digest_structure(digest, &organism->relations[index]);
+    for (size_t index = 0U; index < COMPOST_MAX_COMPOSITES; ++index) digest = digest_structure(digest, &organism->composites[index]);
+    for (size_t index = 0U; index < 4U; ++index) digest = digest_u64(digest, organism->activated_receptors[index]);
+    for (size_t index = 0U; index < COMPOST_MAX_GUT_CHUNKS; ++index) {
+        digest = digest_u64(digest, organism->gut[index].mass);
+        digest = digest_u32(digest, (uint32_t)organism->gut[index].origin);
+    }
+    digest = digest_u32(digest, organism->gut_head);
+    return digest_u32(digest, organism->gut_count);
 }
 
 const char *compost_status_name(compost_status_t status)

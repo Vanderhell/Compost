@@ -17,6 +17,8 @@ int main(void)
     const double nutrition[] = {1.0, 1.0};
     const compost_step_input_t input = {food, nutrition, sizeof(food)};
     compost_step_result_t result = {0};
+    uint64_t initial_digest = 0U;
+    uint64_t changed_digest = 0U;
     if (COMPOST_NATIVE_ABI_VERSION != UINT32_C(1) ||
         compost_config_default(&config) != COMPOST_STATUS_OK ||
         compost_create(&config, UINT64_C(12), &context) != COMPOST_STATUS_OK ||
@@ -27,6 +29,20 @@ int main(void)
         snapshot.organism_id != UINT64_C(12) || snapshot.cursor != 2U) {
         compost_destroy(context);
         return fail("opaque ABI");
+    }
+    initial_digest = compost_context_state_digest(context);
+    if (initial_digest == UINT64_C(0)) {
+        compost_destroy(context);
+        return fail("state digest initialization");
+    }
+    if (compost_context_digest(context, &input, &result) != COMPOST_STATUS_OK) {
+        compost_destroy(context);
+        return fail("state digest transition");
+    }
+    changed_digest = compost_context_state_digest(context);
+    if (changed_digest == initial_digest || compost_context_state_digest(NULL) != UINT64_C(0)) {
+        compost_destroy(context);
+        return fail("state digest stability");
     }
     compost_destroy(context);
     if (compost_context_snapshot(NULL, &snapshot) != COMPOST_STATUS_INVALID_ARGUMENT) {

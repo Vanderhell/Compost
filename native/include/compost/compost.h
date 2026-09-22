@@ -245,6 +245,11 @@ compost_status_t compost_organism_snapshot(
     compost_snapshot_t *snapshot
 );
 
+/* Returns a stable FNV-1a digest of all behavioral state and configuration.
+ * Values are encoded explicitly in little-endian order; the function does
+ * not inspect padding bytes or object addresses. */
+uint64_t compost_organism_state_digest(const compost_organism_t *organism);
+
 const char *compost_status_name(compost_status_t status);
 
 /* Pure rule. Finite strength is required; negative strength returns mass zero. */
@@ -314,6 +319,7 @@ compost_status_t compost_context_snapshot(
     const compost_context_t *context,
     compost_snapshot_t *snapshot
 );
+uint64_t compost_context_state_digest(const compost_context_t *context);
 compost_status_t compost_context_digest(
     compost_context_t *context,
     const compost_step_input_t *input,

@@ -85,6 +85,8 @@ class NativeBackend:
         library.compost_destroy.restype = None
         library.compost_context_digest.argtypes = [ctypes.c_void_p, ctypes.POINTER(_Input), ctypes.POINTER(_Result)]
         library.compost_context_digest.restype = ctypes.c_int
+        library.compost_context_state_digest.argtypes = [ctypes.c_void_p]
+        library.compost_context_state_digest.restype = ctypes.c_uint64
 
     @staticmethod
     def _check(status: int, operation: str) -> None:
@@ -111,6 +113,12 @@ class NativeBackend:
             "relations_created": int(result.relations_created),
             "relations_strengthened": int(result.relations_strengthened),
         }
+
+    def state_digest(self) -> int:
+        """Return the native behavioral-state digest for differential checks."""
+        if not self._context or not self._context.value:
+            raise NativeBackendError("native backend is closed")
+        return int(self._library.compost_context_state_digest(self._context))
 
     def close(self) -> None:
         if self._context and self._context.value:
