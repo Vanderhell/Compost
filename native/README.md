@@ -1,7 +1,16 @@
-# Compost native foundation
+# Compost native core checkpoints
 
-This directory is the C17 foundation only. It does not implement simulation
-rules and is not connected to Python.
+This directory contains the C17 native foundation and bounded deterministic
+simulation checkpoints. It is exposed through a versioned opaque ABI and has
+an explicit Python ctypes adapter. The Python implementation remains the
+behavioral oracle.
+
+The current native behavior includes pure biology rules, byte digestion,
+maintenance/forgetting, resorption accounting, deterministic partition
+selection, selected structural partition transactions, and a transactional
+digest-plus-maintenance step. It is not yet the complete lifecycle engine:
+full external gut payload handling, consolidation policy, population
+scheduling, and long Python/C per-step differential validation remain pending.
 
 ## Ownership and allocation
 
@@ -40,6 +49,7 @@ AddressSanitizer and UBSan runtimes. On Windows, compiler runtime availability
 is toolchain-specific; configuration must not be interpreted as evidence that a
 sanitizer executable was produced.
 
-The initial API uses public value structs for foundation testing. The eventual
-Python ABI should use an opaque context or explicit serialized buffers rather
-than exposing internal native layout.
+Foundation value structs remain available for native unit tests. Python-facing
+operations use the opaque context ABI (`compost_create`, `compost_step`,
+`compost_context_partition`, snapshot/digest, and destroy); Python does not
+depend on internal organism layout.
