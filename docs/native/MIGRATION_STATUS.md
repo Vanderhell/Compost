@@ -2,8 +2,8 @@
 
 | Unit | Status | Python reference | Notes |
 | --- | --- | --- | --- |
-| Foundation init/destroy/snapshot | DIFFERENTIAL_PASS | `compost_organism_init`, `compost_organism_snapshot` | Scalar foundation only; no simulation behavior yet |
-| Structural mass | DIFFERENTIAL_PASS | `biology_rules.structural_mass` | Finite `double` domain; C uses checked status output |
+| Foundation init/destroy/snapshot | PORTING | `compost_organism_init`, `compost_organism_snapshot` | Scalar foundation only; no simulation behavior yet |
+| Structural mass | PORTING | `biology_rules.structural_mass` | C unit boundaries pass; Python/C differential harness is pending |
 | Activity cost accounting | PORTING | `ActivityLedger.add_activity` | C unit tests pass; Python/C FFI differential campaign is pending |
 | Settlement threshold/basal cost | PORTING | `ActivityLedger.settlement_threshold`, `basal_cost` | Pure functions added to C API |
 | Forgetting delta | PORTING | `biology_rules.forgetting_delta` | Pure C delta, no organism mutation |
