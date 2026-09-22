@@ -26,8 +26,9 @@ green (`9 passed`), and the complete Python regression suite is green
 transaction now has a bounded Python/sandbox comparison, but the automatic
 candidate policy is not yet fully integrated. The native checkpoint now
 includes deterministic starvation removal, dead-step no-ops, and bounded
-external-gut FIFO payload processing; the sandbox-level gut, corpse, and full
-division-policy campaign remains open.
+external-gut FIFO payload processing, and environment-supplied corpse-energy
+credit; sandbox-level corpse lookup/storage and full division-policy campaign
+remain open.
 
 The native-only paired replay test now executes 10,000 deterministic steps and
 compares state digests and step counters after every step. It is a determinism
