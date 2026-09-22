@@ -200,6 +200,8 @@ typedef struct compost_organism {
     bool initialized;
 } compost_organism_t;
 
+typedef struct compost_context compost_context_t;
+
 typedef struct compost_step_input {
     const uint8_t *food;
     const double *nutrition;
@@ -298,6 +300,23 @@ compost_status_t compost_organism_digest(
 compost_status_t compost_organism_maintenance(
     compost_organism_t *organism,
     compost_maintenance_result_t *result
+);
+
+/* Versioned opaque ABI; internal organism layout is not exposed through it. */
+compost_status_t compost_create(
+    const compost_config_t *config,
+    uint64_t organism_id,
+    compost_context_t **context
+);
+void compost_destroy(compost_context_t *context);
+compost_status_t compost_context_snapshot(
+    const compost_context_t *context,
+    compost_snapshot_t *snapshot
+);
+compost_status_t compost_context_digest(
+    compost_context_t *context,
+    const compost_step_input_t *input,
+    compost_step_result_t *result
 );
 
 compost_status_t compost_organism_enqueue_resorbed(

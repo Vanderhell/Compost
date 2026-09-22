@@ -4,6 +4,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+struct compost_context {
+    compost_organism_t organism;
+};
+
 static void *default_allocate(void *context, size_t size)
 {
     (void)context;
@@ -55,6 +59,56 @@ static bool valid_config(const compost_config_t *config)
            finite(config->relation_maintenance) && config->relation_maintenance > 0.0 &&
            finite(config->atom_formation_cost) && config->atom_formation_cost > 0.0 &&
            finite(config->relation_formation_cost) && config->relation_formation_cost > 0.0;
+}
+
+compost_status_t compost_create(
+    const compost_config_t *config,
+    uint64_t organism_id,
+    compost_context_t **context
+)
+{
+    if (context == NULL || !valid_config(config)) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    *context = NULL;
+    compost_context_t *created = malloc(sizeof(*created));
+    if (created == NULL) {
+        return COMPOST_STATUS_OUT_OF_MEMORY;
+    }
+    memset(created, 0, sizeof(*created));
+    const compost_status_t status = compost_organism_init(&created->organism, config, NULL, organism_id);
+    if (status != COMPOST_STATUS_OK) {
+        free(created);
+        return status;
+    }
+    *context = created;
+    return COMPOST_STATUS_OK;
+}
+
+void compost_destroy(compost_context_t *context)
+{
+    if (context == NULL) return;
+    compost_organism_destroy(&context->organism);
+    free(context);
+}
+
+compost_status_t compost_context_snapshot(
+    const compost_context_t *context,
+    compost_snapshot_t *snapshot
+)
+{
+    if (context == NULL) return COMPOST_STATUS_INVALID_ARGUMENT;
+    return compost_organism_snapshot(&context->organism, snapshot);
+}
+
+compost_status_t compost_context_digest(
+    compost_context_t *context,
+    const compost_step_input_t *input,
+    compost_step_result_t *result
+)
+{
+    if (context == NULL) return COMPOST_STATUS_INVALID_ARGUMENT;
+    return compost_organism_digest(&context->organism, input, result);
 }
 
 compost_status_t compost_config_default(compost_config_t *config)
