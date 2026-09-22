@@ -1048,6 +1048,7 @@ compost_status_t compost_organism_enqueue_external(
         (input->length > 0U && (input->food == NULL || input->nutrition == NULL))) {
         return COMPOST_STATUS_INVALID_ARGUMENT;
     }
+    if (validate_gut(organism) != COMPOST_STATUS_OK) return COMPOST_STATUS_INVALID_STATE;
     compost_organism_t next = *organism;
     size_t offset = 0U;
     size_t required_chunks = input->length / COMPOST_MAX_GUT_CHUNK_BYTES;
@@ -1090,6 +1091,7 @@ compost_status_t compost_organism_process_gut(
         organism->status != COMPOST_LIFECYCLE_ALIVE) {
         return COMPOST_STATUS_INVALID_ARGUMENT;
     }
+    if (validate_gut(organism) != COMPOST_STATUS_OK) return COMPOST_STATUS_INVALID_STATE;
     compost_organism_t next = *organism;
     compost_gut_process_result_t next_result = {0};
     uint64_t resorbed_processed = 0U;
@@ -1434,6 +1436,7 @@ compost_status_t compost_organism_enqueue_resorbed(
     if (organism == NULL || !organism->initialized || mass == 0U) {
         return COMPOST_STATUS_INVALID_ARGUMENT;
     }
+    if (validate_gut(organism) != COMPOST_STATUS_OK) return COMPOST_STATUS_INVALID_STATE;
     if (append_resorption_chunk(organism, mass) != COMPOST_STATUS_OK) {
         return COMPOST_STATUS_INVALID_STATE;
     }
@@ -1455,6 +1458,7 @@ compost_status_t compost_organism_process_resorption(
     if (organism == NULL || processed == NULL || !organism->initialized) {
         return COMPOST_STATUS_INVALID_ARGUMENT;
     }
+    if (validate_gut(organism) != COMPOST_STATUS_OK) return COMPOST_STATUS_INVALID_STATE;
     compost_organism_t next = *organism;
     uint64_t total = 0U;
     while (capacity > 0U && next.gut_count > 0U) {
