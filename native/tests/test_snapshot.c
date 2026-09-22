@@ -132,6 +132,29 @@ int main(void)
         return fail("external gut completion");
     }
     compost_organism_destroy(&gutting);
+    compost_organism_t split_gut = {0};
+    uint8_t split_food[17] = {0};
+    double split_nutrition[17] = {0};
+    for (size_t index = 0U; index < 17U; ++index) {
+        split_food[index] = (uint8_t)(index + 1U);
+        split_nutrition[index] = 1.0;
+    }
+    const compost_step_input_t split_input = {split_food, split_nutrition, 17U};
+    const compost_status_t split_init = compost_organism_init(&split_gut, &config, NULL, UINT64_C(19));
+    const compost_status_t split_enqueue = split_init == COMPOST_STATUS_OK
+        ? compost_organism_enqueue_external(&split_gut, &split_input) : split_init;
+    const compost_status_t split_process = split_enqueue == COMPOST_STATUS_OK
+        ? compost_organism_process_gut(&split_gut, 16U, &gut_result) : split_enqueue;
+    const compost_status_t split_conservation = split_process == COMPOST_STATUS_OK
+        ? compost_organism_verify_material_conservation(&split_gut) : split_process;
+    if (split_init != COMPOST_STATUS_OK || split_enqueue != COMPOST_STATUS_OK ||
+        split_gut.gut_count < 1U || split_gut.gut[split_gut.gut_head].payload[0] != 17U ||
+        split_process != COMPOST_STATUS_OK || gut_result.processed_mass != 16U ||
+        split_conservation != COMPOST_STATUS_OK) {
+        compost_organism_destroy(&split_gut);
+        return fail("external gut chunk splitting");
+    }
+    compost_organism_destroy(&split_gut);
     digesting.reserve = 10.0;
     compost_maintenance_result_t maintenance = {0};
     if (compost_organism_maintenance(&digesting, &maintenance) != COMPOST_STATUS_OK ||
