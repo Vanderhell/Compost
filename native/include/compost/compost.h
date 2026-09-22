@@ -370,6 +370,7 @@ compost_status_t compost_organism_digest(
 );
 
 /* Composes digest and eager maintenance as one transactional step checkpoint. */
+/* A valid step on a dead organism is a successful deterministic no-op. */
 compost_status_t compost_organism_step(
     compost_organism_t *organism,
     const compost_step_input_t *input,

@@ -1140,6 +1140,8 @@ compost_status_t compost_organism_maintenance(
         }
     }
     if (!add_u64(next_result.resorbed_mass, forgotten_mass, &next_result.resorbed_mass) ||
+        !add_u64(next.activity.counters.structural_mass_lost, forgotten_mass,
+                 &next.activity.counters.structural_mass_lost) ||
         append_resorption_chunk(&next, forgotten_mass) != COMPOST_STATUS_OK) {
         return COMPOST_STATUS_INVALID_STATE;
     }
