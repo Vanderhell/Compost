@@ -56,3 +56,18 @@ jobs:
         env:
           COMPOST_NATIVE_LIBRARY: ${{ github.workspace }}/native/build-ci/libcompost_native.so
         run: python -m pytest -q tests/test_native_differential.py
+
+  native-sanitizers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure GCC sanitizers
+        run: |
+          CC=gcc cmake -S native -B native/build-sanitizers \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCOMPOST_BUILD_TESTS=ON \
+            -DCOMPOST_ENABLE_SANITIZERS=ON
+      - name: Build sanitizer target
+        run: cmake --build native/build-sanitizers --parallel
+      - name: Run sanitizer tests
+        run: ctest --test-dir native/build-sanitizers --output-on-failure

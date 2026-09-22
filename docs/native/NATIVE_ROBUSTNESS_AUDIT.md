@@ -19,9 +19,11 @@ standalone Windows Clang environment lacks the required CRT libraries.
 ASan/UBSan linking is unavailable in the current MinGW installation because
 `libasan` and `libubsan` are missing. Clang cannot link here because the Windows
 CRT libraries are not available to its standalone driver. These are environment
-limitations, not sanitizer passes. A release gate still requires sanitizer
-runs, leak checks, allocation-failure injection, integer-extrema campaigns,
-corrupt snapshot tests, and fuzz replay once the corresponding APIs exist.
+limitations, not local sanitizer passes. CI now contains a Linux GCC ASan/UBSan
+build and test job; its result must be checked on each release candidate. A
+release gate still requires leak checks, allocation-failure injection,
+integer-extrema campaigns, corrupt snapshot tests, and fuzz replay once the
+corresponding APIs exist.
 
 ## Verdict
 
