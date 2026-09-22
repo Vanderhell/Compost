@@ -26,7 +26,7 @@ preservation after every failed call.
 
 The same seven-test suite was also built and executed with GCC 13.3 under WSL
 using AddressSanitizer and UndefinedBehaviorSanitizer after the ABI v3 external
-gut and invalid-gut validation changes. All seven tests passed in `178.63s`; the
+gut and environment corpse-energy changes. All seven tests passed in `182.69s`; the
 run emitted no sanitizer diagnostics. The Windows-mounted workspace did emit
 CMake clock-skew warnings caused by filesystem timestamp differences; no test
 or sanitizer failure was associated with those warnings.
