@@ -8,11 +8,12 @@ for the native units that currently have matching Python reference functions:
 - structural mass;
 - lazy metabolism composition;
 - reproduction eligibility and score;
+- bounded external-gut FIFO processing against the sandbox oracle;
 - a bounded simple lifecycle replay comparing native snapshot fields after each step.
 
 The test requires `COMPOST_NATIVE_LIBRARY`. If the variable is absent it is
 skipped; if it names a missing file the test fails. There is no silent native
-to Python fallback. The current bounded campaign contains six tests,
+to Python fallback. The current bounded campaign contains eight tests,
 including forty deterministic lifecycle replays (10,240 aggregate steps)
 with field-by-field snapshot checks.
 
@@ -20,8 +21,8 @@ with field-by-field snapshot checks.
 
 The full per-step Python/C campaign is **NOT READY**. The native organism is
 not yet a complete lifecycle engine. The current native-backed Python run is
-green (`6 passed`), and the complete Python regression suite is green
-(`189 passed, 6 skipped, 3 subtests passed`), but the selected partition
+green (`8 passed`), and the complete Python regression suite is green
+(`189 passed, 7 skipped, 3 subtests passed`), but the selected partition
 transaction has not yet been compared field-by-field against the Python
 division transaction. The native checkpoint now includes deterministic
 starvation removal, dead-step no-ops, and bounded external-gut FIFO payload
