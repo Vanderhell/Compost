@@ -65,8 +65,10 @@ int main(void)
         compost_organism_destroy(&organism);
         return fail("invalid gut rejection");
     }
-    compost_gut_process_result_t gut_result = {0};
+    compost_gut_process_result_t gut_result = {7U, 8U, 9U, 10U};
     if (compost_organism_process_gut(&organism, 1U, &gut_result) != COMPOST_STATUS_INVALID_STATE ||
+        gut_result.processed_mass != 7U || gut_result.assimilated_mass != 8U ||
+        gut_result.rejected_mass != 9U || gut_result.expelled_mass != 10U ||
         compost_organism_enqueue_resorbed(&organism, 1U) != COMPOST_STATUS_INVALID_STATE) {
         compost_organism_destroy(&organism);
         return fail("invalid gut operation rejection");
