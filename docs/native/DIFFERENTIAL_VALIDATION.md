@@ -22,6 +22,10 @@ claim is made. The selected partition transaction has native conservation
 fixtures, but has not yet been compared field-by-field against the Python
 division transaction.
 
+The native-only paired replay test now executes 10,000 deterministic steps and
+compares state digests and step counters after every step. It is a determinism
+regression gate, not a substitute for Python/reference differential evidence.
+
 ## Acceptance requirement
 
 Before the final audit, the campaign must record seed, configuration, logical

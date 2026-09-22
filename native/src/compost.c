@@ -833,6 +833,27 @@ compost_status_t compost_organism_digest(
         const uint8_t left = input->food[index];
         const uint8_t right = input->food[index + 1U];
         const double pair_nutrition = left_nutrition < right_nutrition ? left_nutrition : right_nutrition;
+        compost_structure_t *composite = find_structure(next.composites, COMPOST_MAX_COMPOSITES, left, right);
+        if (composite != NULL) {
+            const double composite_gain = next.config.composite_income * pair_nutrition;
+            uint64_t old_mass = 0U;
+            uint64_t new_mass = 0U;
+            if (!finite(composite_gain) ||
+                compost_structural_mass(composite->strength, &old_mass) != COMPOST_STATUS_OK ||
+                !add_double(composite->strength, composite_gain, &composite->strength) ||
+                !add_double(composite->evidence, 1.0, &composite->evidence) ||
+                !add_double(composite->income_rate, composite_gain, &composite->income_rate) ||
+                !add_double(next.reserve, composite_gain, &next.reserve) ||
+                compost_structural_mass(composite->strength, &new_mass) != COMPOST_STATUS_OK ||
+                new_mass < old_mass ||
+                !add_u64(next.body.structural_mass, new_mass - old_mass, &next.body.structural_mass) ||
+                !add_u64(next.material_flow.structural_created_mass, new_mass - old_mass,
+                         &next.material_flow.structural_created_mass) ||
+                !add_u64(counters.composites_strengthened, UINT64_C(1), &counters.composites_strengthened)) {
+                return COMPOST_STATUS_INVALID_ARGUMENT;
+            }
+            continue;
+        }
         compost_structure_t *relation = find_structure(next.relations, COMPOST_MAX_RELATIONS, left, right);
         const double relation_gain = next.config.relation_income * pair_nutrition;
         if (!finite(relation_gain)) {
