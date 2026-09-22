@@ -25,10 +25,11 @@ including NaN inputs and invalid pointer/length combinations, and checks state
 preservation after every failed call.
 
 The same seven-test suite was also built and executed with GCC 13.3 under WSL
-using AddressSanitizer and UndefinedBehaviorSanitizer. All seven tests passed;
-the run emitted no sanitizer diagnostics. The Windows-mounted workspace did
-emit CMake clock-skew warnings caused by filesystem timestamp differences; no
-test or sanitizer failure was associated with those warnings.
+using AddressSanitizer and UndefinedBehaviorSanitizer after the latest native
+accounting changes. All seven tests passed in `136.45s`; the run emitted no
+sanitizer diagnostics. The Windows-mounted workspace did emit CMake clock-skew
+warnings caused by filesystem timestamp differences; no test or sanitizer
+failure was associated with those warnings.
 
 ## Outstanding evidence
 
