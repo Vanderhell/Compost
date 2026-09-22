@@ -17,7 +17,7 @@
 | Resorption FIFO accounting | PORTING | `AutonomousOrganism.enqueue_resorbed_material`, `process_gut` | 128 bounded chunks; external payload FIFO remains pending |
 | Weakest-structure transition | PORTING | `AutonomousCore.remove_weakest` | Deterministic tie-break; incident-member cleanup and critical-bridge protection pending |
 | Opaque native ABI | PORTING | Python reference boundary | `compost_create/destroy/snapshot/digest/state_digest/select_partition/plan_division/partition`; Python loader and backend selection pending |
-| Python backend selector/loader | PORTING | Existing Python runtime | Explicit `python`/`native` handles plus native step adapter; CLI wiring and acceptance run pending |
+| Python backend selector/loader | PORTING | Existing Python runtime | Explicit `python`/`native` handles plus native step/snapshot/plan adapters; CI acceptance runs, CLI wiring and full lifecycle acceptance remain pending |
 | Direct-C benchmark | PORTING | Performance phase | Reproducible digest smoke benchmark; Python/FFI comparison pending |
 | Public API robustness tests | PORTING | C API failure contract | Null, NaN, transactional failure, and idempotent destroy coverage |
 | Lazy metabolism delta | PORTING | `biology_rules.lazy_metabolism_delta` | C logarithmic composition added; tolerance-based reference comparison and FFI campaign remain pending |

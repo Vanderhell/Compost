@@ -7,7 +7,8 @@ for the native units that currently have matching Python reference functions:
 
 - structural mass;
 - lazy metabolism composition;
-- reproduction eligibility and score.
+- reproduction eligibility and score;
+- a bounded simple lifecycle replay comparing native snapshot fields after each step.
 
 The test requires `COMPOST_NATIVE_LIBRARY`. If the variable is absent it is
 skipped; if it names a missing file the test fails. There is no silent native
@@ -20,7 +21,9 @@ not yet a complete lifecycle engine, and this environment currently does not
 provide a Python interpreter for executing the Python suite. No 1,000,000-step
 claim is made. The selected partition transaction has native conservation
 fixtures, but has not yet been compared field-by-field against the Python
-division transaction.
+division transaction. The bounded replay deliberately uses a long first food
+stream so starvation-driven structural removal is outside this checkpoint's
+current native scope; the full starvation/gut/division campaign remains open.
 
 The native-only paired replay test now executes 10,000 deterministic steps and
 compares state digests and step counters after every step. It is a determinism

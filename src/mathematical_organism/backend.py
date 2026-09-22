@@ -94,6 +94,94 @@ class _DivisionPlan(ctypes.Structure):
     ]
 
 
+class _Body(ctypes.Structure):
+    _fields_ = [
+        ("structural_mass", ctypes.c_uint64),
+        ("atom_count", ctypes.c_uint64),
+        ("relation_count", ctypes.c_uint64),
+        ("composite_count", ctypes.c_uint64),
+    ]
+
+
+class _Structure(ctypes.Structure):
+    _fields_ = [
+        ("occupied", ctypes.c_bool),
+        ("kind", ctypes.c_int),
+        ("left", ctypes.c_uint8),
+        ("right", ctypes.c_uint8),
+        ("strength", ctypes.c_double),
+        ("maintenance", ctypes.c_double),
+        ("evidence", ctypes.c_double),
+        ("income_rate", ctypes.c_double),
+    ]
+
+
+class _MaterialFlow(ctypes.Structure):
+    _fields_ = [(name, ctypes.c_uint64) for name in (
+        "input_mass", "assimilated_mass", "rejected_mass", "resorbed_mass",
+        "processed_mass", "expelled_mass", "external_expelled_mass",
+        "resorption_expelled_mass", "structural_created_mass",
+        "structural_transferred_in", "structural_transferred_out",
+    )]
+
+
+class _ActivityCounters(ctypes.Structure):
+    _fields_ = [(name, ctypes.c_uint64) for name in (
+        "bytes_eaten", "relations_created", "relations_strengthened",
+        "composites_created", "composites_strengthened", "structural_mass_added",
+        "structural_mass_lost", "resorption_events", "division_events",
+        "processed_bytes", "rejected_bytes", "resorbed_processed_bytes",
+    )]
+
+
+class _Activity(ctypes.Structure):
+    _fields_ = [
+        ("metabolic_debt", ctypes.c_double),
+        ("energy_spent", ctypes.c_double),
+        ("settlements", ctypes.c_uint64),
+        ("counters", _ActivityCounters),
+    ]
+
+
+class _Territory(ctypes.Structure):
+    _fields_ = [
+        ("path", ctypes.c_uint8 * 64),
+        ("depth", ctypes.c_uint32),
+        ("organism_id", ctypes.c_uint64),
+        ("local_birth_counter", ctypes.c_uint64),
+        ("alive", ctypes.c_bool),
+    ]
+
+
+class _GutChunk(ctypes.Structure):
+    _fields_ = [("mass", ctypes.c_uint64), ("origin", ctypes.c_int)]
+
+
+class _Snapshot(ctypes.Structure):
+    _fields_ = [
+        ("abi_version", ctypes.c_uint32),
+        ("organism_id", ctypes.c_uint64),
+        ("parent_id", ctypes.c_uint64),
+        ("has_parent", ctypes.c_bool),
+        ("generation", ctypes.c_uint64),
+        ("cursor", ctypes.c_uint64),
+        ("age_in_cycles", ctypes.c_uint64),
+        ("status", ctypes.c_int),
+        ("reserve", ctypes.c_double),
+        ("body", _Body),
+        ("material_flow", _MaterialFlow),
+        ("activity", _Activity),
+        ("territory", _Territory),
+        ("atoms", _Structure * 256),
+        ("relations", _Structure * 512),
+        ("composites", _Structure * 512),
+        ("activated_receptors", ctypes.c_uint64 * 4),
+        ("gut", _GutChunk * 128),
+        ("gut_head", ctypes.c_uint32),
+        ("gut_count", ctypes.c_uint32),
+    ]
+
+
 class NativeBackend:
     """Small explicit ctypes adapter for the versioned native ABI."""
 
@@ -137,6 +225,8 @@ class NativeBackend:
         library.compost_context_step.restype = ctypes.c_int
         library.compost_context_state_digest.argtypes = [ctypes.c_void_p]
         library.compost_context_state_digest.restype = ctypes.c_uint64
+        library.compost_context_snapshot.argtypes = [ctypes.c_void_p, ctypes.POINTER(_Snapshot)]
+        library.compost_context_snapshot.restype = ctypes.c_int
         library.compost_context_select_partition.argtypes = [
             ctypes.c_void_p,
             ctypes.c_double,
@@ -180,6 +270,49 @@ class NativeBackend:
         if not self._context or not self._context.value:
             raise NativeBackendError("native backend is closed")
         return int(self._library.compost_context_state_digest(self._context))
+
+    @staticmethod
+    def _structures(values: object) -> tuple[tuple[int, int, float, float, float, float], ...]:
+        return tuple(
+            (int(item.left), int(item.right), float(item.strength), float(item.maintenance),
+             float(item.evidence), float(item.income_rate))
+            for item in values if item.occupied
+        )
+
+    def snapshot(self) -> dict[str, object]:
+        """Return an explicit immutable-friendly native behavioral snapshot."""
+        if not self._context or not self._context.value:
+            raise NativeBackendError("native backend is closed")
+        snapshot = _Snapshot()
+        self._check(
+            self._library.compost_context_snapshot(self._context, ctypes.byref(snapshot)),
+            "compost_context_snapshot",
+        )
+        return {
+            "abi_version": int(snapshot.abi_version),
+            "organism_id": int(snapshot.organism_id),
+            "parent_id": int(snapshot.parent_id),
+            "has_parent": bool(snapshot.has_parent),
+            "generation": int(snapshot.generation),
+            "cursor": int(snapshot.cursor),
+            "age_in_cycles": int(snapshot.age_in_cycles),
+            "status": int(snapshot.status),
+            "reserve": float(snapshot.reserve),
+            "body": {
+                "structural_mass": int(snapshot.body.structural_mass),
+                "atom_count": int(snapshot.body.atom_count),
+                "relation_count": int(snapshot.body.relation_count),
+                "composite_count": int(snapshot.body.composite_count),
+            },
+            "atoms": self._structures(snapshot.atoms),
+            "relations": self._structures(snapshot.relations),
+            "composites": self._structures(snapshot.composites),
+            "territory": tuple(int(snapshot.territory.path[index]) for index in range(snapshot.territory.depth)),
+            "activated_receptors": tuple(
+                index for index in range(256)
+                if snapshot.activated_receptors[index // 64] & (1 << (index % 64))
+            ),
+        }
 
     def step(self, food: bytes | bytearray, nutrition: tuple[float, ...] | None = None) -> dict[str, float | int]:
         """Run the current explicit native digest+maintenance checkpoint."""
