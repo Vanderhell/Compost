@@ -16,6 +16,7 @@
 | Opaque native ABI | PORTING | Python reference boundary | `compost_create/destroy/snapshot/digest`; Python loader and backend selection pending |
 | Python backend selector/loader | PORTING | Existing Python runtime | Explicit `python`/`native` handles; CLI wiring and acceptance run pending |
 | Direct-C benchmark | PORTING | Performance phase | Reproducible digest smoke benchmark; Python/FFI comparison pending |
+| Public API robustness tests | PORTING | C API failure contract | Null, NaN, transactional failure, and idempotent destroy coverage |
 | Lazy metabolism delta | NOT_STARTED | `biology_rules.lazy_metabolism_delta` | Deferred until float/rounding contract is tested |
 | Reproduction assessment | NOT_STARTED | `biology_rules.reproduction_allowed` | Requires lifecycle state representation |
 | Material-flow accounting | NOT_STARTED | `sandbox_runtime.MaterialFlow` | Requires native container/state design |

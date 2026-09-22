@@ -45,6 +45,9 @@ if(COMPOST_BUILD_TESTS)
     add_executable(compost_test_abi tests/test_abi.c)
     target_link_libraries(compost_test_abi PRIVATE compost_native)
 
+    add_executable(compost_test_robustness tests/test_robustness.c)
+    target_link_libraries(compost_test_robustness PRIVATE compost_native)
+
     if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
         target_compile_options(compost_test_init PRIVATE
             -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Wshadow
@@ -53,6 +56,9 @@ if(COMPOST_BUILD_TESTS)
             -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Wshadow
         )
         target_compile_options(compost_test_abi PRIVATE
+            -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Wshadow
+        )
+        target_compile_options(compost_test_robustness PRIVATE
             -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Wshadow
         )
     endif()
@@ -64,11 +70,14 @@ if(COMPOST_BUILD_TESTS)
         target_link_options(compost_test_snapshot PRIVATE -fsanitize=address,undefined)
         target_compile_options(compost_test_abi PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
         target_link_options(compost_test_abi PRIVATE -fsanitize=address,undefined)
+        target_compile_options(compost_test_robustness PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+        target_link_options(compost_test_robustness PRIVATE -fsanitize=address,undefined)
     endif()
 
     add_test(NAME compost_init COMMAND compost_test_init)
     add_test(NAME compost_snapshot COMMAND compost_test_snapshot)
     add_test(NAME compost_abi COMMAND compost_test_abi)
+    add_test(NAME compost_robustness COMMAND compost_test_robustness)
 endif()
 
 if(COMPOST_BUILD_BENCHMARKS)
