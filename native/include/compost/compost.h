@@ -41,11 +41,18 @@ typedef struct compost_config {
     double income_decay;
     double atom_income;
     double relation_income;
+    double composite_income;
     double atom_maintenance;
     double relation_maintenance;
+    double composite_maintenance;
     double atom_formation_cost;
     double relation_formation_cost;
+    double consolidation_formation_cost;
+    double birth_cost;
+    double division_horizon;
+    double boundary_ratio_limit;
     double birth_reserve;
+    uint64_t reproduction_minimum_body;
 } compost_config_t;
 
 typedef enum compost_structure_kind {
@@ -241,6 +248,7 @@ typedef struct compost_maintenance_result {
 typedef struct compost_cycle_result {
     compost_step_result_t digestion;
     compost_maintenance_result_t maintenance;
+    uint64_t composites_consolidated;
     compost_lifecycle_status_t status_after;
 } compost_cycle_result_t;
 

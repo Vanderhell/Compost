@@ -55,10 +55,18 @@ static bool valid_config(const compost_config_t *config)
            config->income_decay > 0.0 && config->income_decay < 1.0 &&
            finite(config->atom_income) && config->atom_income > 0.0 &&
            finite(config->relation_income) && config->relation_income > 0.0 &&
+           finite(config->composite_income) && config->composite_income > 0.0 &&
            finite(config->atom_maintenance) && config->atom_maintenance > 0.0 &&
            finite(config->relation_maintenance) && config->relation_maintenance > 0.0 &&
+           finite(config->composite_maintenance) && config->composite_maintenance > 0.0 &&
            finite(config->atom_formation_cost) && config->atom_formation_cost > 0.0 &&
            finite(config->relation_formation_cost) && config->relation_formation_cost > 0.0 &&
+           finite(config->consolidation_formation_cost) && config->consolidation_formation_cost > 0.0 &&
+           finite(config->birth_cost) && config->birth_cost > 0.0 &&
+           finite(config->division_horizon) && config->division_horizon > 0.0 &&
+           finite(config->boundary_ratio_limit) && config->boundary_ratio_limit > 0.0 &&
+           config->boundary_ratio_limit < 1.0 &&
+           config->reproduction_minimum_body > 0U &&
            finite(config->birth_reserve) && config->birth_reserve >= 0.0;
 }
 
@@ -198,11 +206,18 @@ compost_status_t compost_config_default(compost_config_t *config)
     config->income_decay = 0.8;
     config->atom_income = 1.0;
     config->relation_income = 0.8;
+    config->composite_income = 1.1;
     config->atom_maintenance = 0.25;
     config->relation_maintenance = 0.5;
+    config->composite_maintenance = 0.3;
     config->atom_formation_cost = 0.35;
     config->relation_formation_cost = 1.25;
+    config->consolidation_formation_cost = 1.5;
+    config->birth_cost = 1.0;
+    config->division_horizon = 8.0;
+    config->boundary_ratio_limit = 0.15;
     config->birth_reserve = 1.0;
+    config->reproduction_minimum_body = 32U;
     return COMPOST_STATUS_OK;
 }
 
@@ -341,11 +356,18 @@ static uint64_t digest_config(uint64_t digest, const compost_config_t *config)
     digest = digest_double(digest, config->income_decay);
     digest = digest_double(digest, config->atom_income);
     digest = digest_double(digest, config->relation_income);
+    digest = digest_double(digest, config->composite_income);
     digest = digest_double(digest, config->atom_maintenance);
     digest = digest_double(digest, config->relation_maintenance);
+    digest = digest_double(digest, config->composite_maintenance);
     digest = digest_double(digest, config->atom_formation_cost);
     digest = digest_double(digest, config->relation_formation_cost);
-    return digest_double(digest, config->birth_reserve);
+    digest = digest_double(digest, config->consolidation_formation_cost);
+    digest = digest_double(digest, config->birth_cost);
+    digest = digest_double(digest, config->division_horizon);
+    digest = digest_double(digest, config->boundary_ratio_limit);
+    digest = digest_double(digest, config->birth_reserve);
+    return digest_u64(digest, config->reproduction_minimum_body);
 }
 
 static uint64_t digest_material_flow(uint64_t digest, const compost_material_flow_t *flow)
@@ -890,6 +912,15 @@ compost_status_t compost_organism_step(
     compost_organism_t next = *organism;
     compost_cycle_result_t next_result = {0};
     compost_status_t status = compost_organism_digest(&next, input, &next_result.digestion);
+    if (status != COMPOST_STATUS_OK) {
+        return status;
+    }
+    status = compost_organism_consolidate(
+        &next,
+        next.config.composite_maintenance,
+        next.config.consolidation_formation_cost,
+        &next_result.composites_consolidated
+    );
     if (status != COMPOST_STATUS_OK) {
         return status;
     }

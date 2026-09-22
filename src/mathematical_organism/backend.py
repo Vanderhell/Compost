@@ -26,11 +26,18 @@ class _Config(ctypes.Structure):
         ("income_decay", ctypes.c_double),
         ("atom_income", ctypes.c_double),
         ("relation_income", ctypes.c_double),
+        ("composite_income", ctypes.c_double),
         ("atom_maintenance", ctypes.c_double),
         ("relation_maintenance", ctypes.c_double),
+        ("composite_maintenance", ctypes.c_double),
         ("atom_formation_cost", ctypes.c_double),
         ("relation_formation_cost", ctypes.c_double),
+        ("consolidation_formation_cost", ctypes.c_double),
+        ("birth_cost", ctypes.c_double),
+        ("division_horizon", ctypes.c_double),
+        ("boundary_ratio_limit", ctypes.c_double),
         ("birth_reserve", ctypes.c_double),
+        ("reproduction_minimum_body", ctypes.c_uint64),
     ]
 
 
@@ -66,6 +73,7 @@ class _CycleResult(ctypes.Structure):
     _fields_ = [
         ("digestion", _Result),
         ("maintenance", _MaintenanceResult),
+        ("composites_consolidated", ctypes.c_uint64),
         ("status_after", ctypes.c_int),
     ]
 
@@ -171,6 +179,7 @@ class NativeBackend:
             "maintenance_required": float(result.maintenance.required),
             "maintenance_paid": float(result.maintenance.paid),
             "maintenance_deficit": float(result.maintenance.deficit),
+            "composites_consolidated": int(result.composites_consolidated),
             "status_after": int(result.status_after),
         }
 
