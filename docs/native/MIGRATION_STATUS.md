@@ -39,6 +39,7 @@ of Python/C equivalence while the native lifecycle remains incomplete.
 
 ## Evidence
 
-The native Debug/Release MSVC and GCC builds compile the current tests. A true
+The native Debug/Release MSVC and GCC builds compile and pass the current
+CTest suite. A true
 Python-vs-C differential campaign remains blocked until the versioned ABI/FFI
 layer is introduced. No Python rule was changed in this checkpoint.
