@@ -72,5 +72,18 @@ int main(void)
         return fail("invalid gut operation rejection");
     }
     compost_organism_destroy(&organism);
+    if (compost_organism_init(&organism, &config, NULL, 6U) != COMPOST_STATUS_OK) {
+        return fail("external enqueue setup");
+    }
+    compost_snapshot_t enqueue_before = {0};
+    compost_snapshot_t enqueue_after = {0};
+    if (compost_organism_snapshot(&organism, &enqueue_before) != COMPOST_STATUS_OK ||
+        compost_organism_enqueue_external(&organism, &invalid) != COMPOST_STATUS_INVALID_ARGUMENT ||
+        compost_organism_snapshot(&organism, &enqueue_after) != COMPOST_STATUS_OK ||
+        memcmp(&enqueue_before, &enqueue_after, sizeof(enqueue_before)) != 0) {
+        compost_organism_destroy(&organism);
+        return fail("external enqueue transactional failure");
+    }
+    compost_organism_destroy(&organism);
     return 0;
 }
