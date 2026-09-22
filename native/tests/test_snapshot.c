@@ -95,6 +95,12 @@ int main(void)
         digesting.material_flow.resorption_expelled_mass != 4U) {
         return fail("resorption FIFO");
     }
+    bool changed = false;
+    uint64_t weakened_mass = 0U;
+    if (compost_organism_weaken_weakest(&digesting, &changed, &weakened_mass) != COMPOST_STATUS_OK ||
+        !changed || weakened_mass != 1U || digesting.gut_count != 2U) {
+        return fail("weakest structure");
+    }
     compost_organism_destroy(&digesting);
     return 0;
 }

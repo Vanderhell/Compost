@@ -12,6 +12,7 @@
 | Deterministic byte digestion checkpoint | PORTING | `MathematicalLifePopulation._digest` | Explicit food/nutrition view; maintenance/gut/division tail not yet included |
 | Eager maintenance/forgetting slice | PORTING | `MathematicalLifePopulation._maintain_and_resorb` | Reserve settlement, forgetting, age, and empty-body death; weakest-member resorption deferred |
 | Resorption FIFO accounting | PORTING | `AutonomousOrganism.enqueue_resorbed_material`, `process_gut` | 128 bounded chunks; external payload FIFO remains pending |
+| Weakest-structure transition | PORTING | `AutonomousCore.remove_weakest` | Deterministic tie-break; incident-member cleanup and critical-bridge protection pending |
 | Lazy metabolism delta | NOT_STARTED | `biology_rules.lazy_metabolism_delta` | Deferred until float/rounding contract is tested |
 | Reproduction assessment | NOT_STARTED | `biology_rules.reproduction_allowed` | Requires lifecycle state representation |
 | Material-flow accounting | NOT_STARTED | `sandbox_runtime.MaterialFlow` | Requires native container/state design |

@@ -311,6 +311,13 @@ compost_status_t compost_organism_process_resorption(
     uint64_t *processed
 );
 
+/* Weakens or removes one deterministically selected live structure. */
+compost_status_t compost_organism_weaken_weakest(
+    compost_organism_t *organism,
+    bool *changed,
+    uint64_t *resorbed_mass
+);
+
 #ifdef __cplusplus
 }
 #endif
