@@ -4,6 +4,7 @@ project(compost_native VERSION 0.1.0 LANGUAGES C)
 
 option(COMPOST_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
 option(COMPOST_BUILD_TESTS "Build native tests" ON)
+option(COMPOST_BUILD_BENCHMARKS "Build native benchmarks" OFF)
 
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -68,4 +69,14 @@ if(COMPOST_BUILD_TESTS)
     add_test(NAME compost_init COMMAND compost_test_init)
     add_test(NAME compost_snapshot COMMAND compost_test_snapshot)
     add_test(NAME compost_abi COMMAND compost_test_abi)
+endif()
+
+if(COMPOST_BUILD_BENCHMARKS)
+    add_executable(compost_benchmark_digest bench/benchmark_digest.c)
+    target_link_libraries(compost_benchmark_digest PRIVATE compost_native)
+    if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_options(compost_benchmark_digest PRIVATE
+            -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Wshadow
+        )
+    endif()
 endif()
