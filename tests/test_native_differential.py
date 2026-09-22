@@ -179,7 +179,7 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
         payload = "AB" * 128
         population = MathematicalLifePopulation(payload)
         with NativeBackend(self.library_path, organism_id=0) as backend:
-            for cycle in range(8):
+            for cycle in range(256):
                 population.cycle()
                 backend.step(payload.encode("ascii") if cycle == 0 else b"", (1.0,) * len(payload) if cycle == 0 else ())
                 reference = population.organisms[0]
