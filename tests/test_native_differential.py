@@ -11,7 +11,7 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from mathematical_organism.biology_rules import lazy_metabolism_delta, structural_mass
 from mathematical_organism.backend import NativeBackend
-from mathematical_organism.lifecycle import LifecycleConfig, LivingStructure, MathematicalLifeOrganism, MathematicalLifePopulation
+from mathematical_organism.lifecycle import LifecycleConfig, LivingStructure, MathematicalLifeOrganism, MathematicalLifePopulation, OrganismStatus
 from mathematical_organism.biology_rules import reproduction_allowed
 
 
@@ -192,6 +192,7 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                     reference = population.organisms[0]
                     native = backend.snapshot()
                     prefix = f"scenario {scenario} step {cycle}"
+                    self.assertEqual(native["status"], 0 if reference.status is OrganismStatus.ALIVE else 1, f"{prefix}: status")
                     self.assertEqual(native["cursor"], reference.cursor, f"{prefix}: cursor")
                     self.assertEqual(native["age_in_cycles"], reference.age_in_cycles, f"{prefix}: age")
                     self.assertEqual(native["body"]["atom_count"], len(reference.atoms), f"{prefix}: atom_count")
@@ -223,6 +224,18 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                     for key in sorted(reference_relations):
                         for index, (actual, expected) in enumerate(zip(native_relations[key], reference_relations[key])):
                             self.assertAlmostEqual(actual, expected, places=12, msg=f"{prefix}: relation {key} field {index}")
+                    native_composites = {
+                        (chr(left), chr(right)): (strength, maintenance, evidence, income)
+                        for left, right, strength, maintenance, evidence, income in native["composites"]
+                    }
+                    reference_composites = {
+                        key: (item.strength, item.maintenance, item.evidence, item.income_rate)
+                        for key, item in reference.composites.items()
+                    }
+                    self.assertEqual(set(native_composites), set(reference_composites), f"{prefix}: composite keys")
+                    for key in sorted(reference_composites):
+                        for index, (actual, expected) in enumerate(zip(native_composites[key], reference_composites[key])):
+                            self.assertAlmostEqual(actual, expected, places=12, msg=f"{prefix}: composite {key} field {index}")
 
 
 if __name__ == "__main__":
