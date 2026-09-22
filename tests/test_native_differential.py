@@ -10,7 +10,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from mathematical_organism.biology_rules import lazy_metabolism_delta, structural_mass
-from mathematical_organism.backend import NativeBackend
+from mathematical_organism.backend import NativeBackend, NativeBackendError
 from mathematical_organism.canonical import canonical_digest
 from mathematical_organism.lifecycle import LifecycleConfig, LivingStructure, MathematicalLifeOrganism, MathematicalLifePopulation, OrganismStatus
 from mathematical_organism.sandbox_runtime import AutonomousOrganism
@@ -146,6 +146,19 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
         self.assertEqual(snapshot["body"]["atom_count"], len(reference.body.atoms))
         self.assertEqual(snapshot["body"]["relation_count"], len(reference.body.relations))
         self.assertEqual(snapshot["body"]["structural_mass"], reference.body.full_body_mass())
+
+    def test_environment_corpse_energy_transfer_matches_oracle(self) -> None:
+        reference = AutonomousOrganism("ORG-ROOT")
+        reference.body.adjust_reserve(2.5)
+        with NativeBackend(self.library_path, organism_id=0) as backend:
+            before = backend.state_digest()
+            with self.assertRaises(NativeBackendError):
+                backend.apply_corpse_energy(-1.0)
+            self.assertEqual(backend.state_digest(), before)
+            credited = backend.apply_corpse_energy(2.5)
+            snapshot = backend.snapshot()
+        self.assertEqual(credited, 2.5)
+        self.assertAlmostEqual(snapshot["reserve"], reference.body.reserve, places=12)
 
     def test_partition_transaction_matches_sandbox_oracle(self) -> None:
         payload = (1, 2, 3, 4)

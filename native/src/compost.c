@@ -40,6 +40,7 @@ static compost_allocator_t effective_allocator(const compost_allocator_t *alloca
 }
 
 static bool finite(double value);
+static bool add_double(double left, double right, double *result);
 static bool weaker(const compost_structure_t *left, const compost_structure_t *right);
 static compost_structure_t *weakest_structure(compost_organism_t *organism);
 static double structure_maintenance(const compost_organism_t *organism);
@@ -179,6 +180,33 @@ compost_status_t compost_context_process_gut(
 {
     if (context == NULL) return COMPOST_STATUS_INVALID_ARGUMENT;
     return compost_organism_process_gut(&context->organism, capacity, result);
+}
+
+static compost_status_t compost_organism_apply_corpse_energy(
+    compost_organism_t *organism,
+    double energy,
+    double *credited
+)
+{
+    if (organism == NULL || credited == NULL || !organism->initialized ||
+        organism->status != COMPOST_LIFECYCLE_ALIVE || !finite(energy) || energy < 0.0) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    compost_organism_t next = *organism;
+    if (!add_double(next.reserve, energy, &next.reserve)) return COMPOST_STATUS_INVALID_ARGUMENT;
+    *organism = next;
+    *credited = energy;
+    return COMPOST_STATUS_OK;
+}
+
+compost_status_t compost_context_apply_corpse_energy(
+    compost_context_t *context,
+    double energy,
+    double *credited
+)
+{
+    if (context == NULL) return COMPOST_STATUS_INVALID_ARGUMENT;
+    return compost_organism_apply_corpse_energy(&context->organism, energy, credited);
 }
 
 compost_status_t compost_context_partition(

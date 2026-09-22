@@ -448,6 +448,12 @@ compost_status_t compost_context_process_gut(
     uint64_t capacity,
     compost_gut_process_result_t *result
 );
+/* Applies an environment-supplied corpse-energy transfer; no corpse I/O. */
+compost_status_t compost_context_apply_corpse_energy(
+    compost_context_t *context,
+    double energy,
+    double *credited
+);
 
 compost_status_t compost_context_partition(
     compost_context_t *parent,

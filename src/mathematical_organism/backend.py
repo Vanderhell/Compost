@@ -265,6 +265,10 @@ class NativeBackend:
             ctypes.c_void_p, ctypes.c_uint64, ctypes.POINTER(_GutProcessResult)
         ]
         library.compost_context_process_gut.restype = ctypes.c_int
+        library.compost_context_apply_corpse_energy.argtypes = [
+            ctypes.c_void_p, ctypes.c_double, ctypes.POINTER(ctypes.c_double)
+        ]
+        library.compost_context_apply_corpse_energy.restype = ctypes.c_int
         library.compost_context_state_digest.argtypes = [ctypes.c_void_p]
         library.compost_context_state_digest.restype = ctypes.c_uint64
         library.compost_context_snapshot.argtypes = [ctypes.c_void_p, ctypes.POINTER(_Snapshot)]
@@ -348,6 +352,17 @@ class NativeBackend:
             "rejected_mass": int(result.rejected_mass),
             "expelled_mass": int(result.expelled_mass),
         }
+
+    def apply_corpse_energy(self, energy: float) -> float:
+        """Apply energy already selected by the Python environment."""
+        if not self._context or not self._context.value:
+            raise NativeBackendError("native backend is closed")
+        credited = ctypes.c_double()
+        status = self._library.compost_context_apply_corpse_energy(
+            self._context, ctypes.c_double(energy), ctypes.byref(credited)
+        )
+        self._check(status, "compost_context_apply_corpse_energy")
+        return float(credited.value)
 
     def state_digest(self) -> int:
         """Return the native behavioral-state digest for differential checks."""
