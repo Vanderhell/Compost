@@ -130,5 +130,42 @@ int main(void)
         return fail("transactional invalid partition");
     }
     compost_organism_destroy(&invalid_parent);
+
+    compost_organism_t minimum = {0};
+    compost_organism_t minimum_child = {0};
+    compost_division_plan_t minimum_plan = {0};
+    compost_division_result_t minimum_result = {0};
+    const uint8_t minimum_region[] = {7U};
+    if (compost_organism_init(&minimum, &config, NULL, UINT64_C(30)) != COMPOST_STATUS_OK) {
+        return fail("minimum setup");
+    }
+    add_atom(&minimum, 0U, 7U);
+    if (compost_organism_plan_division(&minimum, &minimum_plan) != COMPOST_STATUS_OK ||
+        minimum_plan.candidate_found ||
+        compost_organism_partition(&minimum, &minimum_child, UINT64_C(31), minimum_region, 1U,
+                                   1.0, &minimum_result) != COMPOST_STATUS_INVALID_ARGUMENT ||
+        minimum_child.initialized) {
+        compost_organism_destroy(&minimum);
+        return fail("minimum body rejection");
+    }
+    compost_organism_destroy(&minimum);
+
+    compost_organism_t zero_reserve = {0};
+    compost_organism_t zero_child = {0};
+    const uint8_t zero_region[] = {1U};
+    if (compost_organism_init(&zero_reserve, &config, NULL, UINT64_C(40)) != COMPOST_STATUS_OK) {
+        return fail("zero reserve setup");
+    }
+    zero_reserve.reserve = 0.0;
+    add_atom(&zero_reserve, 0U, 1U);
+    add_atom(&zero_reserve, 1U, 2U);
+    const uint64_t zero_before = compost_organism_state_digest(&zero_reserve);
+    if (compost_organism_partition(&zero_reserve, &zero_child, UINT64_C(41), zero_region, 1U, 1.0,
+                                   &minimum_result) != COMPOST_STATUS_INVALID_ARGUMENT ||
+        zero_child.initialized || compost_organism_state_digest(&zero_reserve) != zero_before) {
+        compost_organism_destroy(&zero_reserve);
+        return fail("zero reserve rollback");
+    }
+    compost_organism_destroy(&zero_reserve);
     return 0;
 }

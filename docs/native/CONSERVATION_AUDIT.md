@@ -3,9 +3,10 @@
 ## Scope
 
 Prompt 6 requires division and reproduction to be checked independently of the
-implementations. The current Python reference is the only implementation with
-division semantics; the C core does not yet expose division. Therefore this
-checkpoint audits the Python transaction and records the native gate as open.
+implementations. The Python reference remains the semantic authority, while
+the C core now exposes a selected-region partition transaction and viability
+plan. This checkpoint audits both implementations and keeps full lifecycle
+integration open.
 
 ## Required transaction equation
 
@@ -52,15 +53,15 @@ differential failures can identify the first conservation field.
 
 ## Native status
 
-`NOT READY`: C now exposes an independent material-conservation validator and a
+`NOT READY`: C exposes an independent material-conservation validator and a
 selected-region partition transaction. The transaction transfers internal
 atoms/edges without cloning, routes cross-split edge mass to parent resorption,
 charges parent birth cost, initializes child reserve to zero, splits territory,
-and records transferred mass. GCC/MSVC tests cover one cross-split fixture.
-The deterministic two-way boundary selector and native energy/maintenance
-viability plan are now also ported and tested; adversarial fixture breadth and
-Python/C differential comparison remain pending, so the native gate is not
-allowed to pass yet.
+and records transferred mass. GCC/MSVC tests cover cross-split, minimum-body,
+zero-reserve, and transactional-rejection fixtures. The deterministic two-way
+boundary selector and native energy/maintenance viability plan are also ported
+and tested; adversarial breadth beyond these fixtures and Python/C differential
+comparison remain pending, so the native gate is not allowed to pass yet.
 
 Required native fixtures before integration:
 
