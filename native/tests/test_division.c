@@ -99,5 +99,26 @@ int main(void)
     }
     compost_organism_destroy(&child);
     compost_organism_destroy(&parent);
+
+    compost_organism_t invalid_parent = {0};
+    compost_organism_t invalid_child = {0};
+    compost_division_result_t invalid_result = {0};
+    const uint8_t duplicate_region[] = {1U, 1U};
+    const uint8_t whole_region[] = {1U, 2U};
+    if (compost_organism_init(&invalid_parent, &config, NULL, UINT64_C(20)) != COMPOST_STATUS_OK) {
+        return fail("invalid setup");
+    }
+    invalid_parent.reserve = 2.0;
+    add_atom(&invalid_parent, 0U, 1U);
+    add_atom(&invalid_parent, 1U, 2U);
+    const uint64_t before_invalid = compost_organism_state_digest(&invalid_parent);
+    if (compost_organism_partition(&invalid_parent, &invalid_child, UINT64_C(21), duplicate_region, 2U, 1.0, &invalid_result) != COMPOST_STATUS_INVALID_ARGUMENT ||
+        invalid_child.initialized || compost_organism_state_digest(&invalid_parent) != before_invalid ||
+        compost_organism_partition(&invalid_parent, &invalid_child, UINT64_C(21), whole_region, 2U, 1.0, &invalid_result) != COMPOST_STATUS_INVALID_ARGUMENT ||
+        invalid_child.initialized || compost_organism_state_digest(&invalid_parent) != before_invalid) {
+        compost_organism_destroy(&invalid_parent);
+        return fail("transactional invalid partition");
+    }
+    compost_organism_destroy(&invalid_parent);
     return 0;
 }

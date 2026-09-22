@@ -6,7 +6,10 @@ The native test suite now checks null arguments, invalid floating-point input,
 failed-operation state preservation, repeated destroy, opaque handle errors, and
 bounded table behavior through the public C APIs. GCC and MSVC Debug builds run
 these tests under CTest. The current Windows evidence includes GCC Debug,
-GCC Release, and MSVC Debug runs, with all four tests passing in each run.
+GCC Release, and MSVC Debug runs, with all five tests passing in each run.
+The division fixture additionally verifies duplicate/whole-region rejection,
+unchanged parent state, and an untouched child output on failed partition
+calls.
 The native source also passes the strict Clang C17 object compilation with the
 MinGW target; a complete Clang link/test run remains unavailable because the
 standalone Windows Clang environment lacks the required CRT libraries.
