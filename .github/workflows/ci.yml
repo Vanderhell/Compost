@@ -71,3 +71,14 @@ jobs:
         run: cmake --build native/build-sanitizers --parallel
       - name: Run sanitizer tests
         run: ctest --test-dir native/build-sanitizers --output-on-failure
+
+  native-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure MSVC native core
+        run: cmake -S native -B native/build-msvc -DCOMPOST_BUILD_TESTS=ON
+      - name: Build MSVC native core
+        run: cmake --build native/build-msvc --config Release --parallel
+      - name: Run MSVC native tests
+        run: ctest --test-dir native/build-msvc -C Release --output-on-failure
