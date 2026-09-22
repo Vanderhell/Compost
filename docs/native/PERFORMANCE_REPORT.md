@@ -3,8 +3,8 @@
 ## Status
 
 This is an initial direct-C smoke benchmark, not a claim about simulator
-performance. Python reference and Python↔C FFI benchmark measurements remain
-pending; the FFI test suite is now available for correctness checks.
+performance. Python reference and Python/C FFI checkpoint measurements are now
+available below; they do not represent the complete simulator.
 
 ## Workload
 
@@ -17,8 +17,8 @@ pending; the FFI test suite is now available for correctness checks.
 - output: iterations, bytes, min/median/max seconds, and median steps/sec.
 
 This workload exercises the current bounded native digest checkpoint only. It
-does not represent gut processing, maintenance, division, filesystem access,
-telemetry, population growth, or multiprocessing.
+does not represent external-gut processing, maintenance, division, filesystem
+access, telemetry, population growth, or multiprocessing.
 
 ## Reproduction
 
