@@ -9,7 +9,7 @@
 | Forgetting delta | PORTING | `biology_rules.forgetting_delta` | Pure C delta, no organism mutation |
 | Maintenance weakening budget | PORTING | `biology_rules.maintenance_weakening_budget` | Positive deficit guarantees at least one unit |
 | Bounded organism structural state | PORTING | `MathematicalLifeOrganism` structures | 256 atoms and 512 relation/composite validation bounds |
-| Deterministic byte digestion checkpoint | PORTING | `MathematicalLifePopulation._digest` | Explicit food/nutrition view; maintenance/gut/division tail not yet included |
+| Deterministic byte digestion checkpoint | PORTING | `MathematicalLifePopulation._digest` | Explicit food/nutrition view with Python formation-cost ordering and pressure-capacity removal; maintenance/gut/division tail not yet included |
 | Composed deterministic step checkpoint | PORTING | `MathematicalLifePopulation._cycle_one` | Native digest+consolidation+maintenance transaction with explicit result; full gut and lifecycle policy remain pending |
 | Consolidation transition | PORTING | `MathematicalLifePopulation._consolidate` | Deterministic relation-to-composite mutation added with explicit composite parameters; step integration and differential campaign remain pending |
 | Native deterministic replay | PORTING | Deterministic reference contract | 10,000-step paired native replay passes with first failing step reporting; Python/reference replay remains pending |
