@@ -13,7 +13,9 @@ unchanged parent state, and an untouched child output on failed partition
 calls.
 The lifecycle fixtures additionally cover deterministic starvation resorption,
 mass-ledger verification, and a dead-state step no-op with invalid-input
-validation preserved.
+validation preserved. A critical-bridge fixture verifies that capacity
+pressure rejects a novel structure without breaking the connected skeleton
+and still accounts for the rejected byte.
 The native source also passes the strict Clang C17 object compilation with the
 MinGW target; a complete Clang link/test run remains unavailable because the
 standalone Windows Clang environment lacks the required CRT libraries.
