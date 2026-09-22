@@ -716,6 +716,30 @@ static compost_structure_t *weakest_structure(compost_organism_t *organism)
     return best;
 }
 
+static compost_status_t remove_structure_entry(
+    compost_organism_t *organism,
+    compost_structure_t *structure,
+    uint64_t *resorbed_mass
+)
+{
+    uint64_t mass = 0U;
+    if (structure->kind != COMPOST_STRUCTURE_ATOM &&
+        compost_structural_mass(structure->strength, &mass) != COMPOST_STATUS_OK) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    if (organism->body.structural_mass < mass ||
+        (mass > 0U && compost_organism_enqueue_resorbed(organism, mass) != COMPOST_STATUS_OK)) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    organism->body.structural_mass -= mass;
+    if (structure->kind == COMPOST_STRUCTURE_ATOM) --organism->body.atom_count;
+    else if (structure->kind == COMPOST_STRUCTURE_RELATION) --organism->body.relation_count;
+    else --organism->body.composite_count;
+    structure->occupied = false;
+    return add_u64(*resorbed_mass, mass, resorbed_mass)
+        ? COMPOST_STATUS_OK : COMPOST_STATUS_INVALID_ARGUMENT;
+}
+
 compost_status_t compost_organism_weaken_weakest(
     compost_organism_t *organism,
     bool *changed,
@@ -736,20 +760,27 @@ compost_status_t compost_organism_weaken_weakest(
         target->strength -= 1.0;
         *changed = true;
     } else {
-        uint64_t mass = 0U;
-        if (target->kind != COMPOST_STRUCTURE_ATOM && compost_structural_mass(target->strength, &mass) != COMPOST_STATUS_OK) {
+        const compost_structure_kind_t kind = target->kind;
+        const uint8_t symbol = target->left;
+        if (kind == COMPOST_STRUCTURE_ATOM) {
+            for (size_t i = 0U; i < COMPOST_MAX_RELATIONS; ++i) {
+                compost_structure_t *edge = &next.relations[i];
+                if (edge->occupied && (edge->left == symbol || edge->right == symbol) &&
+                    remove_structure_entry(&next, edge, resorbed_mass) != COMPOST_STATUS_OK) {
+                    return COMPOST_STATUS_INVALID_ARGUMENT;
+                }
+            }
+            for (size_t i = 0U; i < COMPOST_MAX_COMPOSITES; ++i) {
+                compost_structure_t *edge = &next.composites[i];
+                if (edge->occupied && (edge->left == symbol || edge->right == symbol) &&
+                    remove_structure_entry(&next, edge, resorbed_mass) != COMPOST_STATUS_OK) {
+                    return COMPOST_STATUS_INVALID_ARGUMENT;
+                }
+            }
+        }
+        if (remove_structure_entry(&next, target, resorbed_mass) != COMPOST_STATUS_OK) {
             return COMPOST_STATUS_INVALID_ARGUMENT;
         }
-        if (next.body.structural_mass < mass ||
-            (mass > 0U && compost_organism_enqueue_resorbed(&next, mass) != COMPOST_STATUS_OK)) {
-            return COMPOST_STATUS_INVALID_ARGUMENT;
-        }
-        next.body.structural_mass -= mass;
-        if (target->kind == COMPOST_STRUCTURE_ATOM) next.body.atom_count -= 1U;
-        else if (target->kind == COMPOST_STRUCTURE_RELATION) next.body.relation_count -= 1U;
-        else next.body.composite_count -= 1U;
-        target->occupied = false;
-        *resorbed_mass = mass;
         *changed = true;
     }
     *organism = next;
