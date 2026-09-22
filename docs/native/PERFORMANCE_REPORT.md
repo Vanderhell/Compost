@@ -12,7 +12,8 @@ performance. Python reference and Python↔C FFI measurements are still pending.
 - operation: 100,000 deterministic 4-byte digest calls on one organism;
 - input: `1,2,1,2`, nutrition `1.0` per byte;
 - timing: C `clock()` CPU time;
-- output: iterations, bytes, seconds, and steps/sec.
+- repetitions: 5 fresh organisms;
+- output: iterations, bytes, min/median/max seconds, and median steps/sec.
 
 This workload exercises the current bounded native digest checkpoint only. It
 does not represent gut processing, maintenance, division, filesystem access,
@@ -30,9 +31,10 @@ native/build-release-bench/compost_benchmark_digest
 
 ## Evidence boundary
 
-Observed on the current Windows GCC toolchain: `100000` iterations,
-`400000` bytes, `0.558000000` CPU seconds, `179211.470` steps/sec. This is a
-single run and must be repeated with spread reporting before comparative claims.
+Observed on the current Windows GCC toolchain: `5` repetitions of `100000`
+iterations (`400000` bytes each), min `0.554000000`, median `0.555000000`, max
+`0.560000000` CPU seconds, median `180180.180` steps/sec. This measures only
+the bounded direct-C digest checkpoint.
 
 No Python or FFI number is recorded until the Python interpreter is available
 and the native backend can be run against the same canonical workload. No
