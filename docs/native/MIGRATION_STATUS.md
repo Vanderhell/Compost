@@ -23,6 +23,7 @@
 | Material-flow accounting | PORTING | `sandbox_runtime.MaterialFlow` | Native conservation validator, FIFO accounting, cross-edge resorption, and division transfer added; external payload gut remains pending |
 
 | Selected structural partition | PORTING | `AutonomousOrganism._commit_skeleton_partition` | `compost_organism_select_partition` and `compost_organism_partition` pass native GCC/MSVC tests; Python differential campaign and full policy integration remain pending |
+| Native parallel runtime | DEFERRED | Existing Python parallel runtime | See `PARALLEL_RUNTIME.md`; single-thread semantic parity is required first |
 
 ## Domain decisions in this checkpoint
 
