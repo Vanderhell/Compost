@@ -20,7 +20,7 @@ including an eight-step lifecycle replay with field-by-field snapshot checks.
 The full per-step Python/C campaign is **NOT READY**. The native organism is
 not yet a complete lifecycle engine. The current native-backed Python run is
 green (`5 passed`), and the complete Python regression suite is green
-(`189 passed, 5 skipped, 3 subtests passed`), but the selected partition
+(`189 passed, 6 skipped, 3 subtests passed`), but the selected partition
 transaction has not yet been compared field-by-field against the Python
 division transaction. The bounded replay deliberately uses a long first food
 stream so starvation-driven structural removal is outside this checkpoint's
