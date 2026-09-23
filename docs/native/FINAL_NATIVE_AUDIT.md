@@ -38,6 +38,9 @@ progress accumulation. A multi-epoch sandbox trace campaign also replays
 parent and child traces with per-epoch state comparison and corpse transfer,
 plus the reusable `NativeSandboxReplay` host-boundary acceptance and ownership
 validation tests, and local weakest-member reproduction component selection.
+The sandbox adapter also invokes the native boundary-partition policy for the
+historical local-division branch and compares its selected child atoms with
+the Python oracle before accepting the epoch.
 Its seed/configuration/epoch parameters are stored in
 `tests/fixtures/native_replays.json`, and failures report the first field with
 Python/native state digests.
