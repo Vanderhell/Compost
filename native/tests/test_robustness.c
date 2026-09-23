@@ -83,7 +83,8 @@ int main(void)
         compost_config_default(NULL) != COMPOST_STATUS_INVALID_ARGUMENT ||
         compost_organism_init(NULL, &config, NULL, 0U) != COMPOST_STATUS_INVALID_ARGUMENT ||
         compost_organism_snapshot(NULL, &before) != COMPOST_STATUS_INVALID_ARGUMENT ||
-        compost_organism_digest(NULL, &invalid, &result) != COMPOST_STATUS_INVALID_ARGUMENT) {
+        compost_organism_digest(NULL, &invalid, &result) != COMPOST_STATUS_INVALID_ARGUMENT ||
+        compost_context_lifecycle_step(NULL, &invalid, NULL) != COMPOST_STATUS_INVALID_ARGUMENT) {
         return fail("null validation");
     }
     uint8_t territory_bit = UINT8_C(99);
