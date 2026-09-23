@@ -4,6 +4,7 @@ import ctypes
 import json
 import os
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -34,7 +35,7 @@ from mathematical_organism.backend import (
 )
 from mathematical_organism.canonical import canonical_digest
 from mathematical_organism.lifecycle import LifecycleConfig, LivingStructure, MathematicalLifeOrganism, MathematicalLifePopulation, OrganismStatus
-from mathematical_organism.sandbox_runtime import AutonomousOrganism
+from mathematical_organism.sandbox_runtime import AutonomousOrganism, SandboxRuntime
 from mathematical_organism.biology_rules import reproduction_allowed
 from mathematical_organism.territory import address_bit, food_block_key
 
@@ -482,6 +483,23 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             self.assertEqual(actual["assimilated_mass"], reference.material_flow.assimilated_mass)
             self.assertEqual(actual["rejected_mass"], reference.material_flow.rejected_mass)
             self.assertEqual(len(backend.snapshot()["gut"]), 1)
+
+    def test_filesystem_food_claim_emits_replayable_external_action(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = SandboxRuntime(Path(directory) / "sandbox", block_size=4)
+            source = runtime.inbox / "payload.bin"
+            source.write_bytes(b"ABCD")
+            organism = runtime.bootstrap()
+            trace: list[NativeAction] = []
+            organism.live_step(runtime, action_trace=trace)
+            external = [action for action in trace if action.kind.value == "external_gut"]
+            self.assertEqual(len(external), 1)
+            action = external[0]
+            with NativeBackend(self.library_path, organism_id=77) as backend:
+                result = backend.apply_action(action)
+                self.assertEqual(result["kind"], "external_gut")
+                self.assertEqual(result["processed_mass"], len(action.payload))
+                backend.verify_material_conservation()
 
     def test_explicit_corpse_energy_action_matches_oracle(self) -> None:
         reference = AutonomousOrganism("ORG-ROOT")

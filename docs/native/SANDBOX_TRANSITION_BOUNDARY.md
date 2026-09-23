@@ -59,7 +59,8 @@ The next safe integration unit is a host-built `live_step` action plan. The
 plan must record one deterministic environment decision (food bite, queued gut
 work, corpse energy, or idle/maintenance work), then invoke the corresponding
 native slice. The initial external-gut and corpse-energy action forms are now
-available; full live-step construction and event ordering remain pending. Each
+available, and a filesystem FOOD claim/read replay is differentially tested;
+full live-step construction and event ordering remain pending. Each
 action must be compared after execution against the Python oracle.
 
 Automatic metabolic scheduling and division remain separate transactions until
