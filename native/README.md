@@ -32,6 +32,14 @@ capacity. They keep transactional state copies bounded while the allocator-backe
 container design is still pending; exceeding a table returns an error and never
 silently drops a structure.
 
+The ABI deliberately exposes two step contracts. `compost_context_step` retains
+the population/reference checkpoint semantics, including its forgetting tail.
+`compost_context_lifecycle_step` is the sandbox action endpoint: it applies the
+deficit-budget weakest-member maintenance rule, local member detachment,
+activity settlement, age/death transition, and a terminal dead-state no-op.
+The Python adapter selects these endpoints explicitly; they are not silently
+interchangeable.
+
 The gut uses a 128-entry FIFO chunk ring. Each external chunk owns up to 16
 bytes and matching binary64 nutrition values; longer input is split into
 ordered chunks. Enqueue and processing are transactional and preserve the
