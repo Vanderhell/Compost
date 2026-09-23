@@ -111,6 +111,23 @@ class _FailureEvidence:
         )
 
 
+class _SandboxFailureEvidence:
+    def __init__(self, prefix: str, field: str, reference: AutonomousOrganism,
+                 backend: NativePopulationBackend, organism_id: int) -> None:
+        self.prefix = prefix
+        self.field = field
+        self.reference = reference
+        self.backend = backend
+        self.organism_id = organism_id
+
+    def __str__(self) -> str:
+        return (
+            f"{self.prefix}: {self.field}; "
+            f"reference_digest={canonical_digest(self.reference)}; "
+            f"native_digest={self.backend.state_digests()[self.organism_id]:016x}"
+        )
+
+
 def _native_library() -> ctypes.CDLL | None:
     value = os.environ.get("COMPOST_NATIVE_LIBRARY")
     if not value:
@@ -918,29 +935,32 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                             continue
                         native = population.snapshot(native_id)
                         prefix = f"sandbox trace epoch {epoch} organism {organism.name}"
-                        self.assertEqual(native["status"], 0 if organism.alive else 1, prefix)
-                        self.assertEqual(native["age_in_cycles"], organism.body.age_in_cycles, prefix)
-                        self.assertEqual(native["generation"], organism.body.generation, prefix)
-                        self.assertEqual(native["metabolic_progress"], organism.metabolic_progress, prefix)
-                        self.assertEqual(native["metabolic_steps"], organism.metabolic_steps, prefix)
+                        def evidence(field: str) -> _SandboxFailureEvidence:
+                            return _SandboxFailureEvidence(prefix, field, organism, population, native_id)
+
+                        self.assertEqual(native["status"], 0 if organism.alive else 1, evidence("status"))
+                        self.assertEqual(native["age_in_cycles"], organism.body.age_in_cycles, evidence("age_in_cycles"))
+                        self.assertEqual(native["generation"], organism.body.generation, evidence("generation"))
+                        self.assertEqual(native["metabolic_progress"], organism.metabolic_progress, evidence("metabolic_progress"))
+                        self.assertEqual(native["metabolic_steps"], organism.metabolic_steps, evidence("metabolic_steps"))
                         self.assertEqual(
                             native["activated_receptors"],
                             tuple(sorted(organism.body.activated_receptors)),
-                            prefix,
+                            evidence("activated_receptors"),
                         )
-                        self.assertEqual(native["body"]["structural_mass"], organism.body.full_body_mass(), prefix)
-                        self.assertEqual(native["body"]["atom_count"], len(organism.body.atoms), prefix)
-                        self.assertEqual(native["body"]["relation_count"], len(organism.body.relations), prefix)
-                        self.assertEqual(native["body"]["composite_count"], len(organism.body.composites), prefix)
-                        self.assertAlmostEqual(native["reserve"], organism.body.reserve, places=12, msg=prefix)
-                        self.assertEqual(native["territory"], organism.territory_state.territory.path, prefix)
+                        self.assertEqual(native["body"]["structural_mass"], organism.body.full_body_mass(), evidence("body.structural_mass"))
+                        self.assertEqual(native["body"]["atom_count"], len(organism.body.atoms), evidence("body.atom_count"))
+                        self.assertEqual(native["body"]["relation_count"], len(organism.body.relations), evidence("body.relation_count"))
+                        self.assertEqual(native["body"]["composite_count"], len(organism.body.composites), evidence("body.composite_count"))
+                        self.assertAlmostEqual(native["reserve"], organism.body.reserve, places=12, msg=evidence("reserve"))
+                        self.assertEqual(native["territory"], organism.territory_state.territory.path, evidence("territory"))
                         for field in (
                             "input_mass", "assimilated_mass", "rejected_mass", "resorbed_mass",
                             "processed_mass", "expelled_mass", "external_expelled_mass",
                             "resorption_expelled_mass", "structural_created_mass",
                             "structural_transferred_in", "structural_transferred_out",
                         ):
-                            self.assertEqual(native["material_flow"][field], getattr(organism.material_flow, field), prefix)
+                            self.assertEqual(native["material_flow"][field], getattr(organism.material_flow, field), evidence(f"material_flow.{field}"))
                         for field in (
                             "bytes_eaten", "relations_created", "relations_strengthened",
                             "composites_created", "composites_strengthened", "structural_mass_added",
@@ -950,14 +970,14 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                             self.assertEqual(
                                 native["activity"]["counters"][field],
                                 getattr(organism.activity_ledger.counters, field),
-                                prefix,
+                                evidence(f"activity.counters.{field}"),
                             )
                         self.assertAlmostEqual(
                             native["activity"]["metabolic_debt"],
                             organism.activity_ledger.metabolic_debt,
                             places=12,
                             msg=(
-                                f"{prefix} native={native['activity']} "
+                                f"{evidence('activity.metabolic_debt')} native={native['activity']} "
                                 f"python={organism.activity_ledger} trace="
                                 f"{[action.kind.value for action in traces.get(native_id, ())]}"
                             ),
@@ -966,9 +986,9 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                             native["activity"]["energy_spent"],
                             organism.activity_ledger.energy_spent,
                             places=12,
-                            msg=prefix,
+                            msg=evidence("activity.energy_spent"),
                         )
-                        self.assertEqual(native["activity"]["settlements"], organism.activity_ledger.settlements, prefix)
+                        self.assertEqual(native["activity"]["settlements"], organism.activity_ledger.settlements, evidence("activity.settlements"))
                         expected_gut = tuple(
                             (
                                 chunk.mass,
@@ -978,7 +998,7 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                             )
                             for chunk in organism.gut_queue
                         )
-                        self.assertEqual(native["gut"], expected_gut, prefix)
+                        self.assertEqual(native["gut"], expected_gut, evidence("gut"))
                     for organism_name, native_id in tuple(native_ids.items()):
                         if native_id not in population.organism_ids:
                             continue
