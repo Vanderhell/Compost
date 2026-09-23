@@ -747,7 +747,10 @@ class NativePopulationBackend:
         config: LifecycleConfig | None = None,
     ) -> None:
         ids = tuple(sorted(int(organism_id) for organism_id in organism_ids))
-        if not ids or len(set(ids)) != len(ids) or any(organism_id < 0 for organism_id in ids):
+        if (
+            not ids or len(set(ids)) != len(ids) or
+            any(organism_id < 0 or organism_id > (1 << 64) - 1 for organism_id in ids)
+        ):
             raise ValueError("organism_ids must be unique non-negative integers")
         self.library_path = Path(library).resolve()
         self._config = config
@@ -792,10 +795,27 @@ class NativePopulationBackend:
             raise ValueError(f"child_ids contains unknown organism IDs: {sorted(unknown_children)!r}")
         existing = set(self._contexts)
         requested = [int(value) for value in supplied_children.values()]
-        if any(value < 0 for value in requested) or len(requested) != len(set(requested)):
+        if (
+            any(value < 0 or value > (1 << 64) - 1 for value in requested) or
+            len(requested) != len(set(requested))
+        ):
             raise ValueError("child IDs must be unique non-negative integers")
         if existing.intersection(requested):
             raise ValueError("child ID already belongs to the population")
+
+        reserved = existing | set(requested)
+        next_automatic = max(reserved) + 1
+        automatic_children: dict[int, int] = {}
+        for organism_id in sorted(self._contexts):
+            if organism_id in supplied_children:
+                continue
+            while next_automatic in reserved:
+                next_automatic += 1
+            if next_automatic > (1 << 64) - 1:
+                raise ValueError("no available uint64 child ID")
+            automatic_children[organism_id] = next_automatic
+            reserved.add(next_automatic)
+            next_automatic += 1
 
         results: dict[int, dict[str, object]] = {}
         scheduled_ids = tuple(sorted(self._contexts))
@@ -804,7 +824,7 @@ class NativePopulationBackend:
             if organism_id in supplied_children:
                 child_id = int(supplied_children[organism_id])
             else:
-                child_id = max(self._contexts) + 1
+                child_id = automatic_children[organism_id]
             child, cycle, plan = self._contexts[organism_id].step_and_try_divide(
                 payload, child_id=child_id, nutrition=nutrition
             )

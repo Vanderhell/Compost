@@ -258,6 +258,8 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
         with NativePopulationBackend(
             self.library_path, organism_ids=(0, 1), config=config
         ) as native_population:
+            with self.assertRaises(ValueError):
+                native_population.step({99: (b"", ())})
             for cycle in range(16):
                 planned = reference._allocate_nutrition((0, 1))
                 step_results = native_population.step(
