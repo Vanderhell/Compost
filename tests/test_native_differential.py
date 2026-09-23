@@ -358,6 +358,20 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             self.assertEqual(child["reserve"], 0.0)
             population.verify_material_conservation()
 
+    def test_native_population_applies_host_actions_in_id_order(self) -> None:
+        with NativePopulationBackend(self.library_path, organism_ids=(8, 2)) as population:
+            result = population.apply_actions({8: NativeAction.corpse_energy(2.0), 2: NativeAction.corpse_energy(1.0)})
+            self.assertEqual(tuple(result), (2, 8))
+            self.assertAlmostEqual(population.snapshot(2)["reserve"], 2.0, places=12)
+            self.assertAlmostEqual(population.snapshot(8)["reserve"], 3.0, places=12)
+            before = population.state_digests()
+            with self.assertRaises(ValueError):
+                population.apply_actions({99: NativeAction.corpse_energy(1.0)})
+            self.assertEqual(population.state_digests(), before)
+            with self.assertRaises(TypeError):
+                population.apply_actions({2: "not-an-action"})  # type: ignore[arg-type]
+            self.assertEqual(population.state_digests(), before)
+
     def test_backend_selector_exposes_native_population_without_fallback(self) -> None:
         backend = create_backend(
             "native-population", library=self.library_path, organism_ids=(0, 1)

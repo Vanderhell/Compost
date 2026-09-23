@@ -42,6 +42,11 @@ The host supplies the result of those operations to the native core as explicit
 inputs. Native code must not reopen paths, enumerate a Python dictionary, or
 call back into the runtime to decide a biological action.
 
+`NativePopulationBackend.apply_actions` applies a supplied subset of these
+actions in ascending numeric organism-ID order. Unknown IDs and invalid action
+objects are rejected before any handle changes; omitted IDs are explicit
+no-ops for that epoch.
+
 ## Remaining transition work
 
 The next safe integration unit is a host-built `live_step` action plan. The

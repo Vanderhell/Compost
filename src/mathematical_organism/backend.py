@@ -951,6 +951,34 @@ class NativePopulationBackend:
                 results[organism_id]["child_id"] = child_id
         return results
 
+    def apply_actions(
+        self,
+        actions: Mapping[int, NativeAction],
+    ) -> dict[int, dict[str, float | int | str]]:
+        """Apply supplied host actions in ascending organism-ID order.
+
+        Omitted IDs are a deliberate no-op for this epoch. Unknown IDs and
+        invalid action objects are rejected during a complete preflight before
+        any native handle is mutated. Native allocation/runtime failures still
+        stop the epoch and are surfaced; this method does not claim rollback
+        after a native operation has begun.
+        """
+        if self._closed:
+            raise NativeBackendError("native population backend is closed")
+        unknown = set(actions) - set(self._contexts)
+        if unknown:
+            raise ValueError(f"actions contain unknown organism IDs: {sorted(unknown)!r}")
+        prepared: dict[int, NativeAction] = {}
+        for organism_id in sorted(actions):
+            action = actions[organism_id]
+            if not isinstance(action, NativeAction):
+                raise TypeError(f"action for organism {organism_id} is not a NativeAction")
+            prepared[int(organism_id)] = action
+        return {
+            organism_id: self._contexts[organism_id].apply_action(prepared[organism_id])
+            for organism_id in sorted(prepared)
+        }
+
     def snapshot(self, organism_id: int) -> dict[str, object]:
         """Return one native snapshot by stable population ID."""
         if self._closed:
