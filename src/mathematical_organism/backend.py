@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import ctypes
 import math
+from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
@@ -16,6 +18,73 @@ from .lifecycle import LifecycleConfig, MathematicalLifePopulation
 
 class NativeBackendError(RuntimeError):
     pass
+
+
+class NativeActionKind(str, Enum):
+    """Environment decision which may be applied to one native organism."""
+
+    EXTERNAL_GUT = "external_gut"
+    CORPSE_ENERGY = "corpse_energy"
+    LIFECYCLE_STEP = "lifecycle_step"
+
+
+@dataclass(frozen=True)
+class NativeAction:
+    """Validated host-owned action plan for the narrow native boundary.
+
+    The action is a decision already made by the Python environment.  It does
+    not contain paths, callbacks, or object references, and native code never
+    uses it to discover external state.  Invalid plans fail before any handle
+    is touched.
+    """
+
+    kind: NativeActionKind
+    payload: bytes = b""
+    nutrition: tuple[float, ...] | None = None
+    capacity: int = 0
+    energy: float = 0.0
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.kind, NativeActionKind):
+            raise ValueError("kind must be a NativeActionKind")
+        payload = bytes(self.payload)
+        object.__setattr__(self, "payload", payload)
+        values = None if self.nutrition is None else tuple(float(value) for value in self.nutrition)
+        if values is not None:
+            if len(values) != len(payload) or any(not math.isfinite(value) for value in values):
+                raise ValueError("nutrition must be finite and match payload length")
+        object.__setattr__(self, "nutrition", values)
+        if self.capacity < 0:
+            raise ValueError("capacity must be non-negative")
+        if not math.isfinite(float(self.energy)) or self.energy < 0.0:
+            raise ValueError("energy must be finite and non-negative")
+        if self.kind is NativeActionKind.CORPSE_ENERGY and (payload or values is not None or self.capacity):
+            raise ValueError("corpse-energy action cannot carry material fields")
+        if self.kind is NativeActionKind.LIFECYCLE_STEP and (self.capacity or self.energy):
+            raise ValueError("lifecycle-step action cannot carry capacity or energy")
+
+    @classmethod
+    def external_gut(
+        cls,
+        payload: bytes | bytearray,
+        *,
+        capacity: int,
+        nutrition: tuple[float, ...] | None = None,
+    ) -> "NativeAction":
+        return cls(NativeActionKind.EXTERNAL_GUT, bytes(payload), nutrition, capacity, 0.0)
+
+    @classmethod
+    def corpse_energy(cls, energy: float) -> "NativeAction":
+        return cls(NativeActionKind.CORPSE_ENERGY, energy=energy)
+
+    @classmethod
+    def lifecycle_step(
+        cls,
+        payload: bytes | bytearray,
+        *,
+        nutrition: tuple[float, ...] | None = None,
+    ) -> "NativeAction":
+        return cls(NativeActionKind.LIFECYCLE_STEP, bytes(payload), nutrition)
 
 
 class _Config(ctypes.Structure):
@@ -405,6 +474,29 @@ class NativeBackend:
             "rejected_mass": int(result.rejected_mass),
             "expelled_mass": int(result.expelled_mass),
         }
+
+    def apply_action(self, action: NativeAction) -> dict[str, float | int | str]:
+        """Apply one explicit host decision through the narrow native ABI.
+
+        Environment selection remains outside this method.  A material action
+        is queued before its bounded FIFO processing, matching the sandbox
+        oracle's durable-ingest order.  The returned mapping is telemetry for
+        the host and never contains borrowed native memory.
+        """
+        if not isinstance(action, NativeAction):
+            raise TypeError("action must be a NativeAction")
+        if action.kind is NativeActionKind.EXTERNAL_GUT:
+            self.enqueue_external(action.payload, action.nutrition)
+            result = self.process_gut(action.capacity)
+            return {"kind": action.kind.value, **result}
+        if action.kind is NativeActionKind.CORPSE_ENERGY:
+            return {
+                "kind": action.kind.value,
+                "credited_energy": self.apply_corpse_energy(action.energy),
+            }
+        if action.kind is NativeActionKind.LIFECYCLE_STEP:
+            return {"kind": action.kind.value, **self.step(action.payload, action.nutrition)}
+        raise NativeBackendError(f"unsupported native action: {action.kind!r}")
 
     def verify_material_conservation(self) -> None:
         """Raise when the native material-flow invariant is not satisfied."""

@@ -18,6 +18,12 @@ called from Python with all environmental inputs supplied by the host:
 | Structural partition | `_commit_skeleton_partition` | selected atom IDs, child ID, birth cost | parent/child states and transfer trace |
 | Deterministic lifecycle step | `MathematicalLifePopulation._cycle_one` | explicit food/nutrition view | state, events, digest |
 
+`NativeAction`/`NativeActionKind` in `backend.py` now provide the first
+host-side action-plan adapter for these calls. It validates payload lengths,
+finite nutrition, capacities, and energy before touching a native handle. The
+adapter does not select a food source or infer a corpse; it only executes a
+decision already made by the Python host.
+
 These slices do not perform filesystem I/O, inspect Python object identity, or
 depend on worker scheduling.
 
@@ -39,7 +45,9 @@ call back into the runtime to decide a biological action.
 The next safe integration unit is a host-built `live_step` action plan. The
 plan must record one deterministic environment decision (food bite, queued gut
 work, corpse energy, or idle/maintenance work), then invoke the corresponding
-native slice. It must be compared after each action against the Python oracle.
+native slice. The initial external-gut and corpse-energy action forms are now
+available; full live-step construction and event ordering remain pending. Each
+action must be compared after execution against the Python oracle.
 
 Automatic metabolic scheduling and division remain separate transactions until
 that action-plan comparison covers their event ordering. A native

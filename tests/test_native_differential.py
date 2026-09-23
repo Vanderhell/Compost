@@ -25,7 +25,13 @@ from mathematical_organism.biology_rules import (
     maintenance_weakening_budget,
     structural_mass,
 )
-from mathematical_organism.backend import NativeBackend, NativeBackendError, NativePopulationBackend, create_backend
+from mathematical_organism.backend import (
+    NativeAction,
+    NativeBackend,
+    NativeBackendError,
+    NativePopulationBackend,
+    create_backend,
+)
 from mathematical_organism.canonical import canonical_digest
 from mathematical_organism.lifecycle import LifecycleConfig, LivingStructure, MathematicalLifeOrganism, MathematicalLifePopulation, OrganismStatus
 from mathematical_organism.sandbox_runtime import AutonomousOrganism
@@ -420,6 +426,41 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             checked_backend.enqueue_external(bytes(payload), nutrition)
             checked_backend.process_gut(2)
             checked_backend.verify_material_conservation()
+
+    def test_explicit_host_action_plan_matches_native_primitives(self) -> None:
+        payload = (1, 2, 1)
+        nutrition = (1.0, 2.0, 3.0)
+        reference = AutonomousOrganism("ORG-ROOT")
+        reference.enqueue_external_material(payload, nutrition)
+        reference.result.available_nutrition_total += sum(nutrition)
+        expected_processed = reference.process_gut(2)
+        with NativeBackend(self.library_path, organism_id=0) as backend:
+            actual = backend.apply_action(
+                NativeAction.external_gut(bytes(payload), nutrition=nutrition, capacity=2)
+            )
+            self.assertEqual(actual["kind"], "external_gut")
+            self.assertEqual(actual["processed_mass"], expected_processed)
+            self.assertEqual(actual["assimilated_mass"], reference.material_flow.assimilated_mass)
+            self.assertEqual(actual["rejected_mass"], reference.material_flow.rejected_mass)
+            backend.verify_material_conservation()
+
+        with NativeBackend(self.library_path, organism_id=1) as backend:
+            before = backend.state_digest()
+            with self.assertRaises(ValueError):
+                NativeAction.external_gut(b"AB", nutrition=(1.0,), capacity=1)
+            self.assertEqual(backend.state_digest(), before)
+            with self.assertRaises(ValueError):
+                NativeAction.external_gut(b"A", capacity=-1)
+            self.assertEqual(backend.state_digest(), before)
+
+    def test_explicit_corpse_energy_action_matches_oracle(self) -> None:
+        reference = AutonomousOrganism("ORG-ROOT")
+        with NativeBackend(self.library_path, organism_id=2) as backend:
+            actual = backend.apply_action(NativeAction.corpse_energy(2.5))
+            reference.body.adjust_reserve(2.5)
+            self.assertEqual(actual["kind"], "corpse_energy")
+            self.assertAlmostEqual(float(actual["credited_energy"]), 2.5, places=12)
+            self.assertAlmostEqual(backend.snapshot()["reserve"], reference.body.reserve, places=12)
 
     def test_environment_corpse_energy_transfer_matches_oracle(self) -> None:
         reference = AutonomousOrganism("ORG-ROOT")

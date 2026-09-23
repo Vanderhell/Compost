@@ -5,7 +5,14 @@ from .organism import IngestResult, MathematicalOrganism
 from .oracle import OracleComparison, OracleHarness, ReplayOracle
 from .lifecycle import LifecycleConfig, MathematicalLifeOrganism, MathematicalLifePopulation
 from .canonical import canonical_bytes, canonical_digest, canonical_state
-from .backend import NativeBackend, NativeBackendError, ReferenceBackend, create_backend
+from .backend import (
+    NativeAction,
+    NativeActionKind,
+    NativeBackend,
+    NativeBackendError,
+    ReferenceBackend,
+    create_backend,
+)
 
 __all__ = [
     "IngestResult",
@@ -22,6 +29,8 @@ __all__ = [
     "canonical_state",
     "NativeBackend",
     "NativeBackendError",
+    "NativeAction",
+    "NativeActionKind",
     "ReferenceBackend",
     "create_backend",
 ]
