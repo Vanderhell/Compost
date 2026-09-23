@@ -282,12 +282,14 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                     child_ids={organism_id: 100 + organism_id for organism_id in organism_ids},
                 )
             self.assertEqual(native_population.snapshots(), before_invalid_epoch)
+            before_invalid_digests = native_population.state_digests()
             with self.assertRaises(ValueError):
                 native_population.step(
                     {organism_ids[0]: (b"\x01", (float("nan"),)), organism_ids[1]: (b"\x02", (1.0,))},
                     child_ids={organism_id: 100 + organism_id for organism_id in organism_ids},
                 )
             self.assertEqual(native_population.snapshots(), before_invalid_epoch)
+            self.assertEqual(native_population.state_digests(), before_invalid_digests)
             for cycle in range(int(fixture["cycles"])):
                 planned = reference._allocate_nutrition(organism_ids)
                 step_results = native_population.step(

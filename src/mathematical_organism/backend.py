@@ -863,6 +863,15 @@ class NativePopulationBackend:
         """Return all snapshots sorted by numeric ID."""
         return {organism_id: self._contexts[organism_id].snapshot() for organism_id in sorted(self._contexts)}
 
+    def state_digests(self) -> dict[int, int]:
+        """Return deterministic native state digests sorted by numeric ID."""
+        if self._closed:
+            raise NativeBackendError("native population backend is closed")
+        return {
+            organism_id: self._contexts[organism_id].state_digest()
+            for organism_id in sorted(self._contexts)
+        }
+
     def verify_material_conservation(self) -> None:
         """Validate every currently owned native ledger."""
         if self._closed:
