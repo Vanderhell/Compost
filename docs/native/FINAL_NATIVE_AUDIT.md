@@ -23,7 +23,7 @@ Python tests:
 
 Native tests:
 `7/7` CTest tests passed in the current MSVC 19.42 Release build with
-warnings-as-errors enabled (10.53s); the same suite passed under GCC/WSL.
+warnings-as-errors enabled (10.41s); the same suite passed under GCC/WSL.
 
 Differential cases:
 `20` Python/native differential tests pass, including bounded pure-rule,
