@@ -911,6 +911,52 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                         self.assertEqual(native["body"]["relation_count"], len(organism.body.relations), prefix)
                         self.assertEqual(native["body"]["composite_count"], len(organism.body.composites), prefix)
                         self.assertAlmostEqual(native["reserve"], organism.body.reserve, places=12, msg=prefix)
+                        self.assertEqual(native["territory"], organism.territory_state.territory.path, prefix)
+                        for field in (
+                            "input_mass", "assimilated_mass", "rejected_mass", "resorbed_mass",
+                            "processed_mass", "expelled_mass", "external_expelled_mass",
+                            "resorption_expelled_mass", "structural_created_mass",
+                            "structural_transferred_in", "structural_transferred_out",
+                        ):
+                            self.assertEqual(native["material_flow"][field], getattr(organism.material_flow, field), prefix)
+                        for field in (
+                            "bytes_eaten", "relations_created", "relations_strengthened",
+                            "composites_created", "composites_strengthened", "structural_mass_added",
+                            "structural_mass_lost", "resorption_events", "division_events",
+                            "processed_bytes", "rejected_bytes", "resorbed_processed_bytes",
+                        ):
+                            self.assertEqual(
+                                native["activity"]["counters"][field],
+                                getattr(organism.activity_ledger.counters, field),
+                                prefix,
+                            )
+                        self.assertAlmostEqual(
+                            native["activity"]["metabolic_debt"],
+                            organism.activity_ledger.metabolic_debt,
+                            places=12,
+                            msg=(
+                                f"{prefix} native={native['activity']} "
+                                f"python={organism.activity_ledger} trace="
+                                f"{[action.kind.value for action in traces.get(native_id, ())]}"
+                            ),
+                        )
+                        self.assertAlmostEqual(
+                            native["activity"]["energy_spent"],
+                            organism.activity_ledger.energy_spent,
+                            places=12,
+                            msg=prefix,
+                        )
+                        self.assertEqual(native["activity"]["settlements"], organism.activity_ledger.settlements, prefix)
+                        expected_gut = tuple(
+                            (
+                                chunk.mass,
+                                0 if chunk.origin == "external" else 1,
+                                bytes(chunk.payload),
+                                tuple(chunk.nutrition),
+                            )
+                            for chunk in organism.gut_queue
+                        )
+                        self.assertEqual(native["gut"], expected_gut, prefix)
                     for organism_name, native_id in tuple(native_ids.items()):
                         if native_id not in population.organism_ids:
                             continue
