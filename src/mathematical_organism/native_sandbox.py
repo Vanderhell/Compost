@@ -79,6 +79,7 @@ class NativeSandboxReplay:
         if self._closed:
             raise RuntimeError("native sandbox replay is closed")
         traces: dict[int, tuple[NativeAction, ...]] = {}
+        python_division_children: dict[int, Any] = {}
         for organism in tuple(self.runtime.organisms):
             if not organism.alive:
                 continue
@@ -102,6 +103,7 @@ class NativeSandboxReplay:
                 if child.name in self._native_ids:
                     raise RuntimeError(f"Python child already has a native handle: {child.name}")
                 self._native_ids[child.name] = division.child_id
+                python_division_children[division.child_id] = child
 
         # Keep each organism's trace order, but execute a division through the
         # native reproduction policy.  The Python action remains the oracle:
@@ -158,6 +160,16 @@ class NativeSandboxReplay:
                         f"organism {organism_id}: expected child atoms "
                         f"{tuple(sorted(division.child_atoms))!r}, got {native_child_atoms!r}"
                     )
+                python_child = python_division_children[division.child_id]
+                if (
+                    native_child["body"]["structural_mass"] != python_child.body.full_body_mass()
+                    or native_child["reserve"] != python_child.body.reserve
+                    or native_child["territory"] != python_child.territory_state.territory.path
+                ):
+                    raise RuntimeError(
+                        f"native boundary division state diverged at epoch {self._epoch}, "
+                        f"organism {organism_id}: child state differs from Python oracle"
+                    )
                 results.append({
                     **native_result,
                     "kind": "division",
@@ -170,6 +182,16 @@ class NativeSandboxReplay:
                         f"native local reproduction diverged at epoch {self._epoch}, "
                         f"organism {organism_id}: expected child atoms "
                         f"{tuple(sorted(division.child_atoms))!r}, got {native_child_atoms!r}"
+                    )
+                python_child = python_division_children[division.child_id]
+                if (
+                    native_child["body"]["structural_mass"] != python_child.body.full_body_mass()
+                    or native_child["reserve"] != python_child.body.reserve
+                    or native_child["territory"] != python_child.territory_state.territory.path
+                ):
+                    raise RuntimeError(
+                        f"native local reproduction state diverged at epoch {self._epoch}, "
+                        f"organism {organism_id}: child state differs from Python oracle"
                     )
                 results.append({
                     **native_result,
@@ -190,6 +212,27 @@ class NativeSandboxReplay:
                 corpses[organism_id] = self._population.take_corpse(organism_id)
             else:
                 snapshots[organism_id] = snapshot
+        for organism in self.runtime.organisms:
+            if organism.alive or organism.name not in self._native_ids:
+                continue
+            native_id = self._native_ids[organism.name]
+            corpse = corpses.get(native_id)
+            if corpse is None:
+                raise RuntimeError(
+                    f"native corpse is missing at epoch {self._epoch}, organism {organism.name}"
+                )
+            expected_energy = sum(
+                float(item.remaining_energy)
+                for item in self.runtime.corpses
+                if item.source_organism_id == organism.name
+            )
+            if (
+                tuple(corpse["territory"]) != organism.territory_state.territory.path
+                or abs(float(corpse["reserve"]) - expected_energy) > 1e-12
+            ):
+                raise RuntimeError(
+                    f"native corpse diverged at epoch {self._epoch}, organism {organism.name}"
+                )
         self._population.verify_material_conservation()
         for organism in self.runtime.organisms:
             organism.verify_material_conservation()
