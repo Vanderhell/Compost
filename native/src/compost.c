@@ -262,7 +262,7 @@ compost_status_t compost_context_partition(
         result
     );
     if (status != COMPOST_STATUS_OK) {
-        free(created);
+        allocator.deallocate(allocator.context, created);
         return status;
     }
     *child = created;

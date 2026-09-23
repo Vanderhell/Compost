@@ -37,6 +37,8 @@ an output handle, while successful custom allocation is released through the
 same caller-supplied deallocator exactly once during `compost_destroy`.
 It also exercises `UINT64_MAX` organism/configuration values and verifies that
 an age-overflowing step is rejected transactionally without changing state.
+Failed opaque partition creation is also checked to release its temporary child
+context through that same allocator rather than a hard-coded system `free`.
 
 ## Outstanding evidence
 

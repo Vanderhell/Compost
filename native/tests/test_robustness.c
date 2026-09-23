@@ -93,6 +93,23 @@ int main(void)
     if (probe.deallocations != 1U) {
         return fail("custom allocator destruction");
     }
+    compost_context_t *partition_parent = NULL;
+    compost_context_t *partition_child = NULL;
+    compost_division_result_t partition_result = {0};
+    if (compost_create_with_allocator(&config, &probe_allocator, 6U, &partition_parent) != COMPOST_STATUS_OK ||
+        partition_parent == NULL ||
+        compost_context_partition(
+            partition_parent, 7U, NULL, 0U, 1.0, &partition_child, &partition_result
+        ) != COMPOST_STATUS_INVALID_ARGUMENT ||
+        partition_child != NULL || probe.allocations != 3U || probe.deallocations != 2U) {
+        compost_destroy(partition_child);
+        compost_destroy(partition_parent);
+        return fail("custom allocator failed partition cleanup");
+    }
+    compost_destroy(partition_parent);
+    if (probe.deallocations != 3U) {
+        return fail("custom allocator partition lifetime");
+    }
     config.abi_version = UINT32_C(1);
     if (compost_organism_init(&organism, &config, NULL, 3U) != COMPOST_STATUS_INVALID_ARGUMENT) {
         return fail("ABI mismatch rejection");
