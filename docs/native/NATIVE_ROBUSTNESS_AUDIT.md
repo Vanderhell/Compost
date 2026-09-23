@@ -47,7 +47,7 @@ steps, and remainder on every case.
 
 The current eight-test suite was built and executed from the current tree with
 GCC 13.3 under WSL using AddressSanitizer and UndefinedBehaviorSanitizer,
-including leak detection. All eight tests passed in `398.94s`; the run emitted
+including leak detection. All eight tests passed in `392.54s`; the run emitted
 no sanitizer diagnostics.
 
 The same current tree also passed the strict GCC 13.3 Release suite (`8/8`,

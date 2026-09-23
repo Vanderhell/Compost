@@ -45,7 +45,7 @@ Long-run steps:
 the current ABI v3 replay campaign.
 
 Sanitizer result:
-Current GCC 13.3 under WSL with ASan/UBSan: `8/8` tests passed in `398.94s`,
+Current GCC 13.3 under WSL with ASan/UBSan: `8/8` tests passed in `392.54s`,
 with no sanitizer diagnostics and leak detection enabled. Windows-mounted
 filesystem clock-skew warnings were not present in this WSL run.
 
