@@ -1,6 +1,7 @@
 #include "compost/compost.h"
 
 #include <stdio.h>
+#include <string.h>
 
 static int fail(const char *message)
 {
@@ -208,6 +209,68 @@ int main(void)
         return fail("transactional invalid partition");
     }
     compost_organism_destroy(&invalid_parent);
+
+    for (uint64_t case_id = 0U; case_id < UINT64_C(32); ++case_id) {
+        static compost_organism_t campaign_parent;
+        static compost_organism_t campaign_child;
+        compost_division_result_t campaign_result = {0};
+        memset(&campaign_parent, 0, sizeof(campaign_parent));
+        memset(&campaign_child, 0, sizeof(campaign_child));
+        const size_t atom_count = (size_t)(4U + (case_id % UINT64_C(5)));
+        if (compost_organism_init(&campaign_parent, &config, NULL,
+                                  UINT64_C(100) + case_id) != COMPOST_STATUS_OK) {
+            return fail("campaign setup");
+        }
+        campaign_parent.reserve = 10000.0;
+        for (size_t index = 0U; index < atom_count; ++index) {
+            add_atom(&campaign_parent, index, (uint8_t)(20U + index));
+        }
+        for (size_t index = 0U; index + 1U < atom_count; ++index) {
+            const compost_structure_kind_t kind =
+                ((case_id + (uint64_t)index) % UINT64_C(3)) == 0U
+                    ? COMPOST_STRUCTURE_COMPOSITE : COMPOST_STRUCTURE_RELATION;
+            if (add_edge(&campaign_parent, kind, index,
+                         (uint8_t)(20U + index), (uint8_t)(21U + index),
+                         4.0 + (double)((case_id + (uint64_t)index) % UINT64_C(13))) != 0) {
+                compost_organism_destroy(&campaign_parent);
+                return fail("campaign edge setup");
+            }
+        }
+        if (atom_count > 4U && add_edge(
+                &campaign_parent, COMPOST_STRUCTURE_RELATION, atom_count,
+                20U, (uint8_t)(20U + atom_count - 1U), 16.0) != 0) {
+            compost_organism_destroy(&campaign_parent);
+            return fail("campaign cross-edge setup");
+        }
+        if (compost_organism_verify_material_conservation(&campaign_parent) != COMPOST_STATUS_OK) {
+            compost_organism_destroy(&campaign_parent);
+            return fail("campaign seed conservation");
+        }
+        const uint64_t created_before =
+            campaign_parent.material_flow.structural_created_mass +
+            campaign_parent.material_flow.structural_transferred_in;
+        uint8_t selected_campaign[COMPOST_MAX_ATOMS] = {0};
+        const size_t selected_campaign_count = atom_count / 2U;
+        for (size_t index = 0U; index < selected_campaign_count; ++index) {
+            selected_campaign[index] = (uint8_t)(20U + index);
+        }
+        if (compost_organism_partition(
+                &campaign_parent, &campaign_child, UINT64_C(1000) + case_id,
+                selected_campaign, selected_campaign_count, 1.0, &campaign_result
+            ) != COMPOST_STATUS_OK ||
+            created_before !=
+                (campaign_parent.body.structural_mass - UINT64_C(256)) +
+                (campaign_child.body.structural_mass - UINT64_C(256)) +
+                campaign_parent.material_flow.resorbed_mass ||
+            compost_organism_verify_material_conservation(&campaign_parent) != COMPOST_STATUS_OK ||
+            compost_organism_verify_material_conservation(&campaign_child) != COMPOST_STATUS_OK) {
+            compost_organism_destroy(&campaign_child);
+            compost_organism_destroy(&campaign_parent);
+            return fail("campaign partition conservation");
+        }
+        compost_organism_destroy(&campaign_child);
+        compost_organism_destroy(&campaign_parent);
+    }
 
     compost_organism_t minimum = {0};
     compost_organism_t minimum_child = {0};
