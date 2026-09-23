@@ -247,6 +247,53 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                 backend.verify_material_conservation()
                 child.verify_material_conservation()
 
+    def test_two_organism_python_allocation_drives_native_steps(self) -> None:
+        config = LifecycleConfig(boundary_ratio_limit=0.01)
+        payload = "AB" * 512
+        reference = MathematicalLifePopulation(payload, config)
+        reference.organisms[1] = MathematicalLifeOrganism(
+            1, None, 0, 0, 0, reserve=config.birth_reserve
+        )
+        reference.next_id = 2
+        with NativeBackend(self.library_path, organism_id=0, config=config) as first, \
+             NativeBackend(self.library_path, organism_id=1, config=config) as second:
+            native_backends = {0: first, 1: second}
+            for cycle in range(4):
+                planned = reference._allocate_nutrition((0, 1))
+                for organism_id in (0, 1):
+                    organism = reference.organisms[organism_id]
+                    bite, nutrition = planned[organism_id]
+                    reference._cycle_one(organism, (bite, nutrition))
+                    child, _cycle, _plan = native_backends[organism_id].step_and_try_divide(
+                        bytes(ord(symbol) for symbol in bite),
+                        child_id=100 + organism_id,
+                        nutrition=nutrition,
+                    )
+                    self.assertIsNone(child, f"unexpected division at cycle {cycle}")
+                    native = native_backends[organism_id].snapshot()
+                    prefix = f"population cycle {cycle} organism {organism_id}"
+                    self.assertEqual(native["cursor"], organism.cursor, prefix)
+                    self.assertEqual(native["age_in_cycles"], organism.age_in_cycles, prefix)
+                    self.assertEqual(native["status"], 0 if organism.status is OrganismStatus.ALIVE else 1, prefix)
+                    self.assertAlmostEqual(native["reserve"], organism.reserve, places=12, msg=prefix)
+                    self.assertEqual(native["body"]["structural_mass"], organism.full_body_mass(), prefix)
+                    self.assertEqual(native["body"]["atom_count"], len(organism.atoms), prefix)
+                    self.assertEqual(native["body"]["relation_count"], len(organism.relations), prefix)
+                    self.assertEqual(native["body"]["composite_count"], len(organism.composites), prefix)
+                    native_atoms = {
+                        chr(left): (strength, maintenance, evidence, income)
+                        for left, _right, strength, maintenance, evidence, income in native["atoms"]
+                    }
+                    reference_atoms = {
+                        key: (item.strength, item.maintenance, item.evidence, item.income_rate)
+                        for key, item in organism.atoms.items()
+                    }
+                    self.assertEqual(set(native_atoms), set(reference_atoms), prefix)
+                    for key in sorted(reference_atoms):
+                        for actual, expected in zip(native_atoms[key], reference_atoms[key]):
+                            self.assertAlmostEqual(actual, expected, places=12, msg=f"{prefix} atom {key}")
+                reference.result.cycles += 1
+
     def test_native_backend_rejects_unrepresented_scheduling_config(self) -> None:
         with self.assertRaises(NativeBackendError):
             NativeBackend(
