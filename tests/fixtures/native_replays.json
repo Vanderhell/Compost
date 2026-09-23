@@ -13,5 +13,15 @@
     "cycles": 256,
     "payload_patterns": ["AB", "ABCD", "ABBA", "ABC"],
     "payload_repeats": [128, 64, 64, 85]
+  },
+  "sandbox_trace": {
+    "seed": 0,
+    "organism_ids": [0],
+    "epochs": 32,
+    "block_size": 2,
+    "payload_pattern": [4, 5],
+    "payload_repeats": 256,
+    "boundary_ratio_limit": 0.5,
+    "birth_reserve": 10.0
   }
 }

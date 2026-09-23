@@ -873,15 +873,29 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                     self.fail("Python live_step did not emit a division trace")
 
     def test_python_sandbox_trace_campaign_replays_parent_and_children(self) -> None:
-        config = LifecycleConfig(boundary_ratio_limit=0.5, birth_reserve=10.0)
+        fixture = _native_fixture("sandbox_trace")
+        config = LifecycleConfig(
+            boundary_ratio_limit=float(fixture["boundary_ratio_limit"]),
+            birth_reserve=float(fixture["birth_reserve"]),
+        )
         with tempfile.TemporaryDirectory() as directory:
-            runtime = SandboxRuntime(Path(directory) / "sandbox", block_size=2)
-            (runtime.inbox / "payload.bin").write_bytes(bytes((4, 5)) * 256)
+            runtime = SandboxRuntime(
+                Path(directory) / "sandbox", block_size=int(fixture["block_size"])
+            )
+            pattern = bytes(int(value) for value in fixture["payload_pattern"])
+            (runtime.inbox / "payload.bin").write_bytes(
+                pattern * int(fixture["payload_repeats"])
+            )
             root = AutonomousOrganism(config=config)
             runtime.organisms.append(root)
-            with NativePopulationBackend(self.library_path, organism_ids=(0,), config=config) as population:
-                native_ids = {root.name: 0}
-                for epoch in range(32):
+            organism_ids = tuple(int(value) for value in fixture["organism_ids"])
+            with NativePopulationBackend(
+                self.library_path,
+                organism_ids=organism_ids,
+                config=config,
+            ) as population:
+                native_ids = {root.name: organism_ids[0]}
+                for epoch in range(int(fixture["epochs"])):
                     traces: dict[int, tuple[NativeAction, ...]] = {}
                     for organism in tuple(runtime.organisms):
                         if not organism.alive:
