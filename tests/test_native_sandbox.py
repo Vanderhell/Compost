@@ -33,6 +33,9 @@ class _Population:
     def verify_material_conservation(self) -> None:
         return None
 
+    def preflight_action_traces(self, _traces: object) -> None:
+        return None
+
 
 class NativeSandboxOwnershipTests(unittest.TestCase):
     def test_previous_epoch_corpse_handle_is_not_required_again(self) -> None:
