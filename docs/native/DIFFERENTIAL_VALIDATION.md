@@ -29,8 +29,9 @@ field-by-field snapshot checks.
 ## Current status
 
 The full per-step Python/C campaign is **NOT READY**. The native organism is
-not yet a complete lifecycle engine. The current native-backed Python run is
-green (`42 passed`), and the complete Python regression suite is green
+not yet a complete lifecycle engine. The current native-backed differential
+run is green (`42 passed`; the focused oracle/member-weakness validation run
+is `55 passed` including the related Python tests), and the complete Python regression suite is green
 (`235 passed, 3 subtests passed`). The selected partition
 transaction now has a bounded Python/sandbox comparison, but the automatic
 candidate policy is not yet fully integrated. The native checkpoint now

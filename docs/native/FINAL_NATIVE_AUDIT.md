@@ -19,11 +19,11 @@ Documentation: PASS
 
 Python tests:
 `235 passed, 3 subtests passed` in the latest complete local run with the
-native DLL configured (85.97s).
+native DLL configured (87.18s).
 
 Native tests:
 `8/8` CTest tests passed in the current MSVC 19.42 Debug build with the
-width audit and fuzz target enabled (98.23s). Current GCC and Clang strict
+width audit and fuzz target enabled (102.39s). Current GCC and Clang strict
 results are recorded below.
 
 Differential cases:
