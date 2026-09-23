@@ -609,7 +609,26 @@ class NativeBackend:
             "expelled_mass": int(result.expelled_mass),
         }
 
-    def apply_action(self, action: NativeAction) -> dict[str, float | int | str]:
+    def apply_division_action(self, action: NativeAction) -> tuple["NativeBackend", dict[str, float | int]]:
+        """Commit a division action and transfer ownership of its child handle.
+
+        The caller owns the returned child and must close it, or register it in
+        a population that owns and closes all of its handles.  This separate
+        operation prevents a population action from accidentally reducing a
+        committed child to a transient snapshot.
+        """
+        if not isinstance(action, NativeAction):
+            raise TypeError("action must be a NativeAction")
+        if action.kind is not NativeActionKind.DIVISION:
+            raise ValueError("division action required")
+        child, result = self.partition(
+            action.child_atoms, child_id=action.child_id, birth_cost=action.birth_cost
+        )
+        if child is None:
+            raise NativeBackendError("native division action returned no child")
+        return child, result
+
+    def apply_action(self, action: NativeAction) -> dict[str, object]:
         """Apply one explicit host decision through the narrow native ABI.
 
         Environment selection remains outside this method.  A material action
@@ -637,11 +656,7 @@ class NativeBackend:
             )
             return {"kind": action.kind.value, **result}
         if action.kind is NativeActionKind.DIVISION:
-            child, result = self.partition(
-                action.child_atoms, child_id=action.child_id, birth_cost=action.birth_cost
-            )
-            if child is None:
-                raise NativeBackendError("native division action returned no child")
+            child, result = self.apply_division_action(action)
             with child:
                 return {
                     "kind": action.kind.value,
@@ -657,7 +672,7 @@ class NativeBackend:
     def replay_actions(
         self,
         actions: Iterable[NativeAction],
-    ) -> tuple[dict[str, float | int | str], ...]:
+    ) -> tuple[dict[str, object], ...]:
         """Preflight and replay one complete action prefix in list order."""
         sequence = tuple(actions)
         if any(not isinstance(action, NativeAction) for action in sequence):
@@ -1157,15 +1172,42 @@ class NativePopulationBackend:
         if unknown:
             raise ValueError(f"actions contain unknown organism IDs: {sorted(unknown)!r}")
         prepared: dict[int, NativeAction] = {}
+        division_ids: list[int] = []
         for organism_id in sorted(actions):
             action = actions[organism_id]
             if not isinstance(action, NativeAction):
                 raise TypeError(f"action for organism {organism_id} is not a NativeAction")
+            if action.kind is NativeActionKind.DIVISION:
+                division_ids.append(action.child_id)
             prepared[int(organism_id)] = action
-        return {
-            organism_id: self._contexts[organism_id].apply_action(prepared[organism_id])
-            for organism_id in sorted(prepared)
-        }
+        if len(division_ids) != len(set(division_ids)):
+            raise ValueError("division child IDs must be unique within an action epoch")
+        if set(division_ids).intersection(self._contexts):
+            raise ValueError("division child ID already belongs to the population")
+
+        results: dict[int, dict[str, object]] = {}
+        for organism_id in sorted(prepared):
+            action = prepared[organism_id]
+            context = self._contexts[organism_id]
+            if action.kind is not NativeActionKind.DIVISION:
+                results[organism_id] = context.apply_action(action)
+                continue
+            child, division = context.apply_division_action(action)
+            try:
+                child_snapshot = child.snapshot()
+            except Exception:
+                child.close()
+                raise
+            self._contexts[action.child_id] = child
+            results[organism_id] = {
+                "kind": action.kind.value,
+                "child": child_snapshot,
+                "child_id": action.child_id,
+                "child_structural_mass": int(division["child_structural_mass"]),
+                "cross_split_mass": int(division["cross_split_mass"]),
+                "parent_reserve_after_cost": float(division["parent_reserve_after_cost"]),
+            }
+        return results
 
     def snapshot(self, organism_id: int) -> dict[str, object]:
         """Return one native snapshot by stable population ID."""

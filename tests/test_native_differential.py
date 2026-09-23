@@ -757,6 +757,25 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                 population.apply_actions({2: "not-an-action"})  # type: ignore[arg-type]
             self.assertEqual(population.state_digests(), before)
 
+    def test_native_population_registers_explicit_division_children(self) -> None:
+        config = LifecycleConfig(birth_reserve=10.0, boundary_ratio_limit=0.5)
+        with NativePopulationBackend(self.library_path, organism_ids=(0,), config=config) as population:
+            population.apply_actions({
+                0: NativeAction.external_gut(b"\x04\x05", capacity=2, nutrition=(1.0, 1.0)),
+            })
+            result = population.apply_actions({
+                0: NativeAction.division((4,), child_id=1, birth_cost=1.0),
+            })
+            self.assertEqual(population.organism_ids, (0, 1))
+            self.assertEqual(result[0]["child_id"], 1)
+            self.assertEqual(population.snapshot(1)["parent_id"], 0)
+            self.assertEqual(population.snapshot(1)["reserve"], 0.0)
+            population.verify_material_conservation()
+            with self.assertRaises(ValueError):
+                population.apply_actions({
+                    0: NativeAction.division((5,), child_id=1, birth_cost=1.0),
+                })
+
     def test_backend_selector_exposes_native_population_without_fallback(self) -> None:
         backend = create_backend(
             "native-population", library=self.library_path, organism_ids=(0, 1)
