@@ -78,7 +78,9 @@ int main(void)
     const uint8_t food[] = {1U};
     const double nan_value = NAN;
     const compost_step_input_t invalid = {food, &nan_value, 1U};
-    if (compost_config_default(NULL) != COMPOST_STATUS_INVALID_ARGUMENT ||
+    if (strcmp(compost_status_name(COMPOST_STATUS_OK), "OK") != 0 ||
+        strcmp(compost_status_name((compost_status_t)99), "UNKNOWN_STATUS") != 0 ||
+        compost_config_default(NULL) != COMPOST_STATUS_INVALID_ARGUMENT ||
         compost_organism_init(NULL, &config, NULL, 0U) != COMPOST_STATUS_INVALID_ARGUMENT ||
         compost_organism_snapshot(NULL, &before) != COMPOST_STATUS_INVALID_ARGUMENT ||
         compost_organism_digest(NULL, &invalid, &result) != COMPOST_STATUS_INVALID_ARGUMENT) {
