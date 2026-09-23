@@ -30,7 +30,8 @@ Differential cases:
 external-gut, environment corpse-energy credit, partition transaction,
 atomic division-boundary, step-plus-division lifecycle, territory predicate,
 deterministic FOOD block-key, two-organism population, and population child
-registration comparisons. The latest MSVC DLL run completed in 6.20s; the
+registration, replayable sandbox action-trace, and physical-food lifecycle
+comparisons. The latest MSVC DLL run completed in 6.20s; the
 earlier WSL GCC DLL run completed in 6.670s.
 
 Long-run steps:
