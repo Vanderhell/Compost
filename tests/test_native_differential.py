@@ -35,7 +35,7 @@ from mathematical_organism.backend import (
 )
 from mathematical_organism.canonical import canonical_digest
 from mathematical_organism.lifecycle import LifecycleConfig, LivingStructure, MathematicalLifeOrganism, MathematicalLifePopulation, OrganismStatus
-from mathematical_organism.sandbox_runtime import AutonomousOrganism, SandboxRuntime
+from mathematical_organism.sandbox_runtime import AutonomousOrganism, Corpse, SandboxRuntime
 from mathematical_organism.biology_rules import reproduction_allowed
 from mathematical_organism.territory import address_bit, food_block_key
 
@@ -500,6 +500,29 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                 self.assertEqual(result["kind"], "external_gut")
                 self.assertEqual(result["processed_mass"], len(action.payload))
                 backend.verify_material_conservation()
+
+    def test_corpse_lookup_emits_replayable_energy_action(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = SandboxRuntime(Path(directory) / "sandbox")
+            organism = runtime.bootstrap()
+            runtime.add_corpse(Corpse(organism.territory_state.territory, 2.5), "ORG-CORPSE")
+            trace: list[NativeAction] = []
+            reserve_before = organism.body.reserve
+            organism.live_step(runtime, action_trace=trace)
+            corpse_actions = [action for action in trace if action.kind.value == "corpse_energy"]
+            self.assertEqual(len(corpse_actions), 1)
+            action = corpse_actions[0]
+            with NativeBackend(self.library_path, organism_id=78) as backend:
+                reserve_native_before = float(backend.snapshot()["reserve"])
+                result = backend.apply_action(action)
+                self.assertAlmostEqual(
+                    float(result["credited_energy"]), organism.body.reserve - reserve_before, places=12
+                )
+                self.assertAlmostEqual(
+                    float(backend.snapshot()["reserve"]) - reserve_native_before,
+                    float(result["credited_energy"]),
+                    places=12,
+                )
 
     def test_explicit_corpse_energy_action_matches_oracle(self) -> None:
         reference = AutonomousOrganism("ORG-ROOT")
