@@ -60,6 +60,12 @@ The Python/C differential suite additionally covers an eight-byte dense
 partition and checks the native ledger equation independently of the Python
 body-mass result.
 
+The native division test now adds 32 deterministic adversarial partitions with
+4–8 atoms, mixed relation/composite chains, an additional cross edge, high
+reserve, and varying strengths. Each case checks the independent dynamic-mass
+equation before calling either implementation's validator; MSVC Debug and
+GCC Release strict builds pass the campaign.
+
 `tests/test_skeleton_division.py`, `tests/test_structural_mass.py`, and
 `tests/test_material_flow.py` are the current evidence set. The new canonical
 oracle includes structural state and material-flow counters, so future native
