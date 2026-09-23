@@ -742,9 +742,12 @@ class AutonomousOrganism(AutonomousCore):
                 child_atoms = tuple(child.body.atoms)
                 if all(isinstance(key, int) and 0 <= key <= 255 for key in child_atoms):
                     path = child.territory_state.territory.path
-                    transport_child_id = (len(path) << 56)
-                    for bit in path:
-                        transport_child_id = (transport_child_id << 1) | int(bit)
+                    transport_child_id = 1469598103934665603
+                    for value in (len(path), *path):
+                        transport_child_id ^= int(value) & 0xFF
+                        transport_child_id = (
+                            transport_child_id * 1099511628211
+                        ) & ((1 << 64) - 1)
                     action_trace.append(
                         NativeAction.division(
                             tuple(sorted(child_atoms)),
