@@ -81,6 +81,28 @@ int main(void)
         return fail("state digest stability");
     }
     compost_destroy(context);
+    compost_config_t division_config = config;
+    division_config.boundary_ratio_limit = 0.5;
+    division_config.birth_reserve = 10.0;
+    compost_context_t *division_context = NULL;
+    compost_context_t *division_child = NULL;
+    compost_division_plan_t automatic_plan = {0};
+    compost_division_result_t automatic_result = {0};
+    if (compost_create(&division_config, UINT64_C(20), &division_context) != COMPOST_STATUS_OK ||
+        compost_context_digest(division_context, &input, &result) != COMPOST_STATUS_OK ||
+        compost_context_try_divide(
+            division_context, UINT64_C(21), &division_child, &automatic_plan, &automatic_result
+        ) != COMPOST_STATUS_OK ||
+        division_child == NULL || !automatic_plan.candidate_found || !automatic_plan.allowed ||
+        automatic_plan.child_atom_count != 1U || automatic_result.cross_split_mass == 0U ||
+        compost_context_verify_material_conservation(division_context) != COMPOST_STATUS_OK ||
+        compost_context_verify_material_conservation(division_child) != COMPOST_STATUS_OK) {
+        compost_destroy(division_child);
+        compost_destroy(division_context);
+        return fail("opaque try-division commit");
+    }
+    compost_destroy(division_child);
+    compost_destroy(division_context);
     if (compost_context_snapshot(NULL, &snapshot) != COMPOST_STATUS_INVALID_ARGUMENT) {
         return fail("opaque ABI invalid handle");
     }
