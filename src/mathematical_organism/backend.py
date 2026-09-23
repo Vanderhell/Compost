@@ -508,6 +508,16 @@ class NativeBackend:
             return {"kind": action.kind.value, **self.step(action.payload, action.nutrition)}
         raise NativeBackendError(f"unsupported native action: {action.kind!r}")
 
+    def replay_actions(
+        self,
+        actions: Iterable[NativeAction],
+    ) -> tuple[dict[str, float | int | str], ...]:
+        """Preflight and replay one complete action prefix in list order."""
+        sequence = tuple(actions)
+        if any(not isinstance(action, NativeAction) for action in sequence):
+            raise TypeError("action trace contains a non-NativeAction item")
+        return tuple(self.apply_action(action) for action in sequence)
+
     def verify_material_conservation(self) -> None:
         """Raise when the native material-flow invariant is not satisfied."""
         if not self._context or not self._context.value:

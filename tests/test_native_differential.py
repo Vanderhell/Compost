@@ -467,6 +467,9 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 NativeAction.external_gut(b"A", capacity=-1)
             self.assertEqual(backend.state_digest(), before)
+            with self.assertRaises(TypeError):
+                backend.replay_actions((NativeAction.corpse_energy(1.0), "invalid"))  # type: ignore[arg-type]
+            self.assertEqual(backend.state_digest(), before)
 
     def test_explicit_process_gut_action_preserves_backpressure_semantics(self) -> None:
         payload = (1, 2, 1)
@@ -514,7 +517,8 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             action = corpse_actions[0]
             with NativeBackend(self.library_path, organism_id=78) as backend:
                 reserve_native_before = float(backend.snapshot()["reserve"])
-                result = backend.apply_action(action)
+                results = backend.replay_actions(trace)
+                result = next(item for item in results if item["kind"] == "corpse_energy")
                 self.assertAlmostEqual(
                     float(result["credited_energy"]), organism.body.reserve - reserve_before, places=12
                 )
