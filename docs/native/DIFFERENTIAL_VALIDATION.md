@@ -21,7 +21,7 @@ values duplicated in test code.
 
 The test requires `COMPOST_NATIVE_LIBRARY`. If the variable is absent it is
 skipped; if it names a missing file the test fails. There is no silent native
-to Python fallback. The current bounded campaign contains fifty tests,
+to Python fallback. The current bounded campaign contains fifty-one tests,
 including forty deterministic lifecycle replays (10,240 aggregate steps), a
 differential starvation/death replay, a dense cross-split division replay, and
 field-by-field snapshot checks.
