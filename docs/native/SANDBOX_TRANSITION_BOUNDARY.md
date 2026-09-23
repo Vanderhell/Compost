@@ -54,12 +54,15 @@ Python `live_step` action traces.
 `AutonomousOrganism.live_step(..., action_trace=...)` can now emit the same
 immutable action forms for replay. The trace is optional and observational;
 the normal Python step remains unchanged. The metabolic-progress action
-settles only bounded counter accounting; maintenance, division, and death are
-intentionally not represented as complete native actions yet.
+settles only bounded counter accounting. A due epoch may then emit an
+empty-input `LIFECYCLE_STEP`, which covers the validated
+consolidation/maintenance/age checkpoint. Division and death are intentionally
+not represented as complete native actions yet.
 
 The regression fixture for a multi-bite FOOD stream asserts this distinction:
-the trace contains the external-gut environment prefix and bounded metabolic
-accounting while the Python organism later performs its lifecycle tail. A
+the trace contains the external-gut environment prefix, bounded metabolic
+accounting, and validated lifecycle checkpoint while the Python organism may
+still perform its division/death tail. A
 native replay must therefore not be treated as full `AutonomousOrganism`
 equivalence until that tail has its own transaction and first-divergence
 comparison.

@@ -281,6 +281,35 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                 self.assertEqual(snapshot["metabolic_progress"], organism.metabolic_progress)
                 self.assertEqual(snapshot["metabolic_steps"], organism.metabolic_steps)
 
+    def test_due_metabolic_trace_replays_lifecycle_checkpoint(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = SandboxRuntime(Path(directory) / "sandbox", block_size=4)
+            (runtime.inbox / "payload.bin").write_bytes(b"ABCD" * 64)
+            organism = runtime.bootstrap()
+            with NativeBackend(self.library_path, organism_id=0) as backend:
+                for step in range(100):
+                    trace: list[NativeAction] = []
+                    organism.live_step(runtime, action_trace=trace)
+                    backend.replay_actions(trace)
+                    if organism.metabolic_steps == 0:
+                        continue
+                    native = backend.snapshot()
+                    self.assertEqual(
+                        [action.kind.value for action in trace],
+                        ["external_gut", "metabolic_progress", "lifecycle_step"],
+                        step,
+                    )
+                    self.assertEqual(native["age_in_cycles"], organism.body.age_in_cycles)
+                    self.assertAlmostEqual(native["reserve"], organism.body.reserve, places=12)
+                    self.assertEqual(native["body"]["structural_mass"], organism.body.full_body_mass())
+                    self.assertEqual(native["body"]["atom_count"], len(organism.body.atoms))
+                    self.assertEqual(native["body"]["relation_count"], len(organism.body.relations))
+                    self.assertEqual(native["body"]["composite_count"], len(organism.body.composites))
+                    self.assertEqual(native["metabolic_steps"], organism.metabolic_steps)
+                    break
+                else:
+                    self.fail("metabolic lifecycle checkpoint was not reached")
+
     def test_public_python_adapter_try_divide_commits_allowed_candidate(self) -> None:
         config = LifecycleConfig(boundary_ratio_limit=0.5, birth_reserve=10.0)
         with NativeBackend(self.library_path, organism_id=110, config=config) as backend:

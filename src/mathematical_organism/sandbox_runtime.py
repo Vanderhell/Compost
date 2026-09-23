@@ -527,7 +527,7 @@ class AutonomousOrganism(AutonomousCore):
                     self._die(sandbox)
         if ate:
             started = perf_counter() if self.hot_metrics is not None else 0.0
-            self._run_due_metabolic_steps(sandbox)
+            self._run_due_metabolic_steps(sandbox, action_trace=action_trace)
             if self.hot_metrics is not None:
                 self.hot_metrics.add("metabolic_schedule", started)
             return
@@ -683,9 +683,16 @@ class AutonomousOrganism(AutonomousCore):
             self.activity_ledger.settlements += 1
         return paid > 0.0
 
-    def _run_due_metabolic_steps(self, sandbox: "SandboxRuntime") -> None:
+    def _run_due_metabolic_steps(
+        self,
+        sandbox: "SandboxRuntime",
+        *,
+        action_trace: list[NativeAction] | None = None,
+    ) -> None:
         while self.alive and self.metabolic_progress >= self.metabolic_work_threshold():
             self.metabolic_progress -= self.metabolic_work_threshold()
+            if action_trace is not None:
+                action_trace.append(NativeAction.lifecycle_step(b"", nutrition=()))
             self._run_metabolic_step(sandbox)
 
     def _run_metabolic_step(self, sandbox: "SandboxRuntime") -> None:

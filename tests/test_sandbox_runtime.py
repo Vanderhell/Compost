@@ -66,7 +66,7 @@ class SandboxRuntimeTests(unittest.TestCase):
             self.assertTrue(
                 any(
                     [item.kind.value for item in trace]
-                    == ["external_gut", "metabolic_progress"]
+                    == ["external_gut", "metabolic_progress", "lifecycle_step"]
                     for trace in traces
                 )
             )
