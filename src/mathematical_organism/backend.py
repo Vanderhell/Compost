@@ -63,8 +63,8 @@ class NativeAction:
             if len(values) != len(payload) or any(not math.isfinite(value) for value in values):
                 raise ValueError("nutrition must be finite and match payload length")
         object.__setattr__(self, "nutrition", values)
-        if self.capacity < 0:
-            raise ValueError("capacity must be non-negative")
+        if not isinstance(self.capacity, int) or not 0 <= self.capacity <= (1 << 64) - 1:
+            raise ValueError("capacity must be an unsigned 64-bit integer")
         for name, value in (
             ("amount", self.amount), ("minimum_work", self.minimum_work), ("body_size", self.body_size)
         ):

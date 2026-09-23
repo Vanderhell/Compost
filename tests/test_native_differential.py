@@ -892,6 +892,9 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 NativeAction.external_gut(b"A", capacity=-1)
             self.assertEqual(backend.state_digest(), before)
+            with self.assertRaises(ValueError):
+                NativeAction.process_gut(capacity=1 << 64)
+            self.assertEqual(backend.state_digest(), before)
             with self.assertRaises(TypeError):
                 backend.replay_actions((NativeAction.corpse_energy(1.0), "invalid"))  # type: ignore[arg-type]
             self.assertEqual(backend.state_digest(), before)
