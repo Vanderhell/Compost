@@ -249,7 +249,7 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
 
     def test_two_organism_python_allocation_drives_native_steps(self) -> None:
         config = LifecycleConfig(boundary_ratio_limit=0.01)
-        payload = "AB" * 512
+        payload = "AB" * 4096
         reference = MathematicalLifePopulation(payload, config)
         reference.organisms[1] = MathematicalLifeOrganism(
             1, None, 0, 0, 0, reserve=config.birth_reserve
@@ -258,7 +258,7 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
         with NativeBackend(self.library_path, organism_id=0, config=config) as first, \
              NativeBackend(self.library_path, organism_id=1, config=config) as second:
             native_backends = {0: first, 1: second}
-            for cycle in range(4):
+            for cycle in range(16):
                 planned = reference._allocate_nutrition((0, 1))
                 for organism_id in (0, 1):
                     organism = reference.organisms[organism_id]
