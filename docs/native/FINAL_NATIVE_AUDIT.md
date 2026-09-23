@@ -52,6 +52,12 @@ Linux Clang Release `-Werror` build and full CTest pass (`7/7`, 9.93s) with
 The standalone Windows Clang CRT limitation remains irrelevant to the Linux
 Clang CI evidence.
 
+Performance evidence detail:
+The direct-C, Python/FFI, and four-organism population checkpoint benchmarks
+are recorded in `docs/native/PERFORMANCE_REPORT.md`. The population checkpoint
+measured lower native-through-FFI throughput than the reference path, so no
+native speedup claim is made.
+
 Known limitations:
 
 - The native core does not yet own the complete `AutonomousOrganism.live_step`
@@ -73,7 +79,8 @@ Known limitations:
   multiprocessing behavior remains the compatibility implementation.
 - Current performance measurements do not establish an end-to-end speedup;
   the native ctypes path is slower than the Python checkpoint because of FFI
-  and incomplete-core boundary costs.
+  and incomplete-core boundary costs. The population checkpoint confirms the
+  same limitation for four explicit ID-ordered native handles.
 
 FINAL VERDICT:
 NOT READY
