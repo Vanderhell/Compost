@@ -73,6 +73,18 @@ normal simulation values should reject non-finite values. No `repr`, pointer,
 object ID, address, unordered iteration, or locale-dependent formatting may
 appear in the digest.
 
+## Native import readiness
+
+The C `compost_snapshot_t` is sufficient for native-to-native diagnostics and
+the currently implemented bounded transitions. It is not sufficient to restore
+an evolved Python `AutonomousOrganism` because the Python canonical contract
+also includes name/birth metadata, receptor definitions, member relationships,
+cache validity and tie-break state, navigation cursors, lifecycle totals, and
+world-owned FOOD/corpse/territory state. These are behavioral inputs, not
+telemetry. Until a versioned transactional import record covers them, the
+Python-to-native sandbox adapter must accept only empty living initial
+organisms. A partial field-by-field copy is explicitly not a valid migration.
+
 ## Legacy graph snapshot
 
 The separate `MathematicalOrganism.snapshot()` contract must retain sorted nodes,

@@ -81,6 +81,34 @@ All traces for the epoch are materialized and preflighted before any native
 prefix, reproduction policy, or suffix is committed; invalid later actions
 therefore cannot leave an earlier organism partially advanced.
 
+### State-import gate
+
+`compost_snapshot_t` is a native behavioral snapshot, but it is not yet a
+lossless import format for `AutonomousOrganism`. In particular, the current C
+snapshot does not carry all of the following Python-authoritative state:
+
+- Python identity and lineage fields such as `name`, `birth_position`, and
+  `parent_name`;
+- the configured receptor domain and the complete Python structure member
+  representation (the current C structure record only has bounded endpoint
+  fields);
+- maintenance/weakness caches and their validity flags, weakest-member
+  ordering, member weights, and full-scan/weakening counters;
+- lifecycle totals and markers including biomass, nutrition, death and
+  consolidation metadata where present in the Python canonical state;
+- per-source navigation cursors and FOOD parcel state;
+- the Python world state: food-source ownership and remaining ranges, corpse
+  registry, territory occupancy/release, and pending environment events.
+
+Those fields can affect a subsequent `live_step`, so copying only the fields
+that happen to have matching names would silently change behavior. The native
+adapter therefore rejects non-empty initial organisms before loading any
+native handle. A future import API must be versioned, validate every bounded
+field, define exact float encoding and structure-member ordering, and either
+include or explicitly externalize each environment-dependent field. It must
+also be transactional: a failed import must leave no partially registered
+native organism.
+
 The same one-shot request is returned by `NativeBackend.replay_actions` when a
 single-organism lifecycle trace crosses from alive to dead; a subsequent dead
 no-op carries no repeated request. `NativeBackend.take_corpse` provides the
