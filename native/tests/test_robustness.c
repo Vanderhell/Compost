@@ -107,6 +107,33 @@ int main(void)
         return fail("failed operation mutated state");
     }
     compost_organism_destroy(&organism);
+
+    compost_config_t extreme_config = {0};
+    compost_organism_t extreme = {0};
+    compost_snapshot_t extreme_snapshot = {0};
+    compost_step_input_t empty_input = {NULL, NULL, 0U};
+    compost_cycle_result_t extreme_result = {0};
+    if (compost_config_default(&extreme_config) != COMPOST_STATUS_OK) {
+        return fail("extreme config setup");
+    }
+    extreme_config.max_body_mass = UINT64_MAX;
+    extreme_config.reproduction_minimum_body = UINT64_MAX;
+    if (compost_organism_init(&extreme, &extreme_config, NULL, UINT64_MAX) != COMPOST_STATUS_OK ||
+        extreme.organism_id != UINT64_MAX) {
+        compost_organism_destroy(&extreme);
+        return fail("integer extrema initialization");
+    }
+    extreme.age_in_cycles = UINT64_MAX;
+    const uint64_t extreme_before = compost_organism_state_digest(&extreme);
+    if (compost_organism_step(&extreme, &empty_input, &extreme_result) != COMPOST_STATUS_INVALID_ARGUMENT ||
+        compost_organism_snapshot(&extreme, &extreme_snapshot) != COMPOST_STATUS_OK ||
+        extreme_snapshot.organism_id != UINT64_MAX ||
+        extreme_snapshot.age_in_cycles != UINT64_MAX ||
+        compost_organism_state_digest(&extreme) != extreme_before) {
+        compost_organism_destroy(&extreme);
+        return fail("integer extrema rejection");
+    }
+    compost_organism_destroy(&extreme);
     compost_organism_destroy(&organism);
     if (compost_organism_snapshot(&organism, &after) != COMPOST_STATUS_INVALID_STATE) {
         return fail("destroyed state");

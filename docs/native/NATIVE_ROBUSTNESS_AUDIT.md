@@ -35,6 +35,8 @@ The public robustness test now covers both sides of the allocator boundary:
 forced context-allocation failure returns `COMPOST_STATUS_OUT_OF_MEMORY` without
 an output handle, while successful custom allocation is released through the
 same caller-supplied deallocator exactly once during `compost_destroy`.
+It also exercises `UINT64_MAX` organism/configuration values and verifies that
+an age-overflowing step is rejected transactionally without changing state.
 
 ## Outstanding evidence
 
@@ -44,8 +46,7 @@ CRT libraries are not available to its standalone driver. These are Windows
 toolchain limitations; the WSL GCC sanitizer run above is local sanitizer
 evidence, while CI still provides the release-platform Linux job. A release
 gate still requires broader leak checks, allocation-failure injection across
-every future/container path, integer-extrema campaigns, and serialized corrupt
-snapshot tests. Opaque-context allocation failure is now explicitly injected
+every future/container path and serialized corrupt snapshot tests. Opaque-context allocation failure is now explicitly injected
 and covered by the native robustness test; the successful custom allocator
 lifetime path is covered there as well.
 
