@@ -49,6 +49,14 @@ class NativeSandboxReplay:
         organisms = tuple(runtime.organisms)
         if len(organisms) != len(organism_ids):
             raise ValueError("organism_ids must map exactly to initial Python organisms")
+        if any(
+            not organism.alive or organism.body.size or organism.gut_queue
+            for organism in organisms
+        ):
+            raise ValueError(
+                "NativeSandboxReplay requires empty, living initial organisms; "
+                "native state import is not available at this boundary"
+            )
         self.runtime = runtime
         self._native_ids: dict[str, int] = {
             organism.name: int(organism_ids[index])
