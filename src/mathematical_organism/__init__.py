@@ -14,6 +14,7 @@ from .backend import (
     ReferenceBackend,
     create_backend,
 )
+from .native_sandbox import NativeSandboxEpoch, NativeSandboxReplay
 
 __all__ = [
     "IngestResult",
@@ -35,4 +36,6 @@ __all__ = [
     "NativeActionKind",
     "ReferenceBackend",
     "create_backend",
+    "NativeSandboxEpoch",
+    "NativeSandboxReplay",
 ]

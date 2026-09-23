@@ -40,6 +40,7 @@ from mathematical_organism.canonical import canonical_digest
 from mathematical_organism.cli import main as cli_main
 from mathematical_organism.food_sandbox import SandboxFeedingHarness
 from mathematical_organism.lifecycle import LifecycleConfig, LivingStructure, MathematicalLifeOrganism, MathematicalLifePopulation, OrganismStatus
+from mathematical_organism.native_sandbox import NativeSandboxReplay
 from mathematical_organism.sandbox_runtime import AutonomousOrganism, Corpse, SandboxRuntime
 from mathematical_organism.biology_rules import reproduction_allowed
 from mathematical_organism.territory import address_bit, food_block_key
@@ -1006,6 +1007,42 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                             population.take_corpse(native_id)
                             del native_ids[organism_name]
                     population.verify_material_conservation()
+
+    def test_native_sandbox_replay_adapter_runs_fixture_epochs(self) -> None:
+        fixture = _native_fixture("sandbox_trace")
+        config = LifecycleConfig(
+            boundary_ratio_limit=float(fixture["boundary_ratio_limit"]),
+            birth_reserve=float(fixture["birth_reserve"]),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = SandboxRuntime(
+                Path(directory) / "sandbox", block_size=int(fixture["block_size"])
+            )
+            pattern = bytes(int(value) for value in fixture["payload_pattern"])
+            (runtime.inbox / "payload.bin").write_bytes(
+                pattern * int(fixture["payload_repeats"])
+            )
+            runtime.organisms.append(AutonomousOrganism(config=config))
+            with NativeSandboxReplay(
+                self.library_path,
+                runtime,
+                config=config,
+                organism_ids=tuple(int(value) for value in fixture["organism_ids"]),
+            ) as replay:
+                saw_division = False
+                for epoch_index in range(int(fixture["epochs"])):
+                    epoch = replay.step()
+                    self.assertEqual(epoch.index, epoch_index)
+                    saw_division |= any(
+                        action.kind is NativeActionKind.DIVISION
+                        for _organism_id, trace in epoch.traces
+                        for action in trace
+                    )
+                    self.assertEqual(
+                        tuple(organism_id for organism_id, _snapshot in epoch.snapshots),
+                        tuple(sorted(organism_id for organism_id, _snapshot in epoch.snapshots)),
+                    )
+                self.assertTrue(saw_division)
 
     def test_backend_selector_exposes_native_population_without_fallback(self) -> None:
         backend = create_backend(
