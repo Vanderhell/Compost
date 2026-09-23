@@ -61,6 +61,13 @@ territory release, and observer events. `NativePopulationBackend.take_corpse`
 transfers the dead snapshot and closes/removes the native handle; it rejects
 live organisms without mutation.
 
+`NativeSandboxReplay` is the reusable host-built epoch adapter around this
+primitive. It owns the native population handles, invokes the Python oracle's
+`live_step(..., action_trace=...)`, registers explicit division children,
+returns deterministic epoch snapshots, and transfers dead handles as corpse
+snapshots. It does not change the default Python runtime or silently fall back
+when native execution fails.
+
 The same one-shot request is returned by `NativeBackend.replay_actions` when a
 single-organism lifecycle trace crosses from alive to dead; a subsequent dead
 no-op carries no repeated request. `NativeBackend.take_corpse` provides the
@@ -92,14 +99,13 @@ comparison.
 
 ## Remaining transition work
 
-The next safe integration unit is a host-built `live_step` action plan. The
-plan must record one deterministic environment decision (food bite, queued gut
-work, corpse energy, or idle/maintenance work), then invoke the corresponding
-native slice. The initial external-gut and corpse-energy action forms are now
-available, and filesystem FOOD claim/read plus one physical-food lifecycle
-checkpoint are differentially tested;
-full live-step construction and event ordering remain pending. Each
-action must be compared after execution against the Python oracle.
+The host-built `live_step` action-plan unit is now available through
+`NativeSandboxReplay`. The plan records one deterministic environment decision
+(food bite, queued gut work, corpse energy, or idle/maintenance work), then
+invokes the corresponding native slice. Filesystem FOOD claim/read and the
+physical-food lifecycle checkpoint remain Python-owned; each supplied action
+is compared after execution against the Python oracle in the differential
+campaign.
 
 Automatic metabolic scheduling and division remain separate transactions until
 that action-plan comparison covers their event ordering. A native
