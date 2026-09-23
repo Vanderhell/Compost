@@ -265,6 +265,8 @@ class NativeBackend:
             ctypes.c_void_p, ctypes.c_uint64, ctypes.POINTER(_GutProcessResult)
         ]
         library.compost_context_process_gut.restype = ctypes.c_int
+        library.compost_context_verify_material_conservation.argtypes = [ctypes.c_void_p]
+        library.compost_context_verify_material_conservation.restype = ctypes.c_int
         library.compost_context_apply_corpse_energy.argtypes = [
             ctypes.c_void_p, ctypes.c_double, ctypes.POINTER(ctypes.c_double)
         ]
@@ -352,6 +354,13 @@ class NativeBackend:
             "rejected_mass": int(result.rejected_mass),
             "expelled_mass": int(result.expelled_mass),
         }
+
+    def verify_material_conservation(self) -> None:
+        """Raise when the native material-flow invariant is not satisfied."""
+        if not self._context or not self._context.value:
+            raise NativeBackendError("native backend is closed")
+        status = self._library.compost_context_verify_material_conservation(self._context)
+        self._check(status, "compost_context_verify_material_conservation")
 
     def apply_corpse_energy(self, energy: float) -> float:
         """Apply energy already selected by the Python environment."""

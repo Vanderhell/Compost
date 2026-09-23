@@ -455,6 +455,10 @@ compost_status_t compost_context_process_gut(
     uint64_t capacity,
     compost_gut_process_result_t *result
 );
+/* Read-only invariant check; returns INVALID_STATE when any material ledger disagrees. */
+compost_status_t compost_context_verify_material_conservation(
+    const compost_context_t *context
+);
 /* Applies an environment-supplied corpse-energy transfer; no corpse I/O. */
 compost_status_t compost_context_apply_corpse_energy(
     compost_context_t *context,

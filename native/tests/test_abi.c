@@ -30,6 +30,7 @@ int main(void)
         compost_config_default(&config) != COMPOST_STATUS_OK ||
         compost_create(&config, UINT64_C(12), &context) != COMPOST_STATUS_OK ||
         context == NULL ||
+        compost_context_verify_material_conservation(context) != COMPOST_STATUS_OK ||
         compost_context_digest(context, &input, &result) != COMPOST_STATUS_OK ||
         result.consumed_bytes != 2U ||
         compost_context_snapshot(context, &snapshot) != COMPOST_STATUS_OK ||
@@ -73,6 +74,9 @@ int main(void)
     compost_destroy(context);
     if (compost_context_snapshot(NULL, &snapshot) != COMPOST_STATUS_INVALID_ARGUMENT) {
         return fail("opaque ABI invalid handle");
+    }
+    if (compost_context_verify_material_conservation(NULL) != COMPOST_STATUS_INVALID_ARGUMENT) {
+        return fail("opaque conservation invalid handle");
     }
     return 0;
 }

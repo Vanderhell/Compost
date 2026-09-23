@@ -182,6 +182,7 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             second = backend.process_gut(2)
             self.assertEqual(second["processed_mass"], 1)
             self.assertEqual(backend.snapshot()["gut"], ())
+            backend.verify_material_conservation()
 
     def test_external_gut_processing_matches_sandbox_oracle(self) -> None:
         payload = (1, 2, 1)
@@ -210,6 +211,11 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
         self.assertEqual(snapshot["body"]["atom_count"], len(reference.body.atoms))
         self.assertEqual(snapshot["body"]["relation_count"], len(reference.body.relations))
         self.assertEqual(snapshot["body"]["structural_mass"], reference.body.full_body_mass())
+        reference.verify_material_conservation()
+        with NativeBackend(self.library_path, organism_id=0) as checked_backend:
+            checked_backend.enqueue_external(bytes(payload), nutrition)
+            checked_backend.process_gut(2)
+            checked_backend.verify_material_conservation()
 
     def test_environment_corpse_energy_transfer_matches_oracle(self) -> None:
         reference = AutonomousOrganism("ORG-ROOT")

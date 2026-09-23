@@ -196,6 +196,14 @@ compost_status_t compost_context_process_gut(
     return compost_organism_process_gut(&context->organism, capacity, result);
 }
 
+compost_status_t compost_context_verify_material_conservation(
+    const compost_context_t *context
+)
+{
+    if (context == NULL) return COMPOST_STATUS_INVALID_ARGUMENT;
+    return compost_organism_verify_material_conservation(&context->organism);
+}
+
 static compost_status_t compost_organism_apply_corpse_energy(
     compost_organism_t *organism,
     double energy,
