@@ -96,7 +96,7 @@ settlement path.
 An additional no-food replay covers repeated idle gut processing and
 Python-owned corpse-energy selection through the explicit action boundary.
 
-The multi-epoch sandbox action-trace campaign runs 32 deterministic epochs
+The multi-epoch sandbox action-trace campaign runs 128 deterministic epochs
 through `NativePopulationBackend`. It compares parent and child state after
 each epoch, including territory, material-flow accounting, activity counters,
 activity debt, energy spent, settlements, ordered gut chunks, metabolic
