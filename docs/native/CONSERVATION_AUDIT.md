@@ -53,6 +53,9 @@ added to this physical equation because the transferred mass is already
 included in the child's dynamic mass.
 The same fixture now performs a second-generation partition and repeats the
 independent equation for the intermediate parent and grandchild.
+It also includes a dense eight-atom case with five relations, five composites,
+and both internal and cross-split edges; the parent/child equation and both
+per-organism validators pass after that transaction.
 
 `tests/test_skeleton_division.py`, `tests/test_structural_mass.py`, and
 `tests/test_material_flow.py` are the current evidence set. The new canonical
