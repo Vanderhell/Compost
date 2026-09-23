@@ -724,7 +724,11 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                     )
                     for organism_id in population.organism_ids
                 }
-                population.step(environment)
+                status_before = {
+                    organism_id: int(population.snapshot(organism_id)["status"])
+                    for organism_id in population.organism_ids
+                }
+                step_results = population.step(environment)
                 reference.cycle()
                 self.assertEqual(population.organism_ids, tuple(sorted(reference.organisms)))
                 for organism_id in population.organism_ids:
@@ -741,6 +745,13 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                     self.assertEqual(native["body"]["atom_count"], len(oracle.atoms), prefix)
                     self.assertEqual(native["body"]["relation_count"], len(oracle.relations), prefix)
                     self.assertEqual(native["body"]["composite_count"], len(oracle.composites), prefix)
+                    if organism_id in step_results:
+                        expected_requests = (
+                            ("store_corpse",)
+                            if status_before.get(organism_id) == 0 and native["status"] == 1
+                            else ()
+                        )
+                        self.assertEqual(step_results[organism_id]["requests"], expected_requests, prefix)
                 population.verify_material_conservation()
 
     def test_native_population_applies_host_actions_in_id_order(self) -> None:

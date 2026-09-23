@@ -1138,6 +1138,7 @@ class NativePopulationBackend:
         scheduled_ids = tuple(sorted(self._contexts))
         for organism_id in scheduled_ids:
             payload, nutrition = prepared[organism_id]
+            status_before = int(self._contexts[organism_id].snapshot()["status"])
             if organism_id in supplied_children:
                 child_id = int(supplied_children[organism_id])
             else:
@@ -1145,7 +1146,13 @@ class NativePopulationBackend:
             child, cycle, plan = self._contexts[organism_id].step_and_try_divide(
                 payload, child_id=child_id, nutrition=nutrition
             )
-            results[organism_id] = {"cycle": cycle, "plan": plan}
+            results[organism_id] = {
+                "cycle": cycle,
+                "plan": plan,
+                "requests": ("store_corpse",)
+                if status_before == 0 and int(cycle["status_after"]) == 1
+                else (),
+            }
             if child is not None:
                 if child_id in self._contexts:
                     child.close()
@@ -1157,7 +1164,7 @@ class NativePopulationBackend:
     def apply_actions(
         self,
         actions: Mapping[int, NativeAction],
-    ) -> dict[int, dict[str, float | int | str]]:
+    ) -> dict[int, dict[str, object]]:
         """Apply supplied host actions in ascending organism-ID order.
 
         Omitted IDs are a deliberate no-op for this epoch. Unknown IDs and
@@ -1246,7 +1253,14 @@ class NativePopulationBackend:
         for organism_id in sorted(prepared):
             epoch_results: list[dict[str, object]] = []
             for action in prepared[organism_id]:
-                epoch_results.append(self.apply_actions({organism_id: action})[organism_id])
+                status_before = int(self._contexts[organism_id].snapshot()["status"])
+                result = self.apply_actions({organism_id: action})[organism_id]
+                epoch_results.append({
+                    **result,
+                    "requests": ("store_corpse",)
+                    if status_before == 0 and int(result.get("status_after", 0)) == 1
+                    else (),
+                })
             results[organism_id] = tuple(epoch_results)
         return results
 
