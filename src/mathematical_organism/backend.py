@@ -7,6 +7,7 @@ are raised to the caller; this module never silently falls back to Python.
 from __future__ import annotations
 
 import ctypes
+import math
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
@@ -817,10 +818,21 @@ class NativePopulationBackend:
             reserved.add(next_automatic)
             next_automatic += 1
 
+        prepared: dict[int, tuple[bytes, tuple[float, ...] | None]] = {}
+        for organism_id in sorted(self._contexts):
+            raw_payload, raw_nutrition = environment.get(organism_id, (b"", ()))
+            payload = bytes(raw_payload)
+            nutrition = None if raw_nutrition is None else tuple(raw_nutrition)
+            if nutrition is not None and len(nutrition) != len(payload):
+                raise ValueError(f"food and nutrition lengths differ for organism {organism_id}")
+            if nutrition is not None and any(not math.isfinite(float(value)) for value in nutrition):
+                raise ValueError(f"nutrition must be finite for organism {organism_id}")
+            prepared[organism_id] = (payload, nutrition)
+
         results: dict[int, dict[str, object]] = {}
         scheduled_ids = tuple(sorted(self._contexts))
         for organism_id in scheduled_ids:
-            payload, nutrition = environment.get(organism_id, (b"", ()))
+            payload, nutrition = prepared[organism_id]
             if organism_id in supplied_children:
                 child_id = int(supplied_children[organism_id])
             else:
