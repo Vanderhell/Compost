@@ -27,12 +27,12 @@ width audit and fuzz target enabled (98.22s). The historical MSVC Release,
 GCC, and Clang evidence below predates the added width test.
 
 Differential cases:
-`37` Python/native differential tests pass, including bounded pure-rule,
+`38` Python/native differential tests pass, including bounded pure-rule,
 external-gut, environment corpse-energy credit, partition transaction,
 atomic division-boundary, step-plus-division lifecycle, territory predicate,
 deterministic FOOD block-key, two-organism population, and population child
-registration, replayable sandbox action-trace, and physical-food lifecycle
-comparisons, division/child-death replay, plus bounded metabolic scheduling
+registration, replayable sandbox action-trace, idle/corpse action replay, and
+physical-food lifecycle comparisons, division/child-death replay, plus bounded metabolic scheduling
 arithmetic and opaque metabolic progress accumulation. The latest MSVC
 DLL run completed in 9.18s; the
 earlier WSL GCC DLL run completed in 6.670s.
