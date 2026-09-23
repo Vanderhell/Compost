@@ -39,6 +39,17 @@ This measures only the bounded direct-C digest checkpoint.
 
 No speedup claim is permitted from the direct-C smoke benchmark alone.
 
+## Current GCC cross-check
+
+The same benchmark was rebuilt from the current tree with GCC Release and
+`COMPOST_WARNINGS_AS_ERRORS=ON` under WSL after the step-plus-division and
+territory predicate additions. It completed five repetitions of `100000`
+iterations (`400000` bytes each): min `0.776119000`, median `0.786463000`,
+max `0.802420000` CPU seconds, median `127151.563` steps/sec.
+
+This remains a bounded digest microbenchmark and is reported as a cross-check,
+not as an end-to-end performance claim.
+
 ## Python/FFI checkpoint comparison
 
 `tools/benchmark_native_backends.py` runs the same bounded `AB` replay for
