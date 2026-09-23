@@ -16,7 +16,9 @@ int main(void)
     const uint8_t food[] = {4U, 5U};
     const double nutrition[] = {1.0, 1.0};
     const compost_step_input_t input = {food, nutrition, sizeof(food)};
+    const compost_step_input_t empty_input = {NULL, NULL, 0U};
     compost_step_result_t result = {0};
+    compost_cycle_result_t lifecycle_result = {0};
     compost_context_t *child = NULL;
     compost_division_result_t division = {0};
     compost_division_plan_t try_plan = {0};
@@ -32,6 +34,7 @@ int main(void)
     uint64_t schedule_steps = 0U;
     uint64_t schedule_remaining = 0U;
     compost_metabolic_snapshot_t metabolic = {0};
+    compost_context_t *lifecycle_context = NULL;
     uint64_t due_steps = 0U;
     uint64_t remaining_progress = 0U;
     if (compost_metabolic_schedule(UINT64_C(64), UINT64_C(4), UINT64_C(65),
@@ -83,6 +86,16 @@ int main(void)
         compost_destroy(context);
         return fail("metabolic context transaction");
     }
+    if (compost_create(&config, UINT64_C(15), &lifecycle_context) != COMPOST_STATUS_OK ||
+        compost_context_digest(lifecycle_context, &input, &result) != COMPOST_STATUS_OK ||
+        compost_context_lifecycle_step(lifecycle_context, &empty_input, &lifecycle_result) != COMPOST_STATUS_OK ||
+        compost_context_snapshot(lifecycle_context, &snapshot) != COMPOST_STATUS_OK ||
+        snapshot.age_in_cycles != UINT64_C(1)) {
+        compost_destroy(lifecycle_context);
+        compost_destroy(context);
+        return fail("explicit lifecycle-step ABI");
+    }
+    compost_destroy(lifecycle_context);
     if (compost_context_try_divide(context, UINT64_C(14), &child, &try_plan, &try_result) != COMPOST_STATUS_OK ||
         child != NULL || try_plan.candidate_found || try_plan.allowed ||
         try_result.child_structural_mass != 0U) {
