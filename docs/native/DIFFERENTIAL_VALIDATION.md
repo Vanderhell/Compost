@@ -29,8 +29,8 @@ dense cross-split division replay, and field-by-field snapshot checks.
 
 The full per-step Python/C campaign is **NOT READY**. The native organism is
 not yet a complete lifecycle engine. The current native-backed Python run is
-green (`33 passed`), and the complete Python regression suite is green
-(`226 passed, 3 subtests passed`). The selected partition
+green (`34 passed`), and the complete Python regression suite is green
+(`227 passed, 3 subtests passed`). The selected partition
 transaction now has a bounded Python/sandbox comparison, but the automatic
 candidate policy is not yet fully integrated. The native checkpoint now
 includes deterministic starvation removal, dead-step no-ops, and bounded
