@@ -45,12 +45,14 @@ step-and-division ABI and the metabolic progress accumulator on two identical
 contexts and compares status, digest, division plan, material result, due
 steps, and remainder on every case.
 
-The same seven-test pre-width-audit suite was also built and executed from the current tree
-with GCC 13.3 under WSL using AddressSanitizer and UndefinedBehaviorSanitizer
-after the nested division fixture and population validation changes. All seven
-tests passed in `284.37s`; the run emitted no sanitizer diagnostics. The Windows-mounted workspace did emit
-CMake clock-skew warnings caused by filesystem timestamp differences; no test
-or sanitizer failure was associated with those warnings.
+The current eight-test suite was built and executed from the current tree with
+GCC 13.3 under WSL using AddressSanitizer and UndefinedBehaviorSanitizer,
+including leak detection. All eight tests passed in `398.94s`; the run emitted
+no sanitizer diagnostics.
+
+The same current tree also passed the strict GCC 13.3 Release suite (`8/8`,
+`12.97s`) and strict Linux Clang 18.1.3 Release suite (`8/8`, `13.22s`),
+both with warnings-as-errors enabled.
 
 The public robustness test now covers both sides of the allocator boundary:
 forced context-allocation failure returns `COMPOST_STATUS_OUT_OF_MEMORY` without
