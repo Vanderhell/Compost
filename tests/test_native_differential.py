@@ -242,6 +242,16 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             self.assertEqual(tuple(population.organism_ids), (101,))
             self.assertEqual(population.state_digests(), before)
 
+    def test_population_trace_preflight_is_epoch_wide_and_non_mutating(self) -> None:
+        with NativePopulationBackend(self.library_path, organism_ids=(0, 1)) as population:
+            before = population.state_digests()
+            with self.assertRaises(TypeError):
+                population.preflight_action_traces({
+                    0: (NativeAction.external_gut(b"A", capacity=1),),
+                    1: ("invalid",),  # type: ignore[dict-item]
+                })
+            self.assertEqual(population.state_digests(), before)
+
     def test_local_reproduction_selector_matches_deterministic_component_policy(self) -> None:
         config = LifecycleConfig(reproduction_minimum_body=4, birth_cost=1.0)
         reference = AutonomousOrganism("ORG-LOCAL", config=config)

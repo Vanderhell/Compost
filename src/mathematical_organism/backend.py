@@ -1388,6 +1388,34 @@ class NativePopulationBackend:
         after execution begins are surfaced; this method does not promise
         rollback of already committed earlier trace entries.
         """
+        prepared = self._prepare_action_traces(traces)
+
+        results: dict[int, tuple[dict[str, object], ...]] = {}
+        for organism_id in sorted(prepared):
+            epoch_results: list[dict[str, object]] = []
+            for action in prepared[organism_id]:
+                status_before = int(self._contexts[organism_id].snapshot()["status"])
+                result = self.apply_actions({organism_id: action})[organism_id]
+                epoch_results.append({
+                    **result,
+                    "requests": ("store_corpse",)
+                    if status_before == 0 and int(result.get("status_after", 0)) == 1
+                    else (),
+                })
+            results[organism_id] = tuple(epoch_results)
+        return results
+
+    def preflight_action_traces(
+        self,
+        traces: Mapping[int, Iterable[NativeAction]],
+    ) -> None:
+        """Validate a complete action epoch without mutating native state."""
+        self._prepare_action_traces(traces)
+
+    def _prepare_action_traces(
+        self,
+        traces: Mapping[int, Iterable[NativeAction]],
+    ) -> dict[int, tuple[NativeAction, ...]]:
         if self._closed:
             raise NativeBackendError("native population backend is closed")
         unknown = set(traces) - set(self._contexts)
@@ -1407,21 +1435,7 @@ class NativePopulationBackend:
                         )
                     reserved.add(action.child_id)
             prepared[int(organism_id)] = sequence
-
-        results: dict[int, tuple[dict[str, object], ...]] = {}
-        for organism_id in sorted(prepared):
-            epoch_results: list[dict[str, object]] = []
-            for action in prepared[organism_id]:
-                status_before = int(self._contexts[organism_id].snapshot()["status"])
-                result = self.apply_actions({organism_id: action})[organism_id]
-                epoch_results.append({
-                    **result,
-                    "requests": ("store_corpse",)
-                    if status_before == 0 and int(result.get("status_after", 0)) == 1
-                    else (),
-                })
-            results[organism_id] = tuple(epoch_results)
-        return results
+        return prepared
 
     def snapshot(self, organism_id: int) -> dict[str, object]:
         """Return one native snapshot by stable population ID."""

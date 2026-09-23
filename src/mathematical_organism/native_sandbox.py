@@ -109,6 +109,7 @@ class NativeSandboxReplay:
         # native reproduction policy.  The Python action remains the oracle:
         # the selected native child must contain exactly the atoms selected by
         # that trace, otherwise the first divergent epoch is reported here.
+        self._population.preflight_action_traces(traces)
         replayed: dict[int, tuple[dict[str, object], ...]] = {}
         for organism_id in sorted(traces):
             sequence = traces[organism_id]
