@@ -270,5 +270,26 @@ int main(void)
         return fail("opaque step-and-division rollback");
     }
     compost_destroy(rollback_context);
+
+    compost_context_t *local_context = NULL;
+    compost_context_t *local_child = (compost_context_t *)(uintptr_t)UINTPTR_MAX;
+    compost_division_result_t local_result = {0};
+    local_result.cross_split_mass = UINT64_C(91);
+    if (compost_create(&division_config, UINT64_C(41), &local_context) != COMPOST_STATUS_OK) {
+        return fail("local reproduction no-candidate setup");
+    }
+    const uint64_t local_digest = compost_context_state_digest(local_context);
+    if (compost_context_try_local_reproduction(
+            local_context, UINT64_C(42), &local_child, &local_result
+        ) != COMPOST_STATUS_OK ||
+        local_child != NULL || local_result.cross_split_mass != 0U ||
+        compost_context_state_digest(local_context) != local_digest) {
+        if (local_child != NULL && local_child != (compost_context_t *)(uintptr_t)UINTPTR_MAX) {
+            compost_destroy(local_child);
+        }
+        compost_destroy(local_context);
+        return fail("local reproduction no-candidate transaction");
+    }
+    compost_destroy(local_context);
     return 0;
 }
