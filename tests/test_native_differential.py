@@ -34,6 +34,7 @@ from mathematical_organism.backend import (
     create_backend,
 )
 from mathematical_organism.canonical import canonical_digest
+from mathematical_organism.food_sandbox import SandboxFeedingHarness
 from mathematical_organism.lifecycle import LifecycleConfig, LivingStructure, MathematicalLifeOrganism, MathematicalLifePopulation, OrganismStatus
 from mathematical_organism.sandbox_runtime import AutonomousOrganism, Corpse, SandboxRuntime
 from mathematical_organism.biology_rules import reproduction_allowed
@@ -502,6 +503,36 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                 result = backend.apply_action(action)
                 self.assertEqual(result["kind"], "external_gut")
                 self.assertEqual(result["processed_mass"], len(action.payload))
+                backend.verify_material_conservation()
+
+    def test_physical_food_host_drives_native_lifecycle_checkpoint(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "source.bin"
+            source.write_bytes(b"ABCD")
+            harness = SandboxFeedingHarness(source, root / "physical", parcel_size=4, context_overlap=0)
+            reference = harness.population.organisms[0]
+            claim = harness._claim_next(reference)
+            self.assertIsNotNone(claim)
+            assert claim is not None
+            bite, _context = harness.food.read(claim)
+            with NativeBackend(self.library_path, organism_id=0) as backend:
+                native_result = backend.step(
+                    bytes(bite),
+                    (1.0,) * len(bite),
+                )
+                reference.cursor += len(bite)
+                harness.population._digest(reference, bite, (1.0,) * len(bite))
+                harness.food.consume(claim)
+                harness._post_digest_lifecycle(reference)
+                self.assertEqual(native_result["consumed_bytes"], len(bite))
+                native = backend.snapshot()
+                self.assertEqual(native["cursor"], reference.cursor)
+                self.assertEqual(native["age_in_cycles"], reference.age_in_cycles)
+                self.assertEqual(native["body"]["structural_mass"], reference.full_body_mass())
+                self.assertEqual(native["body"]["atom_count"], len(reference.atoms))
+                self.assertEqual(native["body"]["relation_count"], len(reference.relations))
+                self.assertAlmostEqual(native["reserve"], reference.reserve, places=12)
                 backend.verify_material_conservation()
 
     def test_corpse_lookup_emits_replayable_energy_action(self) -> None:
