@@ -74,6 +74,9 @@ viable component, the adapter invokes the native boundary-partition policy
 the host does not supply the selected child atom set. After each epoch it
 independently checks the native population ledger, every Python organism
 ledger, and the Python world-level ownership-transfer equation.
+All traces for the epoch are materialized and preflighted before any native
+prefix, reproduction policy, or suffix is committed; invalid later actions
+therefore cannot leave an earlier organism partially advanced.
 
 The same one-shot request is returned by `NativeBackend.replay_actions` when a
 single-organism lifecycle trace crosses from alive to dead; a subsequent dead

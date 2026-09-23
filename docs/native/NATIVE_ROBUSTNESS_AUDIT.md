@@ -19,6 +19,9 @@ The Python population orchestrator rejects unknown environment IDs, duplicate
 or colliding child IDs, and reserves automatic IDs before scheduling an epoch.
 It also preflights all bite/nutrition lengths and finite values before the
 first handle mutates, preserving every population snapshot on input failure.
+Sandbox action traces now have an epoch-wide preflight as well, including
+action types and globally reserved division IDs, before any prefix or native
+reproduction transaction commits.
 The explicit `NativeAction` adapter also rejects non-finite energy, mismatched
 nutrition, negative capacities, and irrelevant fields before invoking the ABI;
 the lifecycle action invokes the explicit settlement-aware lifecycle endpoint
