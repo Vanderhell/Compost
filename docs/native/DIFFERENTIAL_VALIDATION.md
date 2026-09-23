@@ -9,6 +9,7 @@ for the native units that currently have matching Python reference functions:
 - activity costs, forgetting, and maintenance weakening budget;
 - lazy metabolism composition;
 - reproduction eligibility and score;
+- territory address/contains predicates and deterministic FOOD block keys;
 - bounded external-gut FIFO processing against the sandbox oracle;
 - a bounded simple lifecycle replay comparing native snapshot fields after each step.
 
