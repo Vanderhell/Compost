@@ -26,9 +26,10 @@ Native tests:
 warnings-as-errors enabled (10.75s); the same suite passed under GCC/WSL.
 
 Differential cases:
-`16` Python/native differential tests pass, including bounded pure-rule,
+`17` Python/native differential tests pass, including bounded pure-rule,
 external-gut, environment corpse-energy credit, partition transaction,
-atomic division-boundary, and step-plus-division lifecycle comparisons. The
+atomic division-boundary, step-plus-division lifecycle, and territory predicate
+comparisons. The
 current MSVC DLL run completed in 5.70s.
 
 Long-run steps:
