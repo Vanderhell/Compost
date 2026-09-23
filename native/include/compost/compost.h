@@ -597,6 +597,18 @@ compost_status_t compost_context_try_divide(
     compost_division_plan_t *plan,
     compost_division_result_t *result
 );
+/*
+ * Evaluates the autonomous local weakest-member reproduction policy and,
+ * when a viable component exists, commits it transactionally.  No candidate
+ * is a successful no-op with a NULL child and zeroed result.  On hard
+ * failure the parent and caller outputs remain unchanged.
+ */
+compost_status_t compost_context_try_local_reproduction(
+    compost_context_t *parent,
+    uint64_t child_id,
+    compost_context_t **child,
+    compost_division_result_t *result
+);
 
 compost_status_t compost_organism_enqueue_resorbed(
     compost_organism_t *organism,

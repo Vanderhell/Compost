@@ -510,6 +510,17 @@ class NativeBackend:
             ctypes.POINTER(_DivisionPlan), ctypes.POINTER(_DivisionResult),
         ]
         library.compost_context_try_divide.restype = ctypes.c_int
+        try:
+            local_reproduction_transaction = library.compost_context_try_local_reproduction
+        except AttributeError:
+            self._local_reproduction_transaction_symbol = None
+        else:
+            local_reproduction_transaction.argtypes = [
+                ctypes.c_void_p, ctypes.c_uint64, ctypes.POINTER(ctypes.c_void_p),
+                ctypes.POINTER(_DivisionResult),
+            ]
+            local_reproduction_transaction.restype = ctypes.c_int
+            self._local_reproduction_transaction_symbol = local_reproduction_transaction
         library.compost_context_partition.argtypes = [
             ctypes.c_void_p,
             ctypes.c_uint64,
@@ -930,6 +941,8 @@ class NativeBackend:
         child.library_path = self.library_path
         child._library = self._library
         child._context = child_context
+        child._local_reproduction_symbol = self._local_reproduction_symbol
+        child._local_reproduction_transaction_symbol = self._local_reproduction_transaction_symbol
         plan_view["division"] = {
             "child_structural_mass": int(division.child_structural_mass),
             "cross_split_mass": int(division.cross_split_mass),
@@ -1018,6 +1031,8 @@ class NativeBackend:
         child.library_path = self.library_path
         child._library = self._library
         child._context = child_context
+        child._local_reproduction_symbol = self._local_reproduction_symbol
+        child._local_reproduction_transaction_symbol = self._local_reproduction_transaction_symbol
         return child, {
             "child_structural_mass": int(result.child_structural_mass),
             "cross_split_mass": int(result.cross_split_mass),
@@ -1057,12 +1072,47 @@ class NativeBackend:
         child.library_path = self.library_path
         child._library = self._library
         child._context = child_context
+        child._local_reproduction_symbol = self._local_reproduction_symbol
+        child._local_reproduction_transaction_symbol = self._local_reproduction_transaction_symbol
         plan_view["division"] = {
             "child_structural_mass": int(result.child_structural_mass),
             "cross_split_mass": int(result.cross_split_mass),
             "parent_reserve_after_cost": float(result.parent_reserve_after_cost),
         }
         return child, plan_view
+
+    def try_local_reproduction(
+        self, *, child_id: int
+    ) -> tuple["NativeBackend | None", dict[str, float | int]]:
+        """Commit the native local weakest-member reproduction policy."""
+        if not self._context or not self._context.value:
+            raise NativeBackendError("native backend is closed")
+        if self._local_reproduction_transaction_symbol is None:
+            raise NativeBackendError(
+                "native library does not expose local reproduction transaction"
+            )
+        child_context = ctypes.c_void_p()
+        result = _DivisionResult()
+        status = self._local_reproduction_transaction_symbol(
+            self._context,
+            ctypes.c_uint64(child_id),
+            ctypes.byref(child_context),
+            ctypes.byref(result),
+        )
+        self._check(status, "compost_context_try_local_reproduction")
+        if not child_context.value:
+            return None, {}
+        child = object.__new__(NativeBackend)
+        child.library_path = self.library_path
+        child._library = self._library
+        child._context = child_context
+        child._local_reproduction_symbol = self._local_reproduction_symbol
+        child._local_reproduction_transaction_symbol = self._local_reproduction_transaction_symbol
+        return child, {
+            "child_structural_mass": int(result.child_structural_mass),
+            "cross_split_mass": int(result.cross_split_mass),
+            "parent_reserve_after_cost": float(result.parent_reserve_after_cost),
+        }
 
     def close(self) -> None:
         if self._context and self._context.value:

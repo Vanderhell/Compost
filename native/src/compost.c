@@ -729,6 +729,39 @@ compost_status_t compost_context_try_divide(
     );
 }
 
+compost_status_t compost_context_try_local_reproduction(
+    compost_context_t *parent,
+    uint64_t child_id,
+    compost_context_t **child,
+    compost_division_result_t *result
+)
+{
+    if (parent == NULL || child == NULL || result == NULL) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    *child = NULL;
+    memset(result, 0, sizeof(*result));
+    uint8_t child_atoms[COMPOST_MAX_ATOMS] = {0U};
+    size_t child_atom_count = 0U;
+    const compost_status_t selection = compost_organism_select_local_reproduction(
+        &parent->organism,
+        child_atoms,
+        COMPOST_MAX_ATOMS,
+        &child_atom_count
+    );
+    if (selection == COMPOST_STATUS_INVALID_STATE) return COMPOST_STATUS_OK;
+    if (selection != COMPOST_STATUS_OK) return selection;
+    return compost_context_partition(
+        parent,
+        child_id,
+        child_atoms,
+        child_atom_count,
+        parent->organism.config.birth_cost,
+        child,
+        result
+    );
+}
+
 compost_status_t compost_config_default(compost_config_t *config)
 {
     if (config == NULL) {

@@ -249,6 +249,20 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
         with NativeBackend(self.library_path, organism_id=103, config=config) as backend:
             backend.digest(b"ABCD", (10.0,) * 4)
             self.assertEqual(backend.select_local_reproduction(), expected)
+            child, result = backend.try_local_reproduction(child_id=104)
+            self.assertIsNotNone(child)
+            assert child is not None
+            with child:
+                self.assertEqual(
+                    child.snapshot()["body"]["structural_mass"],
+                    reference_child.body.full_body_mass(),
+                )
+            self.assertEqual(
+                backend.snapshot()["body"]["structural_mass"],
+                reference.body.full_body_mass(),
+            )
+            self.assertAlmostEqual(backend.snapshot()["reserve"], reference.body.reserve, places=12)
+            self.assertAlmostEqual(result["parent_reserve_after_cost"], reference.body.reserve, places=12)
 
     def test_metabolic_schedule_matches_python_bounded_arithmetic(self) -> None:
         with NativeBackend(self.library_path, organism_id=88) as backend:
