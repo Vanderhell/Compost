@@ -69,3 +69,8 @@ this checkpoint ABI until their native semantics are migrated.
 If a Python-only scheduling field differs from its reference default, the
 adapter rejects the configuration explicitly instead of silently changing
 native behavior.
+
+`NativePopulationBackend` provides deterministic ID-ordered orchestration for
+multiple opaque contexts. It accepts environment-supplied bites and child IDs;
+Python remains responsible for food allocation, filesystem claims, world
+events, and population-wide policy.

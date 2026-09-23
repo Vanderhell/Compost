@@ -4,6 +4,9 @@
 
 - CLI parsing, presentation, compatibility commands, and experiment scripts.
 - Experiment orchestration, population/world setup, and historical run modes.
+- `NativePopulationBackend` orchestration of opaque native handles with
+  explicit environment bites; it does not replace Python food allocation or
+  world policy.
 - Filesystem sandbox management: inbox discovery, FOOD copying, file reads and
   truncation, directory markers, JSON/telemetry persistence, and cleanup.
 - Multiprocessing/worker process lifecycle, IPC, observer processes, and

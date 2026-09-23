@@ -36,7 +36,9 @@ The campaign also includes a two-organism, sixteen-cycle population boundary
 case. Python performs deterministic nutrition allocation and supplies each
 native handle's ordered bite; native snapshots are compared after every logical
 organism transition. This validates orchestration at the bounded core boundary,
-not filesystem or native parallel scheduling.
+not filesystem or native parallel scheduling. The case now runs through the
+reusable `NativePopulationBackend`, including deterministic handle ownership
+and per-organism conservation checks.
 
 The native-only paired replay test now executes 10,000 deterministic steps and
 compares state digests and step counters after every step. It is a determinism
