@@ -21,7 +21,7 @@ values duplicated in test code.
 
 The test requires `COMPOST_NATIVE_LIBRARY`. If the variable is absent it is
 skipped; if it names a missing file the test fails. There is no silent native
-to Python fallback. The current bounded campaign contains forty-two tests,
+to Python fallback. The current bounded campaign contains forty-seven tests,
 including forty deterministic lifecycle replays (10,240 aggregate steps), a
 differential starvation/death replay, a dense cross-split division replay, and
 field-by-field snapshot checks.
@@ -94,3 +94,12 @@ It covers both lifecycle-checkpoint settlement and the separate post-gut
 settlement path.
 An additional no-food replay covers repeated idle gut processing and
 Python-owned corpse-energy selection through the explicit action boundary.
+
+The multi-epoch sandbox action-trace campaign runs 32 deterministic epochs
+through `NativePopulationBackend`. It compares parent and child state after
+each epoch, including territory, material-flow accounting, activity counters,
+activity debt, energy spent, settlements, and ordered gut chunks. The campaign
+also exercises explicit corpse transfer and child-handle retention. Filesystem
+FOOD selection and host event ordering remain Python-owned; the body cursor is
+an adapter diagnostic and is intentionally not treated as behavioral state in
+this campaign.
