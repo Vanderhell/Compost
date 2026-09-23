@@ -64,6 +64,16 @@ int main(void)
         compost_organism_digest(NULL, &invalid, &result) != COMPOST_STATUS_INVALID_ARGUMENT) {
         return fail("null validation");
     }
+    uint8_t territory_bit = UINT8_C(99);
+    bool territory_contains = true;
+    const uint8_t invalid_path[] = {UINT8_C(2)};
+    if (compost_territory_address_bit(0U, COMPOST_MAX_TERRITORY_DEPTH, &territory_bit) != COMPOST_STATUS_INVALID_ARGUMENT ||
+        territory_bit != UINT8_C(99) ||
+        compost_territory_contains(invalid_path, 1U, 0U, &territory_contains) != COMPOST_STATUS_INVALID_ARGUMENT ||
+        territory_contains != true ||
+        compost_territory_contains(NULL, 1U, 0U, &territory_contains) != COMPOST_STATUS_INVALID_ARGUMENT) {
+        return fail("territory invalid input");
+    }
     compost_context_t *try_child_sentinel = (compost_context_t *)(uintptr_t)1U;
     compost_division_plan_t try_plan_sentinel = {0};
     compost_division_result_t try_result_sentinel = {0};
