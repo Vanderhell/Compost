@@ -55,7 +55,9 @@ Python `live_step` action traces.
 deterministic host-built population epoch: each trace is preflighted before
 execution, organisms are scheduled by numeric ID, action order inside a trace
 is preserved, and explicit division children remain registered for later
-epochs.
+epochs. A native `ALIVE` to `DEAD` transition returns the one-shot
+`store_corpse` request; the host remains responsible for corpse persistence,
+territory release, and observer events.
 
 `AutonomousOrganism.live_step(..., action_trace=...)` can now emit the same
 immutable action forms for replay. The trace is optional and observational;
