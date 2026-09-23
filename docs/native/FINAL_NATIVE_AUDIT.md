@@ -18,8 +18,8 @@ CI: PASS
 Documentation: PASS
 
 Python tests:
-`246 passed, 3 subtests passed` in the latest complete local run with the
-native DLL configured (88.99s).
+`247 passed, 3 subtests passed` in the latest complete local run with the
+native DLL configured (101.27s).
 
 Native tests:
 `8/8` CTest tests passed in the current MSVC 19.42 Release build with the
