@@ -47,8 +47,8 @@ class NativeSandboxReplay:
         if not organism_ids or len(set(organism_ids)) != len(organism_ids):
             raise ValueError("organism_ids must be non-empty and unique")
         organisms = tuple(runtime.organisms)
-        if len(organisms) > len(organism_ids):
-            raise ValueError("organism_ids must cover every initial Python organism")
+        if len(organisms) != len(organism_ids):
+            raise ValueError("organism_ids must map exactly to initial Python organisms")
         self.runtime = runtime
         self._native_ids: dict[str, int] = {
             organism.name: int(organism_ids[index])

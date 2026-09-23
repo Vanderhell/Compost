@@ -1044,6 +1044,17 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                     )
                 self.assertTrue(saw_division)
 
+    def test_native_sandbox_replay_rejects_orphan_initial_handles(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = SandboxRuntime(Path(directory) / "sandbox", block_size=2)
+            runtime.organisms.append(AutonomousOrganism())
+            with self.assertRaises(ValueError):
+                NativeSandboxReplay(
+                    self.library_path,
+                    runtime,
+                    organism_ids=(0, 1),
+                )
+
     def test_backend_selector_exposes_native_population_without_fallback(self) -> None:
         backend = create_backend(
             "native-population", library=self.library_path, organism_ids=(0, 1)
