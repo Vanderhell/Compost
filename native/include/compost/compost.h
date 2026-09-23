@@ -322,7 +322,8 @@ compost_status_t compost_organism_init(
 /* Releases owned resources and returns the object to its zero state. */
 void compost_organism_destroy(compost_organism_t *organism);
 
-/* Copies the current behavioral scalar state into snapshot. */
+/* Copies the current behavioral state into snapshot. On invalid input or an
+ * invalid organism, snapshot is left unchanged. */
 compost_status_t compost_organism_snapshot(
     const compost_organism_t *organism,
     compost_snapshot_t *snapshot

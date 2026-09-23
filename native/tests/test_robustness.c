@@ -268,9 +268,12 @@ int main(void)
         return fail("corrupt state setup");
     }
     organism.status = (compost_lifecycle_status_t)99;
-    if (compost_organism_snapshot(&organism, &after) != COMPOST_STATUS_INVALID_STATE) {
+    (void)memset(&after, 0xA5, sizeof(after));
+    compost_snapshot_t invalid_status_sentinel = after;
+    if (compost_organism_snapshot(&organism, &after) != COMPOST_STATUS_INVALID_STATE ||
+        memcmp(&after, &invalid_status_sentinel, sizeof(after)) != 0) {
         compost_organism_destroy(&organism);
-        return fail("invalid lifecycle enum");
+        return fail("invalid lifecycle enum output preservation");
     }
     compost_organism_destroy(&organism);
     if (compost_organism_init(&organism, &config, NULL, 5U) != COMPOST_STATUS_OK) {
