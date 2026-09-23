@@ -32,9 +32,10 @@ native/build-release-bench/compost_benchmark_digest
 
 ## Evidence boundary
 
-Observed on the current Windows MSVC Release toolchain: `5` repetitions of
-`100000` iterations (`400000` bytes each), min `0.801000000`, median
-`0.808000000`, max `0.828000000` CPU seconds, median `123762.376` steps/sec.
+Observed on the current Windows MSVC 19.42 Release toolchain from the current
+tree: `5` repetitions of `100000` iterations (`400000` bytes each), min
+`0.770000000`, median `0.774000000`, max `0.775000000` CPU seconds, median
+`129198.966` steps/sec.
 This measures only the bounded direct-C digest checkpoint.
 
 No speedup claim is permitted from the direct-C smoke benchmark alone.
@@ -54,9 +55,10 @@ not as an end-to-end performance claim.
 
 `tools/benchmark_native_backends.py` runs the same bounded `AB` replay for
 both the Python reference and the current native checkpoint through ctypes.
-On the current Windows MSVC Release build, five repetitions of `10000` steps
-measured a Python median of `0.038265100` seconds (`261334.741` steps/sec)
-and a native-FFI median of `0.065498400` seconds (`152675.485` steps/sec).
+On the current Windows MSVC Release build from the current tree, five
+repetitions of `10000` steps measured a Python median of `0.038588000` seconds
+(`259147.922` steps/sec) and a native-FFI median of `0.065072700` seconds
+(`153674.275` steps/sec).
 This is not a complete simulator comparison: it includes FFI overhead and the
 native checkpoint is still incomplete. It demonstrates that further native
 performance claims require a larger migrated workload and measurement of the
@@ -81,10 +83,10 @@ python tools/benchmark_native_backends.py --library <native-library> \
 Observed on the current MSVC Release DLL:
 
 ```text
-reference_population_median_seconds=0.017627700
-native_population_ffi_median_seconds=0.078272500
-reference_population_steps_per_second=14522.598
-native_population_ffi_steps_per_second=3270.625
+reference_population_median_seconds=0.016932800
+native_population_ffi_median_seconds=0.081681400
+reference_population_steps_per_second=15118.586
+native_population_ffi_steps_per_second=3134.128
 ```
 
 This is still a bounded checkpoint, not a complete world benchmark. It
