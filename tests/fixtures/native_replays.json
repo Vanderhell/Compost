@@ -1,0 +1,17 @@
+{
+  "population_boundary": {
+    "seed": 0,
+    "organism_ids": [0, 1],
+    "payload_pattern": "AB",
+    "payload_repeats": 4096,
+    "cycles": 64,
+    "boundary_ratio_limit": 0.01
+  },
+  "single_lifecycle": {
+    "seed": 0,
+    "scenario_count": 40,
+    "cycles": 256,
+    "payload_patterns": ["AB", "ABCD", "ABBA", "ABC"],
+    "payload_repeats": [128, 64, 64, 85]
+  }
+}

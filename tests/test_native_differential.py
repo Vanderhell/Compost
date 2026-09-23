@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ctypes
+import json
 import os
 import sys
 import unittest
@@ -8,6 +9,12 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
+NATIVE_REPLAY_FIXTURES = PROJECT_ROOT / "tests" / "fixtures" / "native_replays.json"
+
+
+def _native_fixture(name: str) -> dict[str, object]:
+    fixtures = json.loads(NATIVE_REPLAY_FIXTURES.read_text(encoding="utf-8"))
+    return fixtures[name]
 
 from mathematical_organism.biology_rules import (
     ACTIVITY_COSTS,
@@ -248,50 +255,54 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                 child.verify_material_conservation()
 
     def test_two_organism_python_allocation_drives_native_steps(self) -> None:
-        config = LifecycleConfig(boundary_ratio_limit=0.01)
-        payload = "AB" * 4096
+        fixture = _native_fixture("population_boundary")
+        organism_ids = tuple(int(value) for value in fixture["organism_ids"])
+        config = LifecycleConfig(boundary_ratio_limit=float(fixture["boundary_ratio_limit"]))
+        payload = str(fixture["payload_pattern"]) * int(fixture["payload_repeats"])
         reference = MathematicalLifePopulation(payload, config)
-        reference.organisms[1] = MathematicalLifeOrganism(
-            1, None, 0, 0, 0, reserve=config.birth_reserve
-        )
-        reference.next_id = 2
+        for organism_id in organism_ids[1:]:
+            reference.organisms[organism_id] = MathematicalLifeOrganism(
+                organism_id, None, 0, 0, 0, reserve=config.birth_reserve
+            )
+        reference.next_id = max(organism_ids) + 1
         with NativePopulationBackend(
-            self.library_path, organism_ids=(0, 1), config=config
+            self.library_path, organism_ids=organism_ids, config=config
         ) as native_population:
             with self.assertRaises(ValueError):
                 native_population.step({99: (b"", ())})
             with self.assertRaises(ValueError):
                 native_population.step(
-                    {0: (b"", ()), 1: (b"", ())}, child_ids={0: 2, 1: 2}
+                    {organism_id: (b"", ()) for organism_id in organism_ids},
+                    child_ids={organism_id: 2 for organism_id in organism_ids},
                 )
             before_invalid_epoch = native_population.snapshots()
             with self.assertRaises(ValueError):
                 native_population.step(
-                    {0: (b"\x01", (1.0,)), 1: (b"\x02", (1.0, 2.0))},
-                    child_ids={0: 100, 1: 101},
+                    {organism_ids[0]: (b"\x01", (1.0,)), organism_ids[1]: (b"\x02", (1.0, 2.0))},
+                    child_ids={organism_id: 100 + organism_id for organism_id in organism_ids},
                 )
             self.assertEqual(native_population.snapshots(), before_invalid_epoch)
             with self.assertRaises(ValueError):
                 native_population.step(
-                    {0: (b"\x01", (float("nan"),)), 1: (b"\x02", (1.0,))},
-                    child_ids={0: 100, 1: 101},
+                    {organism_ids[0]: (b"\x01", (float("nan"),)), organism_ids[1]: (b"\x02", (1.0,))},
+                    child_ids={organism_id: 100 + organism_id for organism_id in organism_ids},
                 )
             self.assertEqual(native_population.snapshots(), before_invalid_epoch)
-            for cycle in range(64):
-                planned = reference._allocate_nutrition((0, 1))
+            for cycle in range(int(fixture["cycles"])):
+                planned = reference._allocate_nutrition(organism_ids)
                 step_results = native_population.step(
                     {
                         organism_id: (
                             bytes(ord(symbol) for symbol in planned.get(organism_id, ((), ()))[0]),
                             planned.get(organism_id, ((), ()))[1],
                         )
-                        for organism_id in (0, 1)
+                        for organism_id in organism_ids
                     },
-                    child_ids={0: 100, 1: 101},
+                    child_ids={organism_id: 100 + organism_id for organism_id in organism_ids},
                 )
-                self.assertNotIn("child_id", step_results[0])
-                self.assertNotIn("child_id", step_results[1])
-                for organism_id in (0, 1):
+                for organism_id in organism_ids:
+                    self.assertNotIn("child_id", step_results[organism_id])
+                for organism_id in organism_ids:
                     organism = reference.organisms[organism_id]
                     bite, nutrition = planned.get(organism_id, ((), ()))
                     reference._cycle_one(organism, (bite, nutrition))
@@ -673,19 +684,17 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                 backend.food_block_key("firmware-A", -1)
 
     def test_simple_lifecycle_replay_reports_first_divergent_field(self) -> None:
-        payloads = (
-            "AB" * 128,
-            "ABCD" * 64,
-            "ABBA" * 64,
-            "ABC" * 85,
-        )
-        cycles = int(os.environ.get("COMPOST_DIFFERENTIAL_CYCLES", "256"))
+        fixture = _native_fixture("single_lifecycle")
+        payload_patterns = tuple(str(value) for value in fixture["payload_patterns"])
+        payload_repeats = tuple(int(value) for value in fixture["payload_repeats"])
+        payloads = tuple(pattern * repeat for pattern, repeat in zip(payload_patterns, payload_repeats))
+        cycles = int(os.environ.get("COMPOST_DIFFERENTIAL_CYCLES", str(fixture["cycles"])))
         if cycles <= 0:
             self.fail("COMPOST_DIFFERENTIAL_CYCLES must be positive")
-        for scenario in range(40):
+        for scenario in range(int(fixture["scenario_count"])):
             payload = payloads[scenario % len(payloads)]
             population = MathematicalLifePopulation(payload)
-            with NativeBackend(self.library_path, organism_id=scenario) as backend:
+            with NativeBackend(self.library_path, organism_id=int(fixture["seed"]) + scenario) as backend:
                 for cycle in range(cycles):
                     population.cycle()
                     backend.step(payload.encode("ascii") if cycle == 0 else b"", (1.0,) * len(payload) if cycle == 0 else ())
