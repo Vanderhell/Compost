@@ -23,7 +23,7 @@ from mathematical_organism.canonical import canonical_digest
 from mathematical_organism.lifecycle import LifecycleConfig, LivingStructure, MathematicalLifeOrganism, MathematicalLifePopulation, OrganismStatus
 from mathematical_organism.sandbox_runtime import AutonomousOrganism
 from mathematical_organism.biology_rules import reproduction_allowed
-from mathematical_organism.territory import address_bit
+from mathematical_organism.territory import address_bit, food_block_key
 
 
 class _LazyDelta(ctypes.Structure):
@@ -161,6 +161,11 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             ctypes.POINTER(ctypes.c_bool),
         ]
         cls.library.compost_territory_contains.restype = ctypes.c_int
+        cls.library.compost_territory_food_block_key.argtypes = [
+            ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t, ctypes.c_uint64,
+            ctypes.POINTER(ctypes.c_uint64),
+        ]
+        cls.library.compost_territory_food_block_key.restype = ctypes.c_int
 
     def test_public_python_adapter_runs_native_step(self) -> None:
         with NativeBackend(self.library_path, organism_id=99) as backend:
@@ -539,6 +544,27 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             1,
         )
         self.assertTrue(invalid_contains.value)
+
+        for file_id in ("", "firmware-A", "unicode-ž", "x" * 127):
+            encoded = file_id.encode("utf-8")
+            file_buffer = (ctypes.c_uint8 * len(encoded))(*encoded)
+            for block_index in (0, 1, 255, (1 << 63), (1 << 64) - 1):
+                actual = ctypes.c_uint64()
+                self.assertEqual(
+                    self.library.compost_territory_food_block_key(
+                        file_buffer, len(encoded), block_index, ctypes.byref(actual)
+                    ),
+                    0,
+                )
+                self.assertEqual(actual.value, food_block_key(file_id, block_index))
+        invalid_key = ctypes.c_uint64(99)
+        self.assertEqual(
+            self.library.compost_territory_food_block_key(
+                None, 1, 0, ctypes.byref(invalid_key)
+            ),
+            1,
+        )
+        self.assertEqual(invalid_key.value, 99)
 
     def test_simple_lifecycle_replay_reports_first_divergent_field(self) -> None:
         payloads = (

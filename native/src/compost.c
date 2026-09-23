@@ -81,6 +81,135 @@ static uint64_t territory_mix64(uint64_t value)
     return value ^ (value >> 31U);
 }
 
+typedef struct compost_sha256 {
+    uint32_t state[8];
+    uint8_t block[64];
+    size_t used;
+    uint64_t total;
+} compost_sha256_t;
+
+static uint32_t sha256_rotr(uint32_t value, uint32_t amount)
+{
+    return (value >> amount) | (value << (UINT32_C(32) - amount));
+}
+
+static void sha256_transform(compost_sha256_t *hash)
+{
+    static const uint32_t constants[64] = {
+        UINT32_C(0x428A2F98), UINT32_C(0x71374491), UINT32_C(0xB5C0FBCF), UINT32_C(0xE9B5DBA5),
+        UINT32_C(0x3956C25B), UINT32_C(0x59F111F1), UINT32_C(0x923F82A4), UINT32_C(0xAB1C5ED5),
+        UINT32_C(0xD807AA98), UINT32_C(0x12835B01), UINT32_C(0x243185BE), UINT32_C(0x550C7DC3),
+        UINT32_C(0x72BE5D74), UINT32_C(0x80DEB1FE), UINT32_C(0x9BDC06A7), UINT32_C(0xC19BF174),
+        UINT32_C(0xE49B69C1), UINT32_C(0xEFBE4786), UINT32_C(0x0FC19DC6), UINT32_C(0x240CA1CC),
+        UINT32_C(0x2DE92C6F), UINT32_C(0x4A7484AA), UINT32_C(0x5CB0A9DC), UINT32_C(0x76F988DA),
+        UINT32_C(0x983E5152), UINT32_C(0xA831C66D), UINT32_C(0xB00327C8), UINT32_C(0xBF597FC7),
+        UINT32_C(0xC6E00BF3), UINT32_C(0xD5A79147), UINT32_C(0x06CA6351), UINT32_C(0x14292967),
+        UINT32_C(0x27B70A85), UINT32_C(0x2E1B2138), UINT32_C(0x4D2C6DFC), UINT32_C(0x53380D13),
+        UINT32_C(0x650A7354), UINT32_C(0x766A0ABB), UINT32_C(0x81C2C92E), UINT32_C(0x92722C85),
+        UINT32_C(0xA2BFE8A1), UINT32_C(0xA81A664B), UINT32_C(0xC24B8B70), UINT32_C(0xC76C51A3),
+        UINT32_C(0xD192E819), UINT32_C(0xD6990624), UINT32_C(0xF40E3585), UINT32_C(0x106AA070),
+        UINT32_C(0x19A4C116), UINT32_C(0x1E376C08), UINT32_C(0x2748774C), UINT32_C(0x34B0BCB5),
+        UINT32_C(0x391C0CB3), UINT32_C(0x4ED8AA4A), UINT32_C(0x5B9CCA4F), UINT32_C(0x682E6FF3),
+        UINT32_C(0x748F82EE), UINT32_C(0x78A5636F), UINT32_C(0x84C87814), UINT32_C(0x8CC70208),
+        UINT32_C(0x90BEFFFA), UINT32_C(0xA4506CEB), UINT32_C(0xBEF9A3F7), UINT32_C(0xC67178F2)
+    };
+    uint32_t words[64] = {0};
+    for (size_t index = 0U; index < 16U; ++index) {
+        const size_t offset = index * 4U;
+        words[index] = ((uint32_t)hash->block[offset] << 24U) |
+            ((uint32_t)hash->block[offset + 1U] << 16U) |
+            ((uint32_t)hash->block[offset + 2U] << 8U) |
+            (uint32_t)hash->block[offset + 3U];
+    }
+    for (size_t index = 16U; index < 64U; ++index) {
+        const uint32_t first = words[index - 15U];
+        const uint32_t second = words[index - 2U];
+        const uint32_t small_first = sha256_rotr(first, 7U) ^ sha256_rotr(first, 18U) ^ (first >> 3U);
+        const uint32_t small_second = sha256_rotr(second, 17U) ^ sha256_rotr(second, 19U) ^ (second >> 10U);
+        words[index] = words[index - 16U] + small_first + words[index - 7U] + small_second;
+    }
+    uint32_t a = hash->state[0];
+    uint32_t b = hash->state[1];
+    uint32_t c = hash->state[2];
+    uint32_t d = hash->state[3];
+    uint32_t e = hash->state[4];
+    uint32_t f = hash->state[5];
+    uint32_t g = hash->state[6];
+    uint32_t h = hash->state[7];
+    for (size_t index = 0U; index < 64U; ++index) {
+        const uint32_t big_e = sha256_rotr(e, 6U) ^ sha256_rotr(e, 11U) ^ sha256_rotr(e, 25U);
+        const uint32_t choose = (e & f) ^ ((~e) & g);
+        const uint32_t big_a = sha256_rotr(a, 2U) ^ sha256_rotr(a, 13U) ^ sha256_rotr(a, 22U);
+        const uint32_t majority = (a & b) ^ (a & c) ^ (b & c);
+        const uint32_t first = h + big_e + choose + constants[index] + words[index];
+        const uint32_t second = big_a + majority;
+        h = g;
+        g = f;
+        f = e;
+        e = d + first;
+        d = c;
+        c = b;
+        b = a;
+        a = first + second;
+    }
+    hash->state[0] += a;
+    hash->state[1] += b;
+    hash->state[2] += c;
+    hash->state[3] += d;
+    hash->state[4] += e;
+    hash->state[5] += f;
+    hash->state[6] += g;
+    hash->state[7] += h;
+}
+
+static void sha256_init(compost_sha256_t *hash)
+{
+    *hash = (compost_sha256_t){
+        {UINT32_C(0x6A09E667), UINT32_C(0xBB67AE85), UINT32_C(0x3C6EF372), UINT32_C(0xA54FF53A),
+         UINT32_C(0x510E527F), UINT32_C(0x9B05688C), UINT32_C(0x1F83D9AB), UINT32_C(0x5BE0CD19)},
+        {0}, 0U, 0U
+    };
+}
+
+static void sha256_update(compost_sha256_t *hash, const uint8_t *data, size_t length)
+{
+    while (length > 0U) {
+        const size_t available = 64U - hash->used;
+        const size_t amount = length < available ? length : available;
+        memcpy(&hash->block[hash->used], data, amount);
+        hash->used += amount;
+        data += amount;
+        length -= amount;
+        hash->total += (uint64_t)amount;
+        if (hash->used == 64U) {
+            sha256_transform(hash);
+            hash->used = 0U;
+        }
+    }
+}
+
+static void sha256_final(compost_sha256_t *hash, uint8_t output[32])
+{
+    const uint64_t bits = hash->total * UINT64_C(8);
+    hash->block[hash->used++] = UINT8_C(0x80);
+    if (hash->used > 56U) {
+        while (hash->used < 64U) hash->block[hash->used++] = 0U;
+        sha256_transform(hash);
+        hash->used = 0U;
+    }
+    while (hash->used < 56U) hash->block[hash->used++] = 0U;
+    for (size_t index = 0U; index < 8U; ++index) {
+        hash->block[56U + index] = (uint8_t)(bits >> (56U - index * 8U));
+    }
+    sha256_transform(hash);
+    for (size_t index = 0U; index < 8U; ++index) {
+        output[index * 4U] = (uint8_t)(hash->state[index] >> 24U);
+        output[index * 4U + 1U] = (uint8_t)(hash->state[index] >> 16U);
+        output[index * 4U + 2U] = (uint8_t)(hash->state[index] >> 8U);
+        output[index * 4U + 3U] = (uint8_t)hash->state[index];
+    }
+}
+
 compost_status_t compost_territory_address_bit(
     uint64_t address,
     uint32_t depth,
@@ -116,6 +245,37 @@ compost_status_t compost_territory_contains(
         if (bit != path[index]) result = false;
     }
     *contains = result;
+    return COMPOST_STATUS_OK;
+}
+
+compost_status_t compost_territory_food_block_key(
+    const uint8_t *file_id,
+    size_t file_id_length,
+    uint64_t block_index,
+    uint64_t *key
+)
+{
+    if (key == NULL || (file_id_length > 0U && file_id == NULL) ||
+        file_id_length > (size_t)(UINT64_MAX / UINT64_C(8) - UINT64_C(9))) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    compost_sha256_t hash = {0};
+    uint8_t digest[32] = {0};
+    const uint8_t separator = 0U;
+    uint8_t block_bytes[8] = {0};
+    for (size_t index = 0U; index < 8U; ++index) {
+        block_bytes[index] = (uint8_t)(block_index >> (56U - index * 8U));
+    }
+    sha256_init(&hash);
+    sha256_update(&hash, file_id, file_id_length);
+    sha256_update(&hash, &separator, 1U);
+    sha256_update(&hash, block_bytes, sizeof(block_bytes));
+    sha256_final(&hash, digest);
+    uint64_t result = 0U;
+    for (size_t index = 0U; index < 8U; ++index) {
+        result = (result << 8U) | (uint64_t)digest[index];
+    }
+    *key = result;
     return COMPOST_STATUS_OK;
 }
 

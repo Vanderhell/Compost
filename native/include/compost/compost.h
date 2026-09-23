@@ -184,6 +184,13 @@ compost_status_t compost_territory_contains(
     uint64_t address,
     bool *contains
 );
+/* Returns the first eight big-endian SHA-256 bytes of a stable block key. */
+compost_status_t compost_territory_food_block_key(
+    const uint8_t *file_id,
+    size_t file_id_length,
+    uint64_t block_index,
+    uint64_t *key
+);
 
 typedef enum compost_lifecycle_status {
     COMPOST_LIFECYCLE_ALIVE = 0,
