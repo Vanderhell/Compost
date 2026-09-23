@@ -28,5 +28,37 @@ worker-local organism state, shared immutable environment metadata, and explicit
 queues for migration/actions. A throughput mode may be added only if it is
 clearly separated from the reproducible deterministic mode.
 
+## Required execution modes
+
+Any future native runtime must expose two explicit modes rather than allowing
+thread scheduling to become an accidental biological rule:
+
+### `DETERMINISTIC`
+
+- fixed worker ownership for each epoch;
+- ascending organism-ID action ordering within an ownership partition;
+- immutable environment metadata for the epoch;
+- bounded, explicitly ordered migration/action queues committed at an epoch
+  barrier;
+- reproducible food ownership, territory ownership, mass, energy, and
+  parent/child results for equal seed/configuration/input.
+
+The acceptance gate is Python/C first-divergence comparison after every logical
+epoch, repeated with 1, 2, 4, 8, and 16 workers where available. OS thread
+interleaving must not affect the behavioral snapshot.
+
+### `THROUGHPUT`
+
+This mode may use work stealing or relaxed queue timing only when it is clearly
+labelled non-reproducible. It must still preserve no-duplicate FOOD claims,
+territory ownership, mass/energy conservation, valid child registration, and
+no lost organism state. It must never be presented as equivalent to
+`DETERMINISTIC` and must report its scheduling mode in telemetry.
+
+The implementation should prefer worker-local ownership and message passing
+over a global simulation lock or one mutex per organism structure. Scaling must
+be reported at 1, 2, 4, 8, and 16 workers with efficiency, not only raw
+steps/sec.
+
 The existing Python parallel runtime remains unchanged and is still the
 reference for historical experiments.
