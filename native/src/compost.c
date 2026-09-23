@@ -45,6 +45,17 @@ static compost_allocator_t effective_allocator(const compost_allocator_t *alloca
 static bool finite(double value);
 static bool add_double(double left, double right, double *result);
 static uint64_t digest_u64(uint64_t digest, uint64_t value);
+static compost_status_t activity_delta(
+    const compost_activity_counters_t *counters,
+    const compost_activity_costs_t *costs,
+    double *delta
+);
+static compost_status_t activity_charge_only(
+    compost_activity_ledger_t *ledger,
+    const compost_activity_counters_t *counters,
+    const compost_activity_costs_t *costs
+);
+static compost_status_t settle_activity_debt(compost_organism_t *organism);
 static bool weaker(const compost_structure_t *left, const compost_structure_t *right);
 static compost_structure_t *weakest_structure(compost_organism_t *organism);
 static double structure_maintenance(const compost_organism_t *organism);
@@ -1032,8 +1043,27 @@ compost_status_t compost_activity_ledger_add(
             return COMPOST_STATUS_INVALID_ARGUMENT;
         }
     }
+    double delta = 0.0;
+    if (activity_delta(counters, costs, &delta) != COMPOST_STATUS_OK ||
+        !finite(next.metabolic_debt + delta)) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    next.metabolic_debt += delta;
+    *ledger = next;
+    return COMPOST_STATUS_OK;
+}
+
+static compost_status_t activity_delta(
+    const compost_activity_counters_t *counters,
+    const compost_activity_costs_t *costs,
+    double *delta
+)
+{
+    if (counters == NULL || !valid_costs(costs) || delta == NULL) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
     const double kib = 1024.0;
-    const double delta =
+    const double value =
         costs->byte * (double)counters->bytes_eaten +
         costs->digest_per_kib * ((double)counters->processed_bytes / kib) +
         costs->reject_per_kib * ((double)counters->rejected_bytes / kib) +
@@ -1045,11 +1075,53 @@ compost_status_t compost_activity_ledger_add(
         costs->structural_mass_delta * ((double)counters->structural_mass_added + (double)counters->structural_mass_lost) +
         costs->resorption * (double)counters->resorption_events +
         costs->division * (double)counters->division_events;
-    if (!finite(delta) || !finite(next.metabolic_debt + delta)) {
+    if (!finite(value)) return COMPOST_STATUS_INVALID_ARGUMENT;
+    *delta = value;
+    return COMPOST_STATUS_OK;
+}
+
+static compost_status_t activity_charge_only(
+    compost_activity_ledger_t *ledger,
+    const compost_activity_counters_t *counters,
+    const compost_activity_costs_t *costs
+)
+{
+    if (ledger == NULL || counters == NULL || !valid_costs(costs)) {
         return COMPOST_STATUS_INVALID_ARGUMENT;
     }
-    next.metabolic_debt += delta;
-    *ledger = next;
+    double delta = 0.0;
+    if (activity_delta(counters, costs, &delta) != COMPOST_STATUS_OK ||
+        !finite(ledger->metabolic_debt + delta)) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    ledger->metabolic_debt += delta;
+    return COMPOST_STATUS_OK;
+}
+
+static compost_status_t settle_activity_debt(compost_organism_t *organism)
+{
+    if (organism == NULL || !organism->initialized) return COMPOST_STATUS_INVALID_ARGUMENT;
+    const double threshold = DEFAULT_ACTIVITY_COSTS.settlement_base +
+        DEFAULT_ACTIVITY_COSTS.settlement_mass_scale * (double)organism->body.structural_mass;
+    if (!finite(threshold) || organism->activity.metabolic_debt < threshold) {
+        return COMPOST_STATUS_OK;
+    }
+    double debt_with_basal = 0.0;
+    if (!add_double(organism->activity.metabolic_debt,
+                    DEFAULT_ACTIVITY_COSTS.basal_mass * (double)organism->body.structural_mass,
+                    &debt_with_basal)) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    const double paid = organism->reserve < debt_with_basal ? organism->reserve : debt_with_basal;
+    organism->reserve -= paid;
+    organism->activity.metabolic_debt = debt_with_basal - paid;
+    if (paid > 0.0) {
+        if (!add_double(organism->activity.energy_spent, paid, &organism->activity.energy_spent) ||
+            organism->activity.settlements == UINT64_MAX) {
+            return COMPOST_STATUS_INVALID_ARGUMENT;
+        }
+        organism->activity.settlements += UINT64_C(1);
+    }
     return COMPOST_STATUS_OK;
 }
 
@@ -1578,6 +1650,9 @@ compost_status_t compost_organism_process_gut(
             return COMPOST_STATUS_INVALID_ARGUMENT;
         }
     }
+    if (settle_activity_debt(&next) != COMPOST_STATUS_OK) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
     *organism = next;
     *result = next_result;
     return COMPOST_STATUS_OK;
@@ -1604,6 +1679,8 @@ compost_status_t compost_organism_step(
     if (status != COMPOST_STATUS_OK) {
         return status;
     }
+    const uint64_t lifecycle_mass_before = next.body.structural_mass;
+    const uint64_t lifecycle_resorptions_before = next.activity.counters.resorption_events;
     status = compost_organism_consolidate(
         &next,
         next.config.composite_maintenance,
@@ -1614,6 +1691,25 @@ compost_status_t compost_organism_step(
         return status;
     }
     status = compost_organism_maintenance(&next, &next_result.maintenance);
+    if (status != COMPOST_STATUS_OK) {
+        return status;
+    }
+    compost_activity_counters_t lifecycle_counters = {0};
+    lifecycle_counters.composites_created = next_result.composites_consolidated;
+    if (next.body.structural_mass >= lifecycle_mass_before) {
+        lifecycle_counters.structural_mass_added = next.body.structural_mass - lifecycle_mass_before;
+    } else {
+        lifecycle_counters.structural_mass_lost = lifecycle_mass_before - next.body.structural_mass;
+    }
+    if (next.activity.counters.resorption_events >= lifecycle_resorptions_before) {
+        lifecycle_counters.resorption_events =
+            next.activity.counters.resorption_events - lifecycle_resorptions_before;
+    }
+    status = activity_charge_only(&next.activity, &lifecycle_counters, &DEFAULT_ACTIVITY_COSTS);
+    if (status != COMPOST_STATUS_OK) {
+        return status;
+    }
+    status = settle_activity_debt(&next);
     if (status != COMPOST_STATUS_OK) {
         return status;
     }
