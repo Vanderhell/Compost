@@ -58,9 +58,10 @@ Known limitations:
 - The Python/C differential campaign covers bounded single-organism state and
   selected transactions, not a full population/world snapshot after every
   environment event.
-- Allocation-failure injection, leak tooling beyond sanitizer coverage,
-  integer-extrema campaigns, and serialized snapshot parser fuzzing remain
-  release-gate work.
+- Opaque-context allocation failure is covered, but broader allocation-failure
+  injection for every future/container path, leak tooling beyond sanitizer
+  coverage, integer-extrema campaigns, and serialized snapshot parser fuzzing
+  remain release-gate work.
 - The native parallel runtime is deliberately deferred. Existing Python
   multiprocessing behavior remains the compatibility implementation.
 - Current performance measurements do not establish an end-to-end speedup;
