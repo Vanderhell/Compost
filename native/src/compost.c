@@ -2595,9 +2595,9 @@ compost_status_t compost_organism_select_partition(
 }
 
 static bool local_component_lexicographically_less(
-    const uint8_t labels[COMPOST_MAX_ATOMS],
-    uint8_t left,
-    uint8_t right
+    const uint16_t labels[COMPOST_MAX_ATOMS],
+    uint16_t left,
+    uint16_t right
 )
 {
     for (size_t index = 0U; index < COMPOST_MAX_ATOMS; ++index) {
@@ -2725,9 +2725,9 @@ compost_status_t compost_organism_select_local_reproduction(
         for (size_t member = 0U; member < COMPOST_MAX_ATOMS; ++member) {
             unseen[member] = active[member] && member != boundary;
         }
-        uint8_t component_labels[COMPOST_MAX_ATOMS];
+        uint16_t component_labels[COMPOST_MAX_ATOMS];
         for (size_t index = 0U; index < COMPOST_MAX_ATOMS; ++index) {
-            component_labels[index] = UINT8_MAX;
+            component_labels[index] = UINT16_MAX;
         }
         size_t component_sizes[COMPOST_MAX_ATOMS] = {0U};
         size_t component_count = 0U;
@@ -2748,7 +2748,7 @@ compost_status_t compost_organism_select_local_reproduction(
             unseen[seed] = false;
             while (head < tail) {
                 const size_t current = queue[head++];
-                component_labels[current] = (uint8_t)component_count;
+                component_labels[current] = (uint16_t)component_count;
                 ++component_sizes[component_count];
                 for (size_t neighbour = 0U; neighbour < COMPOST_MAX_ATOMS; ++neighbour) {
                     if (unseen[neighbour] && adjacency[current][neighbour]) {
@@ -2769,7 +2769,7 @@ compost_status_t compost_organism_select_local_reproduction(
                 const bool before = component_sizes[value] < component_sizes[previous] ||
                     (component_sizes[value] == component_sizes[previous] &&
                      local_component_lexicographically_less(
-                         component_labels, (uint8_t)value, (uint8_t)previous
+                         component_labels, (uint16_t)value, (uint16_t)previous
                      ));
                 if (!before) break;
                 order[right] = previous;
@@ -2782,7 +2782,7 @@ compost_status_t compost_organism_select_local_reproduction(
             bool selected[COMPOST_MAX_ATOMS] = {false};
             size_t selected_atoms = 0U;
             for (size_t member = 0U; member < COMPOST_MAX_ATOMS; ++member) {
-                selected[member] = component_labels[member] == (uint8_t)component;
+                selected[member] = component_labels[member] == (uint16_t)component;
                 if (selected[member]) ++selected_atoms;
             }
             const size_t child_items = local_reproduction_child_item_count(organism, selected);

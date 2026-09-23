@@ -1,5 +1,6 @@
 #include "compost/compost.h"
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -319,5 +320,27 @@ int main(void)
         return fail("zero reserve rollback");
     }
     compost_organism_destroy(&zero_reserve);
+
+    compost_organism_t *isolated = calloc(1U, sizeof(*isolated));
+    uint8_t isolated_atoms[COMPOST_MAX_ATOMS] = {0U};
+    size_t isolated_count = 99U;
+    if (isolated == NULL || compost_organism_init(isolated, &config, NULL, UINT64_C(60)) != COMPOST_STATUS_OK) {
+        free(isolated);
+        return fail("isolated setup");
+    }
+    isolated->reserve = 100.0;
+    isolated->config.reproduction_minimum_body = 1U;
+    for (size_t index = 0U; index < COMPOST_MAX_ATOMS; ++index) {
+        add_atom(isolated, index, (uint8_t)index);
+    }
+    if (compost_organism_select_local_reproduction(
+            isolated, isolated_atoms, COMPOST_MAX_ATOMS, &isolated_count
+        ) != COMPOST_STATUS_INVALID_STATE || isolated_count != 0U) {
+        compost_organism_destroy(isolated);
+        free(isolated);
+        return fail("maximum isolated local reproduction");
+    }
+    compost_organism_destroy(isolated);
+    free(isolated);
     return 0;
 }
