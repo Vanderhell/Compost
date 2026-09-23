@@ -872,6 +872,53 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                 else:
                     self.fail("Python live_step did not emit a division trace")
 
+    def test_python_sandbox_trace_campaign_replays_parent_and_children(self) -> None:
+        config = LifecycleConfig(boundary_ratio_limit=0.5, birth_reserve=10.0)
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = SandboxRuntime(Path(directory) / "sandbox", block_size=2)
+            (runtime.inbox / "payload.bin").write_bytes(bytes((4, 5)) * 256)
+            root = AutonomousOrganism(config=config)
+            runtime.organisms.append(root)
+            with NativePopulationBackend(self.library_path, organism_ids=(0,), config=config) as population:
+                native_ids = {root.name: 0}
+                for epoch in range(32):
+                    traces: dict[int, tuple[NativeAction, ...]] = {}
+                    for organism in tuple(runtime.organisms):
+                        if not organism.alive:
+                            continue
+                        native_id = native_ids[organism.name]
+                        trace: list[NativeAction] = []
+                        organism.live_step(runtime, action_trace=trace)
+                        traces[native_id] = tuple(trace)
+                        division = next(
+                            (action for action in trace if action.kind is NativeActionKind.DIVISION),
+                            None,
+                        )
+                        if division is not None:
+                            child = organism.children[-1]
+                            native_ids[child.name] = division.child_id
+                    population.replay_action_traces(traces)
+                    for organism in tuple(runtime.organisms):
+                        native_id = native_ids.get(organism.name)
+                        if native_id is None or native_id not in population.organism_ids:
+                            continue
+                        native = population.snapshot(native_id)
+                        prefix = f"sandbox trace epoch {epoch} organism {organism.name}"
+                        self.assertEqual(native["status"], 0 if organism.alive else 1, prefix)
+                        self.assertEqual(native["age_in_cycles"], organism.body.age_in_cycles, prefix)
+                        self.assertEqual(native["body"]["structural_mass"], organism.body.full_body_mass(), prefix)
+                        self.assertEqual(native["body"]["atom_count"], len(organism.body.atoms), prefix)
+                        self.assertEqual(native["body"]["relation_count"], len(organism.body.relations), prefix)
+                        self.assertEqual(native["body"]["composite_count"], len(organism.body.composites), prefix)
+                        self.assertAlmostEqual(native["reserve"], organism.body.reserve, places=12, msg=prefix)
+                    for organism_name, native_id in tuple(native_ids.items()):
+                        if native_id not in population.organism_ids:
+                            continue
+                        if population.snapshot(native_id)["status"] == 1:
+                            population.take_corpse(native_id)
+                            del native_ids[organism_name]
+                    population.verify_material_conservation()
+
     def test_backend_selector_exposes_native_population_without_fallback(self) -> None:
         backend = create_backend(
             "native-population", library=self.library_path, organism_ids=(0, 1)
