@@ -59,6 +59,9 @@ valid division child and verifies `COMPOST_STATUS_OUT_OF_MEMORY`, a null child
 handle, and unchanged parent state digest.
 The nested division fixture also accepts `UINT64_MAX` as a child identity and
 checks its parent, generation, territory, and conservation state.
+The dense cross-split division fixture passes a current GCC 13.3
+AddressSanitizer/UndefinedBehaviorSanitizer targeted run (`1/1`, `0.09s`) with
+no diagnostics.
 Invalid `try_divide` handles are checked to preserve all caller output sentinels.
 
 ## Outstanding evidence
