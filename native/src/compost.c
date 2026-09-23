@@ -2204,17 +2204,6 @@ static compost_status_t remove_weakest_for_capacity(
 )
 {
     compost_structure_t *best = NULL;
-    for (size_t collection = 0U; collection < 2U; ++collection) {
-        compost_structure_t *structures = collection == 0U ? organism->composites : organism->relations;
-        const size_t count = collection == 0U ? COMPOST_MAX_COMPOSITES : COMPOST_MAX_RELATIONS;
-        for (size_t index = 0U; index < count; ++index) {
-            compost_structure_t *candidate = &structures[index];
-            bool critical = false;
-            if (!candidate->occupied ||
-                critical_bridge(organism, candidate, &critical) != COMPOST_STATUS_OK || critical) continue;
-            if (weaker(candidate, best)) best = candidate;
-        }
-    }
     for (size_t index = 0U; index < COMPOST_MAX_ATOMS; ++index) {
         compost_structure_t *candidate = &organism->atoms[index];
         if (!candidate->occupied) continue;
@@ -2231,6 +2220,21 @@ static compost_status_t remove_weakest_for_capacity(
             }
         }
         if (!supported && weaker(candidate, best)) best = candidate;
+    }
+    for (size_t collection = 0U; collection < 2U; ++collection) {
+        compost_structure_t *structures = collection == 0U ? organism->composites : organism->relations;
+        const size_t count = collection == 0U ? COMPOST_MAX_COMPOSITES : COMPOST_MAX_RELATIONS;
+        for (size_t index = 0U; index < count; ++index) {
+            compost_structure_t *candidate = &structures[index];
+            bool critical = false;
+            /* Preserve an isolated atom selected by the Python-compatible
+             * candidate ordering; later relation candidates must not replace
+             * it during this single pressure transaction. */
+            if (best != NULL && best->kind == COMPOST_STRUCTURE_ATOM) continue;
+            if (!candidate->occupied ||
+                critical_bridge(organism, candidate, &critical) != COMPOST_STATUS_OK || critical) continue;
+            if (weaker(candidate, best)) best = candidate;
+        }
     }
     if (best == NULL) return COMPOST_STATUS_INVALID_STATE;
     const compost_structure_kind_t kind = best->kind;
