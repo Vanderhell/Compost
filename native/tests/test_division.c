@@ -82,6 +82,9 @@ int main(void)
         compost_organism_destroy(&parent);
         return fail("division viability plan");
     }
+    const uint64_t structural_created_before =
+        parent.material_flow.structural_created_mass +
+        parent.material_flow.structural_transferred_in;
     uint8_t selected[COMPOST_MAX_ATOMS] = {0};
     size_t selected_count = 0U;
     double selected_ratio = 0.0;
@@ -101,6 +104,10 @@ int main(void)
         parent.gut_count != 1U || parent.material_flow.resorbed_mass != UINT64_C(4) ||
         parent.material_flow.structural_transferred_out != UINT64_C(7) ||
         child.material_flow.structural_transferred_in != UINT64_C(7) ||
+        structural_created_before !=
+            (parent.body.structural_mass - UINT64_C(256)) +
+            (child.body.structural_mass - UINT64_C(256)) +
+            parent.material_flow.resorbed_mass ||
         compost_organism_verify_material_conservation(&parent) != COMPOST_STATUS_OK ||
         compost_organism_verify_material_conservation(&child) != COMPOST_STATUS_OK) {
         compost_organism_destroy(&child);
