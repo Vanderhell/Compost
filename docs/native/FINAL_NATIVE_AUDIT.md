@@ -30,8 +30,8 @@ Differential cases:
 external-gut, environment corpse-energy credit, partition transaction,
 atomic division-boundary, step-plus-division lifecycle, territory predicate,
 deterministic FOOD block-key, two-organism population, and population child
-registration comparisons. The latest WSL GCC DLL run completed in 6.670s;
-the current MSVC DLL run completed in 5.925s.
+registration comparisons. The latest MSVC DLL run completed in 6.01s; the
+earlier WSL GCC DLL run completed in 6.670s.
 
 Long-run steps:
 `1,000,000` single-organism Python/native steps pass with zero divergences in
