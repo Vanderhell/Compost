@@ -307,6 +307,25 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                 native_population.verify_material_conservation()
                 reference.result.cycles += 1
 
+    def test_native_population_registers_division_child(self) -> None:
+        config = LifecycleConfig(boundary_ratio_limit=0.5, birth_reserve=10.0)
+        with NativePopulationBackend(
+            self.library_path, organism_ids=(0,), config=config
+        ) as population:
+            result = population.step(
+                {0: (b"\x04\x05", (1.0, 1.0))}, child_ids={0: 1}
+            )
+            self.assertEqual(result[0]["child_id"], 1)
+            self.assertEqual(population.organism_ids, (0, 1))
+            parent = population.snapshot(0)
+            child = population.snapshot(1)
+            self.assertEqual(parent["cursor"], 2)
+            self.assertEqual(child["cursor"], 2)
+            self.assertEqual(child["parent_id"], 0)
+            self.assertTrue(child["has_parent"])
+            self.assertEqual(child["reserve"], 0.0)
+            population.verify_material_conservation()
+
     def test_native_backend_rejects_unrepresented_scheduling_config(self) -> None:
         with self.assertRaises(NativeBackendError):
             NativeBackend(
