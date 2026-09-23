@@ -18,7 +18,7 @@ CI: PASS
 Documentation: PASS
 
 Python tests:
-`189 passed, 10 skipped, 3 subtests passed` in the latest complete local run.
+`189 passed, 11 skipped, 3 subtests passed` in the latest complete local run.
 
 Native tests:
 `7/7` CTest tests passed in the current MSVC Release build.
