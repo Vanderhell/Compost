@@ -139,5 +139,36 @@ int main(void)
     }
     compost_destroy(combined_child);
     compost_destroy(combined_context);
+    compost_context_t *rollback_context = NULL;
+    compost_context_t *rollback_child = (compost_context_t *)(uintptr_t)UINTPTR_MAX;
+    compost_cycle_result_t rollback_cycle = {0};
+    compost_division_plan_t rollback_plan = {0};
+    compost_division_result_t rollback_division = {0};
+    rollback_cycle.digestion.consumed_bytes = SIZE_MAX;
+    rollback_plan.candidate_found = true;
+    rollback_division.cross_split_mass = UINT64_C(77);
+    if (compost_create(&division_config, UINT64_C(40), &rollback_context) != COMPOST_STATUS_OK) {
+        return fail("opaque rollback setup");
+    }
+    if (compost_context_digest(rollback_context, &input, &result) != COMPOST_STATUS_OK) {
+        compost_destroy(rollback_context);
+        return fail("opaque rollback seed");
+    }
+    const uint64_t rollback_digest = compost_context_state_digest(rollback_context);
+    if (compost_context_step_and_try_divide(
+            rollback_context, &input, UINT64_C(40), &rollback_child,
+            &rollback_cycle, &rollback_plan, &rollback_division
+        ) != COMPOST_STATUS_INVALID_ARGUMENT ||
+        rollback_child != (compost_context_t *)(uintptr_t)UINTPTR_MAX ||
+        rollback_cycle.digestion.consumed_bytes != SIZE_MAX ||
+        !rollback_plan.candidate_found || rollback_division.cross_split_mass != UINT64_C(77) ||
+        compost_context_state_digest(rollback_context) != rollback_digest) {
+        if (rollback_child != (compost_context_t *)(uintptr_t)UINTPTR_MAX) {
+            compost_destroy(rollback_child);
+        }
+        compost_destroy(rollback_context);
+        return fail("opaque step-and-division rollback");
+    }
+    compost_destroy(rollback_context);
     return 0;
 }
