@@ -124,6 +124,23 @@ int main(void)
     if (compost_config_default(&config) != COMPOST_STATUS_OK) {
         return fail("default config");
     }
+    compost_context_t *invalid_lifecycle_context = NULL;
+    compost_cycle_result_t invalid_lifecycle_result = {0};
+    invalid_lifecycle_result.digestion.consumed_bytes = SIZE_MAX;
+    if (compost_create(&config, UINT64_C(3), &invalid_lifecycle_context) != COMPOST_STATUS_OK) {
+        return fail("invalid lifecycle setup");
+    }
+    const uint64_t invalid_lifecycle_before =
+        compost_context_state_digest(invalid_lifecycle_context);
+    if (compost_context_lifecycle_step(
+            invalid_lifecycle_context, &invalid, &invalid_lifecycle_result
+        ) != COMPOST_STATUS_INVALID_ARGUMENT ||
+        compost_context_state_digest(invalid_lifecycle_context) != invalid_lifecycle_before ||
+        invalid_lifecycle_result.digestion.consumed_bytes != SIZE_MAX) {
+        compost_destroy(invalid_lifecycle_context);
+        return fail("invalid lifecycle rollback");
+    }
+    compost_destroy(invalid_lifecycle_context);
     compost_allocator_t failing_allocator = {
         NULL, always_fail_allocate, always_fail_deallocate
     };
