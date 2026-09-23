@@ -33,13 +33,14 @@ not yet a complete lifecycle engine. The current native-backed differential
 run is green (`50 passed`; the focused oracle/member-weakness validation run
 is `58 passed` including the related Python tests), and the complete Python regression suite is green
 (`244 passed, 3 subtests passed`). The selected partition
-transaction now has a bounded Python/sandbox comparison, but the automatic
-candidate policy is not yet fully integrated. The native checkpoint now
+transaction now has a bounded Python/sandbox comparison, and both native
+reproduction policies are selected by the sandbox adapter and compared with
+the Python child atom set. The native checkpoint now
 includes deterministic starvation removal, dead-step no-ops, and bounded
 external-gut FIFO payload processing, and environment-supplied corpse-energy
-credit; sandbox-level corpse lookup/storage and full division-policy campaign
-remain open, while the validated transient parent/child division action is
-covered separately.
+credit; filesystem environment selection, persistence, and complete event
+ordering remain Python-owned, while native corpse snapshots are checked
+against the Python corpse state at replay epochs.
 
 The campaign also includes a two-organism, 256-cycle population boundary
 case. Python performs deterministic nutrition allocation and supplies each
