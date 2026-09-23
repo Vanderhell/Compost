@@ -57,7 +57,7 @@ clock, spawn threads, or make a scheduling decision based on hash iteration.
   and sandbox-level gut snapshots match per step. The versioned opaque ABI now
   includes bounded external-gut enqueue/process operations, read-only material
   conservation validation, weakest-structure transition, and an atomic
-  deterministic local-reproduction/component selection, `try_divide` and step-plus-division operations;
+  deterministic local-reproduction/component selection, `try_local_reproduction`, `try_divide` and step-plus-division operations;
   native
   failures are not silently downgraded.
 - Automatic metabolic lifecycle scheduling and the complete `live_step` tail
