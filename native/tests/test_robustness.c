@@ -48,6 +48,26 @@ static void probe_deallocate(void *context, void *memory)
     }
 }
 
+typedef struct allocation_limit {
+    size_t allocations;
+    size_t fail_after;
+} allocation_limit_t;
+
+static void *allocate_until_limit(void *context, size_t size)
+{
+    allocation_limit_t *limit = (allocation_limit_t *)context;
+    if (limit->allocations >= limit->fail_after) return NULL;
+    void *memory = malloc(size);
+    if (memory != NULL) ++limit->allocations;
+    return memory;
+}
+
+static void deallocate_until_limit(void *context, void *memory)
+{
+    (void)context;
+    free(memory);
+}
+
 int main(void)
 {
     compost_config_t config = {0};
@@ -109,6 +129,41 @@ int main(void)
         failed_context != NULL) {
         return fail("allocation failure injection");
     }
+    allocation_limit_t limited = {0U, 1U};
+    compost_allocator_t limited_allocator = {
+        &limited, allocate_until_limit, deallocate_until_limit
+    };
+    compost_config_t division_config = config;
+    division_config.boundary_ratio_limit = 0.5;
+    division_config.birth_reserve = 10.0;
+    compost_context_t *failed_child_parent = NULL;
+    compost_context_t *failed_child = (compost_context_t *)(uintptr_t)1U;
+    compost_division_plan_t failed_child_plan = {0};
+    compost_division_result_t failed_child_result = {0};
+    const uint8_t division_food[] = {1U, 2U};
+    const double division_nutrition[] = {1.0, 1.0};
+    const compost_step_input_t division_input = {
+        division_food, division_nutrition, sizeof(division_food)
+    };
+    compost_step_result_t division_digest = {0};
+    if (compost_create_with_allocator(
+            &division_config, &limited_allocator, 8U, &failed_child_parent
+        ) != COMPOST_STATUS_OK ||
+        compost_context_digest(failed_child_parent, &division_input, &division_digest) != COMPOST_STATUS_OK) {
+        compost_destroy(failed_child_parent);
+        return fail("failed-child parent setup");
+    }
+    const uint64_t failed_child_parent_before = compost_context_state_digest(failed_child_parent);
+    if (compost_context_try_divide(
+            failed_child_parent, 9U, &failed_child, &failed_child_plan, &failed_child_result
+        ) != COMPOST_STATUS_OUT_OF_MEMORY ||
+        failed_child != NULL ||
+        compost_context_state_digest(failed_child_parent) != failed_child_parent_before) {
+        compost_destroy(failed_child);
+        compost_destroy(failed_child_parent);
+        return fail("failed-child allocation rollback");
+    }
+    compost_destroy(failed_child_parent);
     allocator_probe_t probe = {0U, 0U};
     compost_allocator_t probe_allocator = {
         &probe, probe_allocate, probe_deallocate
