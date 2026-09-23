@@ -7,10 +7,19 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from mathematical_organism.backend import NativeBackendError, ReferenceBackend, create_backend  # noqa: E402
+import mathematical_organism as compost  # noqa: E402
+from mathematical_organism.backend import (  # noqa: E402
+    NativeBackendError,
+    NativePopulationBackend,
+    ReferenceBackend,
+    create_backend,
+)
 
 
 class BackendSelectionTests(unittest.TestCase):
+    def test_public_package_exports_native_population_backend(self) -> None:
+        self.assertIs(compost.NativePopulationBackend, NativePopulationBackend)
+
     def test_python_backend_is_explicit(self) -> None:
         backend = create_backend("python", payload="AB")
         self.assertIsInstance(backend, ReferenceBackend)

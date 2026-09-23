@@ -10,6 +10,7 @@ from .backend import (
     NativeActionKind,
     NativeBackend,
     NativeBackendError,
+    NativePopulationBackend,
     ReferenceBackend,
     create_backend,
 )
@@ -29,6 +30,7 @@ __all__ = [
     "canonical_state",
     "NativeBackend",
     "NativeBackendError",
+    "NativePopulationBackend",
     "NativeAction",
     "NativeActionKind",
     "ReferenceBackend",
