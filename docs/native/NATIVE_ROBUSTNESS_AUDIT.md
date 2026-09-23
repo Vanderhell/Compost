@@ -13,6 +13,8 @@ The opaque weakest-structure wrapper also preserves caller outputs when its
 handle is invalid, and the Python adapter exposes the same explicit failure.
 The combined step-and-division ABI test verifies that an invalid child identity
 leaves the parent digest and every caller output sentinel unchanged.
+Territory address/contains predicates reject out-of-range depth, null paths,
+and non-binary path bytes without modifying caller outputs.
 The division fixture additionally verifies duplicate/whole-region rejection,
 unchanged parent state, and an untouched child output on failed partition
 calls.
