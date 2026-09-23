@@ -24,6 +24,7 @@ class NativeActionKind(str, Enum):
     """Environment decision which may be applied to one native organism."""
 
     EXTERNAL_GUT = "external_gut"
+    PROCESS_GUT = "process_gut"
     CORPSE_ENERGY = "corpse_energy"
     LIFECYCLE_STEP = "lifecycle_step"
 
@@ -58,6 +59,8 @@ class NativeAction:
             raise ValueError("capacity must be non-negative")
         if not math.isfinite(float(self.energy)) or self.energy < 0.0:
             raise ValueError("energy must be finite and non-negative")
+        if self.kind is NativeActionKind.PROCESS_GUT and (payload or values is not None or self.energy):
+            raise ValueError("gut-processing action cannot carry material or energy fields")
         if self.kind is NativeActionKind.CORPSE_ENERGY and (payload or values is not None or self.capacity):
             raise ValueError("corpse-energy action cannot carry material fields")
         if self.kind is NativeActionKind.LIFECYCLE_STEP and (self.capacity or self.energy):
@@ -76,6 +79,10 @@ class NativeAction:
     @classmethod
     def corpse_energy(cls, energy: float) -> "NativeAction":
         return cls(NativeActionKind.CORPSE_ENERGY, energy=energy)
+
+    @classmethod
+    def process_gut(cls, *, capacity: int) -> "NativeAction":
+        return cls(NativeActionKind.PROCESS_GUT, capacity=capacity)
 
     @classmethod
     def lifecycle_step(
@@ -487,6 +494,9 @@ class NativeBackend:
             raise TypeError("action must be a NativeAction")
         if action.kind is NativeActionKind.EXTERNAL_GUT:
             self.enqueue_external(action.payload, action.nutrition)
+            result = self.process_gut(action.capacity)
+            return {"kind": action.kind.value, **result}
+        if action.kind is NativeActionKind.PROCESS_GUT:
             result = self.process_gut(action.capacity)
             return {"kind": action.kind.value, **result}
         if action.kind is NativeActionKind.CORPSE_ENERGY:

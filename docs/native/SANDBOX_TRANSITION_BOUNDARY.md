@@ -22,7 +22,9 @@ called from Python with all environmental inputs supplied by the host:
 host-side action-plan adapter for these calls. It validates payload lengths,
 finite nutrition, capacities, and energy before touching a native handle. The
 adapter does not select a food source or infer a corpse; it only executes a
-decision already made by the Python host.
+decision already made by the Python host. `PROCESS_GUT` represents the
+backpressure branch where an existing FIFO is processed without claiming a new
+FOOD range.
 
 These slices do not perform filesystem I/O, inspect Python object identity, or
 depend on worker scheduling.

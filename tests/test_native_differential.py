@@ -453,6 +453,22 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                 NativeAction.external_gut(b"A", capacity=-1)
             self.assertEqual(backend.state_digest(), before)
 
+    def test_explicit_process_gut_action_preserves_backpressure_semantics(self) -> None:
+        payload = (1, 2, 1)
+        nutrition = (1.0, 2.0, 3.0)
+        reference = AutonomousOrganism("ORG-ROOT")
+        reference.enqueue_external_material(payload, nutrition)
+        reference.result.available_nutrition_total += sum(nutrition)
+        expected = reference.process_gut(2)
+        with NativeBackend(self.library_path, organism_id=4) as backend:
+            backend.enqueue_external(bytes(payload), nutrition)
+            actual = backend.apply_action(NativeAction.process_gut(capacity=2))
+            self.assertEqual(actual["kind"], "process_gut")
+            self.assertEqual(actual["processed_mass"], expected)
+            self.assertEqual(actual["assimilated_mass"], reference.material_flow.assimilated_mass)
+            self.assertEqual(actual["rejected_mass"], reference.material_flow.rejected_mass)
+            self.assertEqual(len(backend.snapshot()["gut"]), 1)
+
     def test_explicit_corpse_energy_action_matches_oracle(self) -> None:
         reference = AutonomousOrganism("ORG-ROOT")
         with NativeBackend(self.library_path, organism_id=2) as backend:
