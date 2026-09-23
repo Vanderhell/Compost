@@ -121,9 +121,10 @@ int main(void)
     compost_division_result_t grandchild_result = {0};
     const uint8_t nested_region[] = {1U};
     if (compost_organism_partition(
-            &child, &grandchild, UINT64_C(12), nested_region, 1U, 0.0, &grandchild_result
+            &child, &grandchild, UINT64_MAX, nested_region, 1U, 0.0, &grandchild_result
         ) != COMPOST_STATUS_OK ||
-        grandchild.parent_id != UINT64_C(11) || grandchild.generation != UINT64_C(2) ||
+        grandchild.organism_id != UINT64_MAX || grandchild.parent_id != UINT64_C(11) ||
+        grandchild.generation != UINT64_C(2) ||
         grandchild.territory.depth != 2U || grandchild.territory.path[0] != UINT8_C(1) ||
         grandchild.territory.path[1] != UINT8_C(1) || child.territory.path[1] != UINT8_C(0) ||
         child.body.atom_count != UINT64_C(1) || grandchild.body.atom_count != UINT64_C(1) ||
