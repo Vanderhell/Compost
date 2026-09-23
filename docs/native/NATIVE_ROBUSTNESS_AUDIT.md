@@ -21,9 +21,9 @@ mass-ledger verification, and a dead-state step no-op with invalid-input
 validation preserved. A critical-bridge fixture verifies that capacity
 pressure rejects a novel structure without breaking the connected skeleton
 and still accounts for the rejected byte.
-The native source also passes the strict Clang C17 object compilation with the
-MinGW target; a complete Clang link/test run remains unavailable because the
-standalone Windows Clang environment lacks the required CRT libraries.
+The native source also passes a complete Linux Clang Release link and CTest
+run with warnings-as-errors enabled; standalone Windows Clang remains limited
+by the unavailable CRT libraries.
 
 The deterministic C fuzz target executes 10,000 generated public-API cases,
 including NaN inputs and invalid pointer/length combinations, and checks state

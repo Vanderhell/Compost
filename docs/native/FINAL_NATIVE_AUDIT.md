@@ -45,10 +45,10 @@ GCC 13.3 Debug sanitizer build and test pass; the native C fuzz target covers
 10,000 deterministic public-API cases.
 
 Clang result:
-Strict C17 object compilation with `-Wall -Wextra -Wpedantic -Wconversion
--Wsign-conversion -Wshadow` passes for the MinGW target. A complete standalone
-Windows Clang link/test run remains unavailable because its CRT libraries are
-not installed.
+Linux Clang Release `-Werror` build and full CTest pass (`7/7`, 9.93s) with
+`-Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Wshadow` enabled.
+The standalone Windows Clang CRT limitation remains irrelevant to the Linux
+Clang CI evidence.
 
 Known limitations:
 
