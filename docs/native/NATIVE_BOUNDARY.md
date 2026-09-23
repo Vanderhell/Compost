@@ -45,7 +45,7 @@ clock, spawn threads, or make a scheduling decision based on hash iteration.
   and sandbox-level gut snapshots match per step. The versioned opaque ABI now
   includes bounded external-gut enqueue/process operations, read-only material
   conservation validation, weakest-structure transition, and an atomic
-  deterministic `try_divide` operation;
+  deterministic `try_divide` and step-plus-division operations;
   native
   failures are not silently downgraded.
 - Native multiprocessing and any throughput-oriented parallel mode.
