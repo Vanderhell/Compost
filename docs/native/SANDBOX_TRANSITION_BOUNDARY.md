@@ -63,7 +63,9 @@ live organisms without mutation.
 
 The same one-shot request is returned by `NativeBackend.replay_actions` when a
 single-organism lifecycle trace crosses from alive to dead; a subsequent dead
-no-op carries no repeated request.
+no-op carries no repeated request. `NativeBackend.take_corpse` provides the
+matching ownership transfer for that single handle and rejects live or already
+closed handles.
 
 `AutonomousOrganism.live_step(..., action_trace=...)` can now emit the same
 immutable action forms for replay. The trace is optional and observational;

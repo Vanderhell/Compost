@@ -1037,6 +1037,16 @@ class NativeBackend:
             self._library.compost_destroy(self._context)
             self._context = ctypes.c_void_p()
 
+    def take_corpse(self) -> dict[str, object]:
+        """Transfer a dead snapshot to the host and close this native handle."""
+        if not self._context or not self._context.value:
+            raise NativeBackendError("native backend is closed")
+        snapshot = self.snapshot()
+        if int(snapshot["status"]) != 1:
+            raise NativeBackendError("cannot take corpse from a live organism")
+        self.close()
+        return snapshot
+
     def __enter__(self) -> "NativeBackend":
         return self
 

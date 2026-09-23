@@ -510,6 +510,10 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                 self.assertEqual(dead_result["status_after"], 1)
                 self.assertEqual(dead_result["requests"], ())
                 self.assertEqual(backend.state_digest(), before_dead_step)
+                corpse = backend.take_corpse()
+                self.assertEqual(corpse["status"], 1)
+                with self.assertRaises(NativeBackendError):
+                    backend.snapshot()
 
     def test_sandbox_division_action_replays_parent_and_transient_child(self) -> None:
         config = LifecycleConfig(boundary_ratio_limit=0.5, birth_reserve=10.0)
