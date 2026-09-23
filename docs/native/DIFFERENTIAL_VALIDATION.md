@@ -15,7 +15,7 @@ for the native units that currently have matching Python reference functions:
 
 The test requires `COMPOST_NATIVE_LIBRARY`. If the variable is absent it is
 skipped; if it names a missing file the test fails. There is no silent native
-to Python fallback. The current bounded campaign contains eighteen tests,
+to Python fallback. The current bounded campaign contains nineteen tests,
 including forty deterministic lifecycle replays (10,240 aggregate steps)
 with field-by-field snapshot checks.
 
@@ -39,6 +39,8 @@ organism transition. This validates orchestration at the bounded core boundary,
 not filesystem or native parallel scheduling. The case now runs through the
 reusable `NativePopulationBackend`, including deterministic handle ownership
 and per-organism conservation checks.
+It also verifies child registration and parent/child state after an allowed
+division.
 
 The native-only paired replay test now executes 10,000 deterministic steps and
 compares state digests and step counters after every step. It is a determinism
