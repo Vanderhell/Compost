@@ -542,6 +542,26 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                     for key in sorted(reference_atoms):
                         for actual, expected in zip(native_atoms[key], reference_atoms[key]):
                             self.assertAlmostEqual(actual, expected, places=12, msg=f"{prefix} atom {key}")
+                    for native_field, reference_collection in (
+                        ("relations", organism.relations),
+                        ("composites", organism.composites),
+                    ):
+                        native_structures = {
+                            (chr(left), chr(right)): (strength, maintenance, evidence, income)
+                            for left, right, strength, maintenance, evidence, income
+                            in native[native_field]
+                        }
+                        reference_structures = {
+                            key: (item.strength, item.maintenance, item.evidence, item.income_rate)
+                            for key, item in reference_collection.items()
+                        }
+                        self.assertEqual(set(native_structures), set(reference_structures), prefix)
+                        for key in sorted(reference_structures):
+                            for actual, expected in zip(native_structures[key], reference_structures[key]):
+                                self.assertAlmostEqual(
+                                    actual, expected, places=12,
+                                    msg=f"{prefix} {native_field} {key}",
+                                )
                 native_population.verify_material_conservation()
                 reference.result.cycles += 1
 
