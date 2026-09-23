@@ -15,7 +15,7 @@ for the native units that currently have matching Python reference functions:
 
 The test requires `COMPOST_NATIVE_LIBRARY`. If the variable is absent it is
 skipped; if it names a missing file the test fails. There is no silent native
-to Python fallback. The current bounded campaign contains seventeen tests,
+to Python fallback. The current bounded campaign contains eighteen tests,
 including forty deterministic lifecycle replays (10,240 aggregate steps)
 with field-by-field snapshot checks.
 
@@ -23,7 +23,7 @@ with field-by-field snapshot checks.
 
 The full per-step Python/C campaign is **NOT READY**. The native organism is
 not yet a complete lifecycle engine. The current native-backed Python run is
-green (`16 passed`), and the complete Python regression suite is green
+green (`18 passed`), and the complete Python regression suite is green
 (`189 passed, 16 skipped, 3 subtests passed`). The selected partition
 transaction now has a bounded Python/sandbox comparison, but the automatic
 candidate policy is not yet fully integrated. The native checkpoint now
@@ -31,6 +31,12 @@ includes deterministic starvation removal, dead-step no-ops, and bounded
 external-gut FIFO payload processing, and environment-supplied corpse-energy
 credit; sandbox-level corpse lookup/storage and full division-policy campaign
 remain open.
+
+The campaign also includes a two-organism, four-cycle population boundary
+case. Python performs deterministic nutrition allocation and supplies each
+native handle's ordered bite; native snapshots are compared after every logical
+organism transition. This validates orchestration at the bounded core boundary,
+not filesystem or native parallel scheduling.
 
 The native-only paired replay test now executes 10,000 deterministic steps and
 compares state digests and step counters after every step. It is a determinism

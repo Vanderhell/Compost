@@ -26,11 +26,12 @@ Native tests:
 warnings-as-errors enabled (10.53s); the same suite passed under GCC/WSL.
 
 Differential cases:
-`17` Python/native differential tests pass, including bounded pure-rule,
+`18` Python/native differential tests pass, including bounded pure-rule,
 external-gut, environment corpse-energy credit, partition transaction,
 atomic division-boundary, step-plus-division lifecycle, territory predicate,
-and deterministic FOOD block-key comparisons. The
-current MSVC DLL run completed in 5.802s.
+deterministic FOOD block-key, and two-organism population comparisons. The
+latest WSL GCC DLL run completed in 6.161s; the preceding MSVC DLL run
+covered the first 17 cases in 5.802s.
 
 Long-run steps:
 `1,000,000` single-organism Python/native steps pass with zero divergences in
