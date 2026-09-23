@@ -27,6 +27,7 @@ from .lifecycle import (
     LifecycleConfig, LifecycleEvent, LivingStructure, MathematicalLifeOrganism, OrganismStatus, PopulationResult,
 )
 from .territory import AutonomousTerritoryState, FoodTerritory
+from .backend import NativeAction
 
 
 @dataclass(frozen=True, slots=True)
@@ -432,8 +433,19 @@ class AutonomousOrganism(AutonomousCore):
         weakened, resorbed = self._apply_maintenance_deficit(deficit) if deficit > 0.0 else (0, 0)
         return required, paid, weakened, resorbed
 
-    def live_step(self, sandbox: "SandboxRuntime") -> None:
-        """The organism itself discovers, ingests and immediately continues."""
+    def live_step(
+        self,
+        sandbox: "SandboxRuntime",
+        *,
+        action_trace: list[NativeAction] | None = None,
+    ) -> None:
+        """Discover, ingest, and continue one reference step.
+
+        ``action_trace`` is optional observability for Python/native replay. It
+        records host decisions after the same guards used by the reference
+        implementation; it never supplies a biological decision or filesystem
+        callback to the native core.
+        """
         if not self.alive:
             return
         self.live_steps += 1
@@ -446,6 +458,8 @@ class AutonomousOrganism(AutonomousCore):
         # claim another byte range yet.  This is backpressure, not a second
         # capacity lane: a full gut cannot make a new bite durable early.
         if self.gut_queue:
+            if action_trace is not None:
+                action_trace.append(NativeAction.process_gut(capacity=self.body.bite_limit(self.config)))
             started = perf_counter() if self.hot_metrics is not None else 0.0
             self.process_gut(self.body.bite_limit(self.config))
             if self.hot_metrics is not None:
@@ -462,6 +476,13 @@ class AutonomousOrganism(AutonomousCore):
                 self.hot_metrics.add("read", started)
             try:
                 self.result.available_nutrition_total += len(bite)
+                if action_trace is not None:
+                    action_trace.append(
+                        NativeAction.external_gut(
+                            bite,
+                            capacity=self.body.bite_limit(self.config),
+                        )
+                    )
                 self.enqueue_external_material(bite)
                 self.process_gut(self.body.bite_limit(self.config))
             except Exception:
@@ -484,7 +505,11 @@ class AutonomousOrganism(AutonomousCore):
             break
         if not ate:
             sandbox.refresh_food_sources()
-            self._consume_corpse(sandbox)
+            corpse_energy = self._consume_corpse(sandbox)
+            if action_trace is not None and corpse_energy > 0.0:
+                action_trace.append(NativeAction.corpse_energy(corpse_energy))
+            if action_trace is not None:
+                action_trace.append(NativeAction.process_gut(capacity=self.body.bite_limit(self.config)))
             self.process_gut(self.body.bite_limit(self.config))
             # No clock-based starvation.  An already unpaid maintenance event,
             # however, is real pending biological work and progresses locally.

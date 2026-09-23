@@ -11,6 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from mathematical_organism.lifecycle import LifecycleConfig, LivingStructure, MathematicalLifePopulation  # noqa: E402
+from mathematical_organism.backend import NativeAction  # noqa: E402
 from mathematical_organism.sandbox_runtime import AutonomousOrganism, SandboxObserver, SandboxRuntime  # noqa: E402
 
 
@@ -38,6 +39,17 @@ class SandboxRuntimeTests(unittest.TestCase):
             self.assertIn("local_claim_counter", organism.__dict__)
             self.assertNotIn("population", organism.__dict__)
             self.assertIn("metabolic_progress", organism.__dict__)
+
+    def test_live_step_can_emit_replayable_host_action_trace(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = SandboxRuntime(Path(directory) / "sandbox")
+            organism = runtime.bootstrap()
+            trace: list[NativeAction] = []
+            organism.live_step(runtime, action_trace=trace)
+            self.assertEqual(
+                trace,
+                [NativeAction.process_gut(capacity=organism.body.bite_limit(organism.config))],
+            )
 
     def test_metabolism_is_charged_by_food_volume_not_each_bite(self) -> None:
         organism = AutonomousOrganism(config=LifecycleConfig(metabolic_minimum_work=64))

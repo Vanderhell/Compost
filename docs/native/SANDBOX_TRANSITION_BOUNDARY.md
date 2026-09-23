@@ -47,6 +47,12 @@ actions in ascending numeric organism-ID order. Unknown IDs and invalid action
 objects are rejected before any handle changes; omitted IDs are explicit
 no-ops for that epoch.
 
+`AutonomousOrganism.live_step(..., action_trace=...)` can now emit the same
+immutable action forms for replay. The trace is optional and observational;
+the normal Python step remains unchanged. Metabolic scheduling, division, and
+death are intentionally not represented as complete native actions yet and
+remain the next parity boundary.
+
 ## Remaining transition work
 
 The next safe integration unit is a host-built `live_step` action plan. The
