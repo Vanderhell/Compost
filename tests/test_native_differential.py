@@ -736,6 +736,46 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             self.assertEqual(child_after["reserve"], 0.0)
             self.assertEqual(parent_after["reserve"], result["parent_reserve_after_cost"])
 
+    def test_dense_partition_matches_reference_conservation(self) -> None:
+        payload = b"ABCDEFGH"
+        nutrition = (10.0,) * len(payload)
+        reference = AutonomousOrganism("ORG-DENSE")
+        reference.result.available_nutrition_total += sum(nutrition)
+        reference.enqueue_external_material(tuple(payload), nutrition)
+        reference.process_gut(len(payload))
+        reference_child = reference._commit_skeleton_partition(
+            set(payload[:4]), require_maturity=False
+        )
+        self.assertIsNotNone(reference_child)
+        with NativeBackend(self.library_path, organism_id=12) as backend:
+            backend.digest(payload, nutrition)
+            native_child, native_result = backend.partition(
+                tuple(payload[:4]), child_id=13, birth_cost=1.0
+            )
+            with native_child:
+                native_parent = backend.snapshot()
+                native_child_snapshot = native_child.snapshot()
+        assert reference_child is not None
+        self.assertEqual(
+            native_child_snapshot["body"]["structural_mass"],
+            reference_child.body.full_body_mass(),
+        )
+        self.assertEqual(
+            native_parent["body"]["structural_mass"], reference.body.full_body_mass()
+        )
+        self.assertGreater(native_result["cross_split_mass"], 0)
+        self.assertEqual(native_child_snapshot["reserve"], 0.0)
+        # The reference and native ledgers independently account for every
+        # transferred/resorbed structural unit; no implementation is used as
+        # the other's conservation oracle.
+        self.assertEqual(
+            native_parent["material_flow"]["structural_created_mass"]
+            + native_parent["material_flow"]["structural_transferred_in"],
+            native_parent["body"]["structural_mass"] - 256
+            + native_parent["material_flow"]["resorbed_mass"]
+            + native_parent["material_flow"]["structural_transferred_out"],
+        )
+
     def test_structural_mass_matches_reference(self) -> None:
         for strength in (0.0, 0.25, 1.0, 1.5, 4.0, 8.0, 16.0, 1024.0):
             native_mass = ctypes.c_uint64()
