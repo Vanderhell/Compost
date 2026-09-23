@@ -50,8 +50,6 @@ clock, spawn threads, or make a scheduling decision based on hash iteration.
   failures are not silently downgraded.
 - Native multiprocessing and any throughput-oriented parallel mode.
 - Native physical FOOD storage, filesystem sandboxing, and telemetry.
-- Cryptographic FOOD block-key generation remains Python-owned until a
-  separately specified, portable hash ABI is validated.
 - Porting the legacy graph learner before a compatibility decision and fixtures
   exist for that model.
 - Large-scale allocator optimization, serialization optimization, and SIMD.
