@@ -470,7 +470,7 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                     if not organism.alive:
                         break
                     organism._run_metabolic_step(runtime)
-                    lifecycle_result = backend.lifecycle_step(b"")
+                    lifecycle_result = backend.apply_action(NativeAction.lifecycle_step(b""))
                     native = backend.snapshot()
                     self.assertEqual(
                         native["status"],
@@ -497,12 +497,18 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                         organism.activity_ledger.counters.resorption_events,
                         epoch,
                     )
+                    self.assertEqual(
+                        lifecycle_result["requests"],
+                        ("store_corpse",) if not organism.alive else (),
+                        epoch,
+                    )
                 self.assertFalse(organism.alive)
                 self.assertEqual(backend.snapshot()["status"], 1)
                 before_dead_step = backend.state_digest()
-                dead_result = backend.lifecycle_step(b"")
+                dead_result = backend.apply_action(NativeAction.lifecycle_step(b""))
                 self.assertEqual(dead_result["consumed_bytes"], 0)
                 self.assertEqual(dead_result["status_after"], 1)
+                self.assertEqual(dead_result["requests"], ())
                 self.assertEqual(backend.state_digest(), before_dead_step)
 
     def test_sandbox_division_action_replays_parent_and_transient_child(self) -> None:

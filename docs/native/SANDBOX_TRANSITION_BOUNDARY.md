@@ -61,6 +61,10 @@ territory release, and observer events. `NativePopulationBackend.take_corpse`
 transfers the dead snapshot and closes/removes the native handle; it rejects
 live organisms without mutation.
 
+The same one-shot request is returned by `NativeBackend.replay_actions` when a
+single-organism lifecycle trace crosses from alive to dead; a subsequent dead
+no-op carries no repeated request.
+
 `AutonomousOrganism.live_step(..., action_trace=...)` can now emit the same
 immutable action forms for replay. The trace is optional and observational;
 the normal Python step remains unchanged. The metabolic-progress action

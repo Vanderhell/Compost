@@ -666,7 +666,15 @@ class NativeBackend:
                     "parent_reserve_after_cost": float(result["parent_reserve_after_cost"]),
                 }
         if action.kind is NativeActionKind.LIFECYCLE_STEP:
-            return {"kind": action.kind.value, **self.lifecycle_step(action.payload, action.nutrition)}
+            status_before = int(self.snapshot()["status"])
+            result = self.lifecycle_step(action.payload, action.nutrition)
+            return {
+                "kind": action.kind.value,
+                **result,
+                "requests": ("store_corpse",)
+                if status_before == 0 and int(result["status_after"]) == 1
+                else (),
+            }
         raise NativeBackendError(f"unsupported native action: {action.kind!r}")
 
     def replay_actions(
