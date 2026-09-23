@@ -17,6 +17,9 @@ The Python population orchestrator rejects unknown environment IDs, duplicate
 or colliding child IDs, and reserves automatic IDs before scheduling an epoch.
 It also preflights all bite/nutrition lengths and finite values before the
 first handle mutates, preserving every population snapshot on input failure.
+The explicit `NativeAction` adapter also rejects non-finite energy, mismatched
+nutrition, negative capacities, and irrelevant fields before invoking the ABI;
+the lifecycle action is compared with the direct step call and its state digest.
 Territory address/contains predicates reject out-of-range depth, null paths,
 and non-binary path bytes without modifying caller outputs.
 The bounded food block-key API also rejects null input with a non-zero length

@@ -462,6 +462,30 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             self.assertAlmostEqual(float(actual["credited_energy"]), 2.5, places=12)
             self.assertAlmostEqual(backend.snapshot()["reserve"], reference.body.reserve, places=12)
 
+    def test_explicit_lifecycle_action_matches_step_and_rejects_invalid_plan(self) -> None:
+        payload = b"ABCD"
+        nutrition = (2.0,) * len(payload)
+        with NativeBackend(self.library_path, organism_id=3) as direct, NativeBackend(
+            self.library_path, organism_id=3
+        ) as planned:
+            expected = direct.step(payload, nutrition)
+            actual = planned.apply_action(NativeAction.lifecycle_step(payload, nutrition=nutrition))
+            self.assertEqual(actual["kind"], "lifecycle_step")
+            self.assertEqual(actual["consumed_bytes"], expected["consumed_bytes"])
+            self.assertEqual(actual["assimilated_mass"], expected["assimilated_mass"])
+            self.assertAlmostEqual(
+                float(actual["maintenance_required"]),
+                float(expected["maintenance_required"]),
+                places=12,
+            )
+            self.assertEqual(planned.state_digest(), direct.state_digest())
+            before = planned.state_digest()
+            with self.assertRaises(ValueError):
+                NativeAction.corpse_energy(float("nan"))
+            with self.assertRaises(ValueError):
+                NativeAction.lifecycle_step(payload, nutrition=(1.0,))
+            self.assertEqual(planned.state_digest(), before)
+
     def test_environment_corpse_energy_transfer_matches_oracle(self) -> None:
         reference = AutonomousOrganism("ORG-ROOT")
         reference.body.adjust_reserve(2.5)
