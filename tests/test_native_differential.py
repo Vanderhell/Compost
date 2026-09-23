@@ -18,7 +18,7 @@ from mathematical_organism.biology_rules import (
     maintenance_weakening_budget,
     structural_mass,
 )
-from mathematical_organism.backend import NativeBackend, NativeBackendError, NativePopulationBackend
+from mathematical_organism.backend import NativeBackend, NativeBackendError, NativePopulationBackend, create_backend
 from mathematical_organism.canonical import canonical_digest
 from mathematical_organism.lifecycle import LifecycleConfig, LivingStructure, MathematicalLifeOrganism, MathematicalLifePopulation, OrganismStatus
 from mathematical_organism.sandbox_runtime import AutonomousOrganism
@@ -338,6 +338,16 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             self.assertTrue(child["has_parent"])
             self.assertEqual(child["reserve"], 0.0)
             population.verify_material_conservation()
+
+    def test_backend_selector_exposes_native_population_without_fallback(self) -> None:
+        backend = create_backend(
+            "native-population", library=self.library_path, organism_ids=(0, 1)
+        )
+        self.assertIsInstance(backend, NativePopulationBackend)
+        self.assertEqual(backend.organism_ids, (0, 1))
+        backend.close()
+        with self.assertRaises(NativeBackendError):
+            backend.snapshots()
 
     def test_native_backend_rejects_unrepresented_scheduling_config(self) -> None:
         with self.assertRaises(NativeBackendError):

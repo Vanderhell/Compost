@@ -23,6 +23,10 @@ class BackendSelectionTests(unittest.TestCase):
         with self.assertRaises(NativeBackendError):
             create_backend("native")
 
+    def test_native_population_backend_requires_library(self) -> None:
+        with self.assertRaises(NativeBackendError):
+            create_backend("native-population")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -899,7 +899,7 @@ class ReferenceBackend:
         self.population.cycle()
 
 
-def create_backend(name: str, **kwargs: Any) -> NativeBackend | ReferenceBackend:
+def create_backend(name: str, **kwargs: Any) -> NativeBackend | NativePopulationBackend | ReferenceBackend:
     if name == "native":
         library = kwargs.get("library")
         if library is None:
@@ -907,6 +907,15 @@ def create_backend(name: str, **kwargs: Any) -> NativeBackend | ReferenceBackend
         return NativeBackend(
             library,
             organism_id=int(kwargs.get("organism_id", 0)),
+            config=kwargs.get("config"),
+        )
+    if name == "native-population":
+        library = kwargs.get("library")
+        if library is None:
+            raise NativeBackendError("native-population backend requires an explicit library path")
+        return NativePopulationBackend(
+            library,
+            organism_ids=kwargs.get("organism_ids", (0,)),
             config=kwargs.get("config"),
         )
     if name == "python":
