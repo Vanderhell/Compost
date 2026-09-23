@@ -22,6 +22,8 @@ The explicit `NativeAction` adapter also rejects non-finite energy, mismatched
 nutrition, negative capacities, and irrelevant fields before invoking the ABI;
 the lifecycle action invokes the explicit settlement-aware lifecycle endpoint
 and its state digest is checked by replay tests.
+The native robustness fixture also verifies that invalid lifecycle input leaves
+both the context digest and caller result sentinels unchanged.
 Territory address/contains predicates reject out-of-range depth, null paths,
 and non-binary path bytes without modifying caller outputs.
 The bounded food block-key API also rejects null input with a non-zero length
