@@ -23,7 +23,7 @@ Python tests:
 
 Native tests:
 `7/7` CTest tests passed in the current MSVC 19.42 Release build with
-warnings-as-errors enabled (10.41s); the same suite passed under GCC/WSL.
+warnings-as-errors enabled (10.05s); the same suite passed under GCC/WSL.
 
 Differential cases:
 `20` Python/native differential tests pass, including bounded pure-rule,
@@ -38,7 +38,7 @@ Long-run steps:
 the current ABI v3 replay campaign.
 
 Sanitizer result:
-Current GCC 13.3 under WSL with ASan/UBSan: `7/7` tests passed in `283.29s`,
+Current GCC 13.3 under WSL with ASan/UBSan: `7/7` tests passed in `284.37s`,
 with no sanitizer diagnostics. Windows-mounted filesystem clock-skew warnings
 were observed during the build and were not test or sanitizer failures.
 

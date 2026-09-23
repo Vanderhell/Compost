@@ -42,7 +42,7 @@ division plan, and material result on every case.
 The same seven-test suite was also built and executed from the current tree
 with GCC 13.3 under WSL using AddressSanitizer and UndefinedBehaviorSanitizer
 after the nested division fixture and population validation changes. All seven
-tests passed in `283.29s`; the run emitted no sanitizer diagnostics. The Windows-mounted workspace did emit
+tests passed in `284.37s`; the run emitted no sanitizer diagnostics. The Windows-mounted workspace did emit
 CMake clock-skew warnings caused by filesystem timestamp differences; no test
 or sanitizer failure was associated with those warnings.
 
