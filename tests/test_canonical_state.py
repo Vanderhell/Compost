@@ -16,6 +16,7 @@ from mathematical_organism import (  # noqa: E402
     canonical_digest,
     canonical_state,
 )
+from mathematical_organism.sandbox_runtime import AutonomousOrganism, SandboxRuntime  # noqa: E402
 
 
 class CanonicalStateTests(unittest.TestCase):
@@ -49,6 +50,21 @@ class CanonicalStateTests(unittest.TestCase):
         lifecycle.run(max_cycles=6)
         self.assertEqual(canonical_digest(legacy), canonical_digest(legacy))
         self.assertEqual(canonical_digest(lifecycle), canonical_digest(lifecycle))
+
+    def test_sandbox_transition_digest_is_repeatable(self) -> None:
+        """The reference sandbox transition has a stable behavioral snapshot."""
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as first_root, tempfile.TemporaryDirectory() as second_root:
+            first_runtime = SandboxRuntime(Path(first_root) / "sandbox")
+            second_runtime = SandboxRuntime(Path(second_root) / "sandbox")
+            first = AutonomousOrganism("ORG-ROOT")
+            second = AutonomousOrganism("ORG-ROOT")
+            first_runtime.organisms.append(first)
+            second_runtime.organisms.append(second)
+            first.live_step(first_runtime)
+            second.live_step(second_runtime)
+            self.assertEqual(canonical_digest(first_runtime), canonical_digest(second_runtime))
 
 
 if __name__ == "__main__":
