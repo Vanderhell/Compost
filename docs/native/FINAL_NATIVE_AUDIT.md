@@ -18,7 +18,7 @@ CI: PASS
 Documentation: PASS
 
 Python tests:
-`234 passed, 3 subtests passed` in the latest complete local run with the
+`235 passed, 3 subtests passed` in the latest complete local run with the
 native DLL configured (85.97s).
 
 Native tests:
@@ -27,7 +27,7 @@ width audit and fuzz target enabled (101.31s). Current GCC and Clang strict
 results are recorded below.
 
 Differential cases:
-`41` Python/native differential tests pass, including bounded pure-rule,
+`42` Python/native differential tests pass, including bounded pure-rule,
 external-gut, environment corpse-energy credit, partition transaction,
 atomic division-boundary, step-plus-division lifecycle, territory predicate,
 deterministic FOOD block-key, two-organism population, and population child
