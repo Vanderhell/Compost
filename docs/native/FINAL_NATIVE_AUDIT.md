@@ -73,9 +73,10 @@ Known limitations:
 - Native metabolic threshold/quotient arithmetic, one empty-input
   consolidation/maintenance/age checkpoint are differential-tested, and
   opaque progress accumulation is transactional. Parent/child division is
-  replayable through a transient child snapshot; child registration, corpse
-  handling, and death work for due steps remain outside the native action
-  state machine.
+replayable through a transient child snapshot; child registration, corpse
+handling, and automatic scheduling remain outside the native action state
+machine. The explicit lifecycle endpoint now covers deficit-budget starvation,
+death transition, and terminal dead no-op.
 - Corpse energy credit is exposed as an explicit environment-supplied ABI
   transfer; corpse selection, persistence, and territory lookup remain Python
   responsibilities.

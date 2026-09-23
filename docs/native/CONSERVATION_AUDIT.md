@@ -73,17 +73,20 @@ differential failures can identify the first conservation field.
 
 ## Native status
 
-`NOT READY`: C exposes an independent material-conservation validator and a
+`PARTIAL / NOT READY`: C exposes an independent material-conservation validator and a
 selected-region partition transaction. The transaction transfers internal
 atoms/edges without cloning, routes cross-split edge mass to parent resorption,
 charges parent birth cost, initializes child reserve to zero, splits territory,
 and records transferred mass. GCC/MSVC tests cover cross-split, minimum-body,
 zero-reserve, and transactional-rejection fixtures. The deterministic two-way
 boundary selector and native energy/maintenance viability plan are also ported
-and tested; adversarial breadth beyond these fixtures and Python/C differential
-comparison remain pending, so the native gate is not allowed to pass yet.
+and tested; the independent adversarial partition campaign and bounded Python/C
+differential comparison now pass. The native gate remains open because the
+complete sandbox/world lifecycle and environment-event comparison are not yet
+owned by the C core.
 
-Required native fixtures before integration:
+Required native fixtures before full integration (all currently covered by the
+bounded native campaign):
 
 - minimum body, large body, no composites, many composites;
 - dense and cross-split-heavy graphs;
