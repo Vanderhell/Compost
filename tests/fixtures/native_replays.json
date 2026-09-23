@@ -4,7 +4,7 @@
     "organism_ids": [0, 1],
     "payload_pattern": "AB",
     "payload_repeats": 4096,
-    "cycles": 64,
+    "cycles": 256,
     "boundary_ratio_limit": 0.01
   },
   "single_lifecycle": {

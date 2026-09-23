@@ -38,7 +38,7 @@ external-gut FIFO payload processing, and environment-supplied corpse-energy
 credit; sandbox-level corpse lookup/storage and full division-policy campaign
 remain open.
 
-The campaign also includes a two-organism, sixty-four-cycle population boundary
+The campaign also includes a two-organism, 256-cycle population boundary
 case. Python performs deterministic nutrition allocation and supplies each
 native handle's ordered bite; native snapshots are compared after every logical
 organism transition. This validates orchestration at the bounded core boundary,
