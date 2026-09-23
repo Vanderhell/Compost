@@ -1101,7 +1101,7 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                 self.assertTrue(saw_division)
                 self.assertEqual(
                     division_policies,
-                    {"explicit_partition_fallback"},
+                    {"global_partition_policy"},
                 )
 
     def test_native_sandbox_replay_rejects_orphan_initial_handles(self) -> None:

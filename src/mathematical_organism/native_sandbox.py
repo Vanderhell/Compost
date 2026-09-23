@@ -139,15 +139,29 @@ class NativeSandboxReplay:
             if not isinstance(native_child, dict):
                 # The reference still has a historical deterministic
                 # ``_divide_locally`` path when the weakest-member policy has
-                # no viable component.  Preserve that behavior through the
-                # native partition transaction and make the policy boundary
-                # observable in the result rather than silently changing it.
-                explicit_result = self._population.replay_action_traces(
-                    {organism_id: (division,)}
-                )[organism_id][0]
+                # no viable component. Run that second native policy rather
+                # than replaying the host-selected child atom set.
+                native_result = self._population.try_divide(
+                    organism_id,
+                    child_id=division.child_id,
+                )
+                native_child = native_result["child"]
+                if not isinstance(native_child, dict):
+                    raise RuntimeError(
+                        f"native division policies found no child at epoch {self._epoch}, "
+                        f"organism {organism_id}"
+                    )
+                native_child_atoms = tuple(sorted(int(atom[0]) for atom in native_child["atoms"]))
+                if native_child_atoms != tuple(sorted(division.child_atoms)):
+                    raise RuntimeError(
+                        f"native boundary division diverged at epoch {self._epoch}, "
+                        f"organism {organism_id}: expected child atoms "
+                        f"{tuple(sorted(division.child_atoms))!r}, got {native_child_atoms!r}"
+                    )
                 results.append({
-                    **explicit_result,
-                    "policy": "explicit_partition_fallback",
+                    **native_result,
+                    "kind": "division",
+                    "policy": "global_partition_policy",
                 })
             else:
                 native_child_atoms = tuple(sorted(int(atom[0]) for atom in native_child["atoms"]))

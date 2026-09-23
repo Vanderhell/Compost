@@ -68,10 +68,10 @@ returns deterministic epoch snapshots, and transfers dead handles as corpse
 snapshots. It does not change the default Python runtime or silently fall back
 when native execution fails. For a division trace it first invokes the native
 weakest-member local-reproduction transaction. If that policy reports no
-viable component, the adapter preserves the Python oracle's historical
-`_divide_locally` branch through the explicit native partition transaction and
-labels the result `explicit_partition_fallback`; this is a semantic branch,
-not error recovery.
+viable component, the adapter invokes the native boundary-partition policy
+(`try_divide`) corresponding to the Python oracle's historical
+`_divide_locally` branch and labels the result `global_partition_policy`;
+the host does not supply the selected child atom set.
 
 The same one-shot request is returned by `NativeBackend.replay_actions` when a
 single-organism lifecycle trace crosses from alive to dead; a subsequent dead
@@ -112,10 +112,10 @@ physical-food lifecycle checkpoint remain Python-owned; each supplied action
 is compared after execution against the Python oracle in the differential
 campaign.
 
-Automatic metabolic scheduling remains a separate transaction. Local
-reproduction selection and its no-candidate fallback are now exercised by the
-adapter, while the broader division policy and event ordering remain separate
-until that action-plan comparison covers them. A native
+Automatic metabolic scheduling remains a separate transaction. Both native
+reproduction policies and their deterministic selection are now exercised by
+the adapter, while full event ordering remains separate until that action-plan
+comparison covers it. A native
 `live_step` function must not be introduced before this ordering is frozen.
 
 ## Acceptance rule
