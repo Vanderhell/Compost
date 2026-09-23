@@ -906,6 +906,14 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                         prefix = f"sandbox trace epoch {epoch} organism {organism.name}"
                         self.assertEqual(native["status"], 0 if organism.alive else 1, prefix)
                         self.assertEqual(native["age_in_cycles"], organism.body.age_in_cycles, prefix)
+                        self.assertEqual(native["generation"], organism.body.generation, prefix)
+                        self.assertEqual(native["metabolic_progress"], organism.metabolic_progress, prefix)
+                        self.assertEqual(native["metabolic_steps"], organism.metabolic_steps, prefix)
+                        self.assertEqual(
+                            native["activated_receptors"],
+                            tuple(sorted(organism.body.activated_receptors)),
+                            prefix,
+                        )
                         self.assertEqual(native["body"]["structural_mass"], organism.body.full_body_mass(), prefix)
                         self.assertEqual(native["body"]["atom_count"], len(organism.body.atoms), prefix)
                         self.assertEqual(native["body"]["relation_count"], len(organism.body.relations), prefix)
