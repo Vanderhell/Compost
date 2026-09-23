@@ -23,7 +23,7 @@ native DLL configured (87.25s).
 
 Native tests:
 `8/8` CTest tests passed in the current MSVC 19.42 Debug build with the
-width audit and fuzz target enabled (97.38s). The historical MSVC Release,
+width audit and fuzz target enabled (97.48s). The historical MSVC Release,
 GCC, and Clang evidence below predates the added width test.
 
 Differential cases:
