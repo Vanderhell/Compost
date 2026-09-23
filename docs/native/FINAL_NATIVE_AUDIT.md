@@ -72,11 +72,12 @@ Known limitations:
   orchestration.
 - Native metabolic threshold/quotient arithmetic, one empty-input
   consolidation/maintenance/age checkpoint are differential-tested, and
-  opaque progress accumulation is transactional. Parent/child division is
-replayable through a transient child snapshot; child registration, corpse
-handling, and automatic scheduling remain outside the native action state
-machine. The explicit lifecycle endpoint now covers deficit-budget starvation,
-death transition, and terminal dead no-op.
+  opaque progress accumulation is transactional. Single-organism replay uses
+  a transient division child, while the population adapter retains explicit
+  child handles. Both adapters expose corpse requests and dead-snapshot
+  transfer; automatic scheduling and complete sandbox event ordering remain
+  outside the native action state machine. The explicit lifecycle endpoint now
+  covers deficit-budget starvation, death transition, and terminal dead no-op.
 - Corpse energy credit is exposed as an explicit environment-supplied ABI
   transfer; corpse selection, persistence, and territory lookup remain Python
   responsibilities.
