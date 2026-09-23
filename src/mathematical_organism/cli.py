@@ -52,7 +52,7 @@ def _legacy_main(argv: Sequence[str] | None = None) -> int:
             )
 
     if args.json:
-        print(json.dumps(organism.snapshot(), indent=2, sort_keys=True))
+        print(json.dumps(_json_safe(organism.snapshot()), indent=2, sort_keys=True))
     else:
         print(f"audit_sha256={organism.audit.digest()}")
     return 0
@@ -67,6 +67,19 @@ def _fmt_bytes(value: float | int | None) -> str:
             return f"{int(amount)} B" if unit == "B" else f"{amount:.2f} {unit}"
         amount /= 1024.0
     return f"{amount:.2f} GiB"
+
+
+def _json_safe(value: object) -> object:
+    """Convert opaque snapshot containers to deterministic JSON values."""
+    if isinstance(value, bytes):
+        return value.hex()
+    if isinstance(value, tuple):
+        return [_json_safe(item) for item in value]
+    if isinstance(value, list):
+        return [_json_safe(item) for item in value]
+    if isinstance(value, dict):
+        return {key: _json_safe(item) for key, item in value.items()}
+    return value
 
 
 def _print_sandbox_snapshot(snapshot: dict[str, object], *, include_organisms: bool = True, organism_limit: int | None = 16) -> None:
@@ -165,7 +178,7 @@ def _public_main(argv: Sequence[str]) -> int:
                 backend.population.cycle()  # type: ignore[union-attr]
             result = {"backend": "python", "steps": args.steps, "snapshot": backend.population.snapshot()}  # type: ignore[union-attr]
         if args.json:
-            print(json.dumps(result, indent=2, sort_keys=True))
+            print(json.dumps(_json_safe(result), indent=2, sort_keys=True))
         else:
             print(f"CHECKPOINT backend={result['backend']} steps={args.steps}")
         return 0
