@@ -380,6 +380,32 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                         step,
                     )
 
+    def test_low_reserve_lifecycle_trace_replays_maintenance_pressure(self) -> None:
+        config = LifecycleConfig(birth_reserve=0.0)
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = SandboxRuntime(Path(directory) / "sandbox", block_size=4)
+            (runtime.inbox / "payload.bin").write_bytes(b"ABCD" * 128)
+            organism = AutonomousOrganism(config=config)
+            runtime.organisms.append(organism)
+            with NativeBackend(self.library_path, organism_id=81, config=config) as backend:
+                for step in range(64):
+                    trace: list[NativeAction] = []
+                    organism.live_step(runtime, action_trace=trace)
+                    backend.replay_actions(trace)
+                    native = backend.snapshot()
+                    self.assertEqual(native["status"], 0 if organism.alive else 1, step)
+                    self.assertEqual(
+                        native["body"]["structural_mass"],
+                        organism.body.full_body_mass(),
+                        f"step {step} trace={[action.kind.value for action in trace]} "
+                        f"native atoms={native['atoms']} native relations={native['relations']} "
+                        f"python atoms={tuple(organism.body.atoms)} python relations={tuple(organism.body.relations)}",
+                    )
+                    self.assertEqual(native["body"]["atom_count"], len(organism.body.atoms), step)
+                    self.assertEqual(native["body"]["relation_count"], len(organism.body.relations), step)
+                    self.assertEqual(native["body"]["composite_count"], len(organism.body.composites), step)
+                    self.assertAlmostEqual(native["reserve"], organism.body.reserve, places=12, msg=step)
+
     def test_sandbox_division_action_replays_parent_and_transient_child(self) -> None:
         config = LifecycleConfig(boundary_ratio_limit=0.5, birth_reserve=10.0)
         with tempfile.TemporaryDirectory() as directory:
