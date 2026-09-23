@@ -62,3 +62,6 @@ depend on internal organism layout.
 The Python adapter forwards the lifecycle fields represented by the native
 configuration; Python-only bite and metabolic scheduling fields remain outside
 this checkpoint ABI until their native semantics are migrated.
+If a Python-only scheduling field differs from its reference default, the
+adapter rejects the configuration explicitly instead of silently changing
+native behavior.

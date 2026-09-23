@@ -237,6 +237,18 @@ class NativeBackend:
         self._check(status, "compost_config_default")
         if lifecycle_config is not None:
             lifecycle_config.validate()
+            native_defaults = LifecycleConfig()
+            unsupported = (
+                "bite_minimum", "metabolic_minimum_work", "novelty_affinity",
+            )
+            if any(
+                getattr(lifecycle_config, field) != getattr(native_defaults, field)
+                for field in unsupported
+            ):
+                raise NativeBackendError(
+                    "native backend does not yet represent Python scheduling fields: "
+                    + ", ".join(unsupported)
+                )
             for field in (
                 "atom_income", "relation_income", "composite_income",
                 "atom_maintenance", "relation_maintenance", "composite_maintenance",

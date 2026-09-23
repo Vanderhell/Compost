@@ -190,6 +190,13 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                 child.verify_material_conservation()
                 self.assertEqual(child.snapshot()["reserve"], 0.0)
 
+    def test_native_backend_rejects_unrepresented_scheduling_config(self) -> None:
+        with self.assertRaises(NativeBackendError):
+            NativeBackend(
+                self.library_path,
+                config=LifecycleConfig(metabolic_minimum_work=32),
+            )
+
     def test_public_python_adapter_runs_native_external_gut_fifo(self) -> None:
         with NativeBackend(self.library_path, organism_id=100) as backend:
             backend.enqueue_external(b"\x01\x02\x01", (1.0, 2.0, 3.0))
