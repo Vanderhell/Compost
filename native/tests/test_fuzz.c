@@ -104,6 +104,33 @@ int main(void)
             compost_organism_destroy(&second);
             return fail("deterministic combined-ABI fuzz case");
         }
+        const uint64_t amount = (uint64_t)next_value(&random_state);
+        const uint64_t minimum_work = (uint64_t)(next_value(&random_state) % UINT32_C(128)) + 1U;
+        const uint64_t body_size = (uint64_t)(next_value(&random_state) % UINT32_C(256));
+        uint64_t first_due = UINT64_C(0xA5A5A5A5);
+        uint64_t second_due = UINT64_C(0xA5A5A5A5);
+        uint64_t first_remaining = UINT64_C(0x5A5A5A5A);
+        uint64_t second_remaining = UINT64_C(0x5A5A5A5A);
+        const uint64_t first_metabolic_before = compost_context_state_digest(first_context);
+        const uint64_t second_metabolic_before = compost_context_state_digest(second_context);
+        const compost_status_t first_metabolic_status = compost_context_accumulate_metabolic_progress(
+            first_context, amount, minimum_work, body_size, &first_due, &first_remaining
+        );
+        const compost_status_t second_metabolic_status = compost_context_accumulate_metabolic_progress(
+            second_context, amount, minimum_work, body_size, &second_due, &second_remaining
+        );
+        if (first_metabolic_status != second_metabolic_status ||
+            first_due != second_due || first_remaining != second_remaining ||
+            compost_context_state_digest(first_context) != compost_context_state_digest(second_context) ||
+            (first_metabolic_status != COMPOST_STATUS_OK &&
+             (compost_context_state_digest(first_context) != first_metabolic_before ||
+              compost_context_state_digest(second_context) != second_metabolic_before))) {
+            compost_destroy(second_context);
+            compost_destroy(first_context);
+            compost_organism_destroy(&first);
+            compost_organism_destroy(&second);
+            return fail("deterministic metabolic accounting fuzz case");
+        }
         compost_destroy(second_child);
         compost_destroy(first_child);
     }
