@@ -503,6 +503,12 @@ compost_status_t compost_context_step(
     const compost_step_input_t *input,
     compost_cycle_result_t *result
 );
+/* Runs the sandbox lifecycle checkpoint, including activity-debt settlement. */
+compost_status_t compost_context_lifecycle_step(
+    compost_context_t *context,
+    const compost_step_input_t *input,
+    compost_cycle_result_t *result
+);
 /*
  * Runs one deterministic step and then the native division policy. The whole
  * transition is transactional on hard failure: parent and output arguments

@@ -443,6 +443,22 @@ compost_status_t compost_context_step(
     return compost_organism_step(&context->organism, input, result);
 }
 
+compost_status_t compost_context_lifecycle_step(
+    compost_context_t *context,
+    const compost_step_input_t *input,
+    compost_cycle_result_t *result
+)
+{
+    if (context == NULL || input == NULL || result == NULL) return COMPOST_STATUS_INVALID_ARGUMENT;
+    compost_context_t next = *context;
+    compost_status_t status = compost_organism_step(&next.organism, input, result);
+    if (status != COMPOST_STATUS_OK) return status;
+    status = settle_activity_debt(&next.organism);
+    if (status != COMPOST_STATUS_OK) return status;
+    *context = next;
+    return COMPOST_STATUS_OK;
+}
+
 compost_status_t compost_context_step_and_try_divide(
     compost_context_t *context,
     const compost_step_input_t *input,
@@ -1706,10 +1722,6 @@ compost_status_t compost_organism_step(
             next.activity.counters.resorption_events - lifecycle_resorptions_before;
     }
     status = activity_charge_only(&next.activity, &lifecycle_counters, &DEFAULT_ACTIVITY_COSTS);
-    if (status != COMPOST_STATUS_OK) {
-        return status;
-    }
-    status = settle_activity_debt(&next);
     if (status != COMPOST_STATUS_OK) {
         return status;
     }

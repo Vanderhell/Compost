@@ -437,6 +437,10 @@ class NativeBackend:
         library.compost_metabolic_schedule.restype = ctypes.c_int
         library.compost_context_step.argtypes = [ctypes.c_void_p, ctypes.POINTER(_Input), ctypes.POINTER(_CycleResult)]
         library.compost_context_step.restype = ctypes.c_int
+        library.compost_context_lifecycle_step.argtypes = [
+            ctypes.c_void_p, ctypes.POINTER(_Input), ctypes.POINTER(_CycleResult)
+        ]
+        library.compost_context_lifecycle_step.restype = ctypes.c_int
         library.compost_context_step_and_try_divide.argtypes = [
             ctypes.c_void_p, ctypes.POINTER(_Input), ctypes.c_uint64,
             ctypes.POINTER(ctypes.c_void_p), ctypes.POINTER(_CycleResult),
@@ -647,7 +651,7 @@ class NativeBackend:
                     "parent_reserve_after_cost": float(result["parent_reserve_after_cost"]),
                 }
         if action.kind is NativeActionKind.LIFECYCLE_STEP:
-            return {"kind": action.kind.value, **self.step(action.payload, action.nutrition)}
+            return {"kind": action.kind.value, **self.lifecycle_step(action.payload, action.nutrition)}
         raise NativeBackendError(f"unsupported native action: {action.kind!r}")
 
     def replay_actions(
@@ -791,6 +795,35 @@ class NativeBackend:
         result = _CycleResult()
         status = self._library.compost_context_step(self._context, ctypes.byref(native_input), ctypes.byref(result))
         self._check(status, "compost_context_step")
+        return {
+            "consumed_bytes": int(result.digestion.consumed_bytes),
+            "assimilated_mass": int(result.digestion.assimilated_mass),
+            "rejected_mass": int(result.digestion.rejected_mass),
+            "maintenance_required": float(result.maintenance.required),
+            "maintenance_paid": float(result.maintenance.paid),
+            "maintenance_deficit": float(result.maintenance.deficit),
+            "composites_consolidated": int(result.composites_consolidated),
+            "status_after": int(result.status_after),
+        }
+
+    def lifecycle_step(
+        self, food: bytes | bytearray, nutrition: tuple[float, ...] | None = None
+    ) -> dict[str, float | int]:
+        """Run a sandbox lifecycle checkpoint with activity settlement."""
+        if not self._context or not self._context.value:
+            raise NativeBackendError("native backend is closed")
+        payload = bytes(food)
+        values = tuple(1.0 for _ in payload) if nutrition is None else nutrition
+        if len(values) != len(payload):
+            raise ValueError("food and nutrition lengths differ")
+        food_buffer = (ctypes.c_uint8 * len(payload))(*payload)
+        nutrition_buffer = (ctypes.c_double * len(values))(*values)
+        native_input = _Input(food_buffer, nutrition_buffer, len(payload))
+        result = _CycleResult()
+        status = self._library.compost_context_lifecycle_step(
+            self._context, ctypes.byref(native_input), ctypes.byref(result)
+        )
+        self._check(status, "compost_context_lifecycle_step")
         return {
             "consumed_bytes": int(result.digestion.consumed_bytes),
             "assimilated_mass": int(result.digestion.assimilated_mass),
