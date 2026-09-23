@@ -235,6 +235,12 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             self.assertFalse(plan["candidate_found"])
             self.assertFalse(plan["allowed"])
             self.assertEqual(backend.state_digest(), before)
+        with NativePopulationBackend(self.library_path, organism_ids=(101,)) as population:
+            before = population.state_digests()
+            result = population.try_divide(101, child_id=102)
+            self.assertIsNone(result["child"])
+            self.assertEqual(tuple(population.organism_ids), (101,))
+            self.assertEqual(population.state_digests(), before)
 
     def test_local_reproduction_selector_matches_deterministic_component_policy(self) -> None:
         config = LifecycleConfig(reproduction_minimum_body=4, birth_cost=1.0)
