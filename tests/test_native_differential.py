@@ -406,6 +406,51 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                     self.assertEqual(native["body"]["composite_count"], len(organism.body.composites), step)
                     self.assertAlmostEqual(native["reserve"], organism.body.reserve, places=12, msg=step)
 
+    def test_starvation_lifecycle_replay_reaches_matching_death(self) -> None:
+        config = LifecycleConfig(birth_reserve=0.0)
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = SandboxRuntime(Path(directory) / "sandbox", block_size=4)
+            (runtime.inbox / "payload.bin").write_bytes(b"ABCD")
+            organism = AutonomousOrganism(config=config)
+            runtime.organisms.append(organism)
+            with NativeBackend(self.library_path, organism_id=82, config=config) as backend:
+                trace: list[NativeAction] = []
+                organism.live_step(runtime, action_trace=trace)
+                backend.replay_actions(trace)
+                for epoch in range(128):
+                    if not organism.alive:
+                        break
+                    organism._run_metabolic_step(runtime)
+                    lifecycle_result = backend.lifecycle_step(b"")
+                    native = backend.snapshot()
+                    self.assertEqual(
+                        native["status"],
+                        0 if organism.alive else 1,
+                        f"epoch {epoch} native={native['body']} reserve={native['reserve']} "
+                        f"python atoms={tuple(organism.body.atoms)} relations={tuple(organism.body.relations)} "
+                        f"python reserve={organism.body.reserve}",
+                    )
+                    self.assertEqual(native["age_in_cycles"], organism.body.age_in_cycles, epoch)
+                    self.assertEqual(
+                        native["body"]["structural_mass"],
+                        organism.body.full_body_mass(),
+                        f"epoch {epoch} lifecycle={lifecycle_result} native={native['body']} reserve={native['reserve']} python reserve={organism.body.reserve} "
+                        f"python atoms={tuple(organism.body.atoms)} "
+                        f"relations={tuple(organism.body.relations)}",
+                    )
+                    self.assertEqual(native["body"]["atom_count"], len(organism.body.atoms), epoch)
+                    self.assertEqual(native["body"]["relation_count"], len(organism.body.relations), epoch)
+                    self.assertEqual(native["body"]["composite_count"], len(organism.body.composites), epoch)
+                    self.assertAlmostEqual(native["reserve"], organism.body.reserve, places=12, msg=epoch)
+                    self.assertEqual(native["material_flow"]["resorbed_mass"], organism.material_flow.resorbed_mass, epoch)
+                    self.assertEqual(
+                        native["activity"]["counters"]["resorption_events"],
+                        organism.activity_ledger.counters.resorption_events,
+                        epoch,
+                    )
+                self.assertFalse(organism.alive)
+                self.assertEqual(backend.snapshot()["status"], 1)
+
     def test_sandbox_division_action_replays_parent_and_transient_child(self) -> None:
         config = LifecycleConfig(boundary_ratio_limit=0.5, birth_reserve=10.0)
         with tempfile.TemporaryDirectory() as directory:
@@ -812,12 +857,7 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             assert claim is not None
             bite, _context = harness.food.read(claim)
             with NativeBackend(self.library_path, organism_id=0) as backend:
-                native_result = backend.apply_action(
-                    NativeAction.lifecycle_step(
-                        bytes(bite),
-                        nutrition=(1.0,) * len(bite),
-                    )
-                )
+                native_result = backend.step(bytes(bite), (1.0,) * len(bite))
                 reference.cursor += len(bite)
                 harness.population._digest(reference, bite, (1.0,) * len(bite))
                 harness.food.consume(claim)
@@ -893,7 +933,7 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
         with NativeBackend(self.library_path, organism_id=3) as direct, NativeBackend(
             self.library_path, organism_id=3
         ) as planned:
-            expected = direct.step(payload, nutrition)
+            expected = direct.lifecycle_step(payload, nutrition)
             actual = planned.apply_action(NativeAction.lifecycle_step(payload, nutrition=nutrition))
             self.assertEqual(actual["kind"], "lifecycle_step")
             self.assertEqual(actual["consumed_bytes"], expected["consumed_bytes"])
