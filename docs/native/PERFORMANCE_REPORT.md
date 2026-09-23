@@ -61,3 +61,32 @@ This is not a complete simulator comparison: it includes FFI overhead and the
 native checkpoint is still incomplete. It demonstrates that further native
 performance claims require a larger migrated workload and measurement of the
 boundary costs.
+
+## Population checkpoint comparison
+
+The same harness also supports `--population-size` and measures explicit
+ID-ordered population orchestration. The workload below uses four organisms,
+`256` logical steps, three repetitions, one shared `AB` payload on the first
+step, and empty environment inputs thereafter. The first-step nutrition is
+split equally across organisms so the benchmark preserves the Python
+material-conservation invariant.
+
+Reproduction:
+
+```text
+python tools/benchmark_native_backends.py --library <native-library> \
+  --steps 256 --repetitions 3 --population-size 4
+```
+
+Observed on the current MSVC Release DLL:
+
+```text
+reference_population_median_seconds=0.017627700
+native_population_ffi_median_seconds=0.078272500
+reference_population_steps_per_second=14522.598
+native_population_ffi_steps_per_second=3270.625
+```
+
+This is still a bounded checkpoint, not a complete world benchmark. It
+demonstrates that the current Python orchestration and FFI boundary cost more
+than the reference path for this workload; no native speedup claim is made.
