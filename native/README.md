@@ -59,3 +59,6 @@ operations use the opaque context ABI (`compost_create`, `compost_step`,
 `compost_context_partition`, `compost_context_try_divide`, snapshot/digest,
 conservation validation, and destroy); Python does not
 depend on internal organism layout.
+The Python adapter forwards the lifecycle fields represented by the native
+configuration; Python-only bite and metabolic scheduling fields remain outside
+this checkpoint ABI until their native semantics are migrated.

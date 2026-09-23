@@ -174,6 +174,22 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             self.assertFalse(plan["allowed"])
             self.assertEqual(backend.state_digest(), before)
 
+    def test_public_python_adapter_try_divide_commits_allowed_candidate(self) -> None:
+        config = LifecycleConfig(boundary_ratio_limit=0.5, birth_reserve=10.0)
+        with NativeBackend(self.library_path, organism_id=110, config=config) as backend:
+            backend.digest(b"\x04\x05", (1.0, 1.0))
+            child, plan = backend.try_divide(child_id=111)
+            self.assertIsNotNone(child)
+            assert child is not None
+            with child:
+                self.assertTrue(plan["candidate_found"])
+                self.assertTrue(plan["allowed"])
+                self.assertEqual(plan["child_atoms"], (4,))
+                self.assertGreater(plan["division"]["cross_split_mass"], 0)
+                backend.verify_material_conservation()
+                child.verify_material_conservation()
+                self.assertEqual(child.snapshot()["reserve"], 0.0)
+
     def test_public_python_adapter_runs_native_external_gut_fifo(self) -> None:
         with NativeBackend(self.library_path, organism_id=100) as backend:
             backend.enqueue_external(b"\x01\x02\x01", (1.0, 2.0, 3.0))

@@ -18,13 +18,13 @@ CI: PASS
 Documentation: PASS
 
 Python tests:
-`189 passed, 12 skipped, 3 subtests passed` in the latest complete local run.
+`189 passed, 13 skipped, 3 subtests passed` in the latest complete local run.
 
 Native tests:
 `7/7` CTest tests passed in the current MSVC Release build.
 
 Differential cases:
-`12` Python/native differential tests pass, including bounded pure-rule,
+`13` Python/native differential tests pass, including bounded pure-rule,
 external-gut, environment corpse-energy credit, partition transaction, and
 atomic division-boundary comparisons.
 

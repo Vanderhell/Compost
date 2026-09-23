@@ -211,7 +211,13 @@ class NativeBackend:
     ABI_VERSION = 3
     MAX_ATOMS = 256
 
-    def __init__(self, library: str | Path, *, organism_id: int = 0) -> None:
+    def __init__(
+        self,
+        library: str | Path,
+        *,
+        organism_id: int = 0,
+        config: LifecycleConfig | None = None,
+    ) -> None:
         self.library_path = Path(library).resolve()
         if not self.library_path.is_file():
             raise NativeBackendError(f"native library does not exist: {self.library_path}")
@@ -225,11 +231,23 @@ class NativeBackend:
             raise NativeBackendError(
                 f"native library does not provide ABI version {self.ABI_VERSION}: {self.library_path}"
             ) from error
-        config = _Config()
-        status = self._library.compost_config_default(ctypes.byref(config))
+        lifecycle_config = config
+        native_config = _Config()
+        status = self._library.compost_config_default(ctypes.byref(native_config))
         self._check(status, "compost_config_default")
+        if lifecycle_config is not None:
+            lifecycle_config.validate()
+            for field in (
+                "atom_income", "relation_income", "composite_income",
+                "atom_maintenance", "relation_maintenance", "composite_maintenance",
+                "atom_formation_cost", "relation_formation_cost",
+                "consolidation_formation_cost", "birth_cost", "division_horizon",
+                "boundary_ratio_limit", "birth_reserve", "income_decay",
+                "reproduction_minimum_body",
+            ):
+                setattr(native_config, field, getattr(lifecycle_config, field))
         self._context = ctypes.c_void_p()
-        status = self._library.compost_create(ctypes.byref(config), ctypes.c_uint64(organism_id), ctypes.byref(self._context))
+        status = self._library.compost_create(ctypes.byref(native_config), ctypes.c_uint64(organism_id), ctypes.byref(self._context))
         self._check(status, "compost_create")
         if not self._context.value:
             raise NativeBackendError("native create returned a null context")
@@ -603,7 +621,11 @@ def create_backend(name: str, **kwargs: Any) -> NativeBackend | ReferenceBackend
         library = kwargs.get("library")
         if library is None:
             raise NativeBackendError("native backend requires an explicit library path")
-        return NativeBackend(library, organism_id=int(kwargs.get("organism_id", 0)))
+        return NativeBackend(
+            library,
+            organism_id=int(kwargs.get("organism_id", 0)),
+            config=kwargs.get("config"),
+        )
     if name == "python":
         return ReferenceBackend(str(kwargs.get("payload", "")), kwargs.get("config"))
     raise ValueError(f"unknown backend: {name!r}")
