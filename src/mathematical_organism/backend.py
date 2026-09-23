@@ -680,6 +680,7 @@ class NativeBackend:
             self._library.compost_context_snapshot(self._context, ctypes.byref(snapshot)),
             "compost_context_snapshot",
         )
+        metabolic = self.metabolic_snapshot()
         return {
             "abi_version": int(snapshot.abi_version),
             "organism_id": int(snapshot.organism_id),
@@ -690,6 +691,8 @@ class NativeBackend:
             "age_in_cycles": int(snapshot.age_in_cycles),
             "status": int(snapshot.status),
             "reserve": float(snapshot.reserve),
+            "metabolic_progress": metabolic["progress"],
+            "metabolic_steps": metabolic["steps"],
             "body": {
                 "structural_mass": int(snapshot.body.structural_mass),
                 "atom_count": int(snapshot.body.atom_count),

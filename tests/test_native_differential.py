@@ -268,6 +268,19 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             self.assertEqual(results[1], {"kind": "metabolic_progress", "due_steps": 2, "remaining_progress": 0})
             self.assertEqual(backend.metabolic_snapshot(), {"progress": 0, "steps": 2})
 
+    def test_native_snapshot_exposes_replayed_metabolic_state(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = SandboxRuntime(Path(directory) / "sandbox", block_size=4)
+            (runtime.inbox / "payload.bin").write_bytes(b"ABCD" * 32)
+            organism = runtime.bootstrap()
+            trace: list[NativeAction] = []
+            organism.live_step(runtime, action_trace=trace)
+            with NativeBackend(self.library_path, organism_id=0) as backend:
+                backend.replay_actions(trace)
+                snapshot = backend.snapshot()
+                self.assertEqual(snapshot["metabolic_progress"], organism.metabolic_progress)
+                self.assertEqual(snapshot["metabolic_steps"], organism.metabolic_steps)
+
     def test_public_python_adapter_try_divide_commits_allowed_candidate(self) -> None:
         config = LifecycleConfig(boundary_ratio_limit=0.5, birth_reserve=10.0)
         with NativeBackend(self.library_path, organism_id=110, config=config) as backend:
