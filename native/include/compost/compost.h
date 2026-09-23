@@ -172,6 +172,19 @@ typedef struct compost_territory {
     bool alive;
 } compost_territory_t;
 
+/* Pure bounded territory predicates; no filesystem or scheduler access. */
+compost_status_t compost_territory_address_bit(
+    uint64_t address,
+    uint32_t depth,
+    uint8_t *bit
+);
+compost_status_t compost_territory_contains(
+    const uint8_t *path,
+    size_t depth,
+    uint64_t address,
+    bool *contains
+);
+
 typedef enum compost_lifecycle_status {
     COMPOST_LIFECYCLE_ALIVE = 0,
     COMPOST_LIFECYCLE_DEAD = 1

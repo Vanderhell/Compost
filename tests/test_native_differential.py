@@ -23,6 +23,7 @@ from mathematical_organism.canonical import canonical_digest
 from mathematical_organism.lifecycle import LifecycleConfig, LivingStructure, MathematicalLifeOrganism, MathematicalLifePopulation, OrganismStatus
 from mathematical_organism.sandbox_runtime import AutonomousOrganism
 from mathematical_organism.biology_rules import reproduction_allowed
+from mathematical_organism.territory import address_bit
 
 
 class _LazyDelta(ctypes.Structure):
@@ -151,6 +152,15 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             ctypes.c_double, ctypes.c_uint64, ctypes.POINTER(ctypes.c_uint64)
         ]
         cls.library.compost_maintenance_weakening_budget.restype = ctypes.c_int
+        cls.library.compost_territory_address_bit.argtypes = [
+            ctypes.c_uint64, ctypes.c_uint32, ctypes.POINTER(ctypes.c_uint8)
+        ]
+        cls.library.compost_territory_address_bit.restype = ctypes.c_int
+        cls.library.compost_territory_contains.argtypes = [
+            ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t, ctypes.c_uint64,
+            ctypes.POINTER(ctypes.c_bool),
+        ]
+        cls.library.compost_territory_contains.restype = ctypes.c_int
 
     def test_public_python_adapter_runs_native_step(self) -> None:
         with NativeBackend(self.library_path, organism_id=99) as backend:
@@ -484,6 +494,51 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                 self.assertEqual(actual.score, expected.score)
             else:
                 self.assertTrue(actual.score < 0.0)
+
+    def test_territory_predicates_match_reference(self) -> None:
+        addresses = (0, 1, 2, 255, 4096, (1 << 63) - 1, (1 << 64) - 1)
+        for address in addresses:
+            for depth in range(64):
+                actual = ctypes.c_uint8(99)
+                self.assertEqual(
+                    self.library.compost_territory_address_bit(address, depth, ctypes.byref(actual)),
+                    0,
+                )
+                self.assertEqual(actual.value, address_bit(address, depth))
+            path = tuple(address_bit(address, depth) for depth in range(8))
+            path_buffer = (ctypes.c_uint8 * len(path))(*path)
+            contains = ctypes.c_bool(False)
+            self.assertEqual(
+                self.library.compost_territory_contains(
+                    path_buffer, len(path), address, ctypes.byref(contains)
+                ),
+                0,
+            )
+            self.assertTrue(contains.value)
+            opposite = (ctypes.c_uint8 * 1)((path[0] ^ 1))
+            contains.value = True
+            self.assertEqual(
+                self.library.compost_territory_contains(
+                    opposite, 1, address, ctypes.byref(contains)
+                ),
+                0,
+            )
+            self.assertFalse(contains.value)
+        invalid_bit = ctypes.c_uint8(99)
+        self.assertEqual(
+            self.library.compost_territory_address_bit(0, 64, ctypes.byref(invalid_bit)),
+            1,
+        )
+        self.assertEqual(invalid_bit.value, 99)
+        invalid_contains = ctypes.c_bool(True)
+        invalid_path = (ctypes.c_uint8 * 1)(2)
+        self.assertEqual(
+            self.library.compost_territory_contains(
+                invalid_path, 1, 0, ctypes.byref(invalid_contains)
+            ),
+            1,
+        )
+        self.assertTrue(invalid_contains.value)
 
     def test_simple_lifecycle_replay_reports_first_divergent_field(self) -> None:
         payloads = (

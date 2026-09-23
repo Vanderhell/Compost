@@ -72,6 +72,53 @@ static const compost_activity_costs_t DEFAULT_ACTIVITY_COSTS = {
     0.01, 0.10, 0.50, 0.001, 2.0, 0.01
 };
 
+static uint64_t territory_mix64(uint64_t value)
+{
+    value ^= value >> 30U;
+    value *= UINT64_C(0xBF58476D1CE4E5B9);
+    value ^= value >> 27U;
+    value *= UINT64_C(0x94D049BB133111EB);
+    return value ^ (value >> 31U);
+}
+
+compost_status_t compost_territory_address_bit(
+    uint64_t address,
+    uint32_t depth,
+    uint8_t *bit
+)
+{
+    if (bit == NULL || depth >= COMPOST_MAX_TERRITORY_DEPTH) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    const uint64_t salt = (uint64_t)(depth + UINT32_C(1)) * UINT64_C(0x9E3779B97F4A7C15);
+    *bit = (uint8_t)(territory_mix64(address ^ salt) & UINT64_C(1));
+    return COMPOST_STATUS_OK;
+}
+
+compost_status_t compost_territory_contains(
+    const uint8_t *path,
+    size_t depth,
+    uint64_t address,
+    bool *contains
+)
+{
+    if (contains == NULL || depth > COMPOST_MAX_TERRITORY_DEPTH ||
+        (depth > 0U && path == NULL)) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    bool result = true;
+    for (size_t index = 0U; index < depth; ++index) {
+        if (path[index] > UINT8_C(1)) return COMPOST_STATUS_INVALID_ARGUMENT;
+        uint8_t bit = 0U;
+        if (compost_territory_address_bit(address, (uint32_t)index, &bit) != COMPOST_STATUS_OK) {
+            return COMPOST_STATUS_INVALID_ARGUMENT;
+        }
+        if (bit != path[index]) result = false;
+    }
+    *contains = result;
+    return COMPOST_STATUS_OK;
+}
+
 static bool valid_config(const compost_config_t *config)
 {
     return config != NULL &&
