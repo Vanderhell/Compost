@@ -46,6 +46,12 @@ resorbed material already present in the gut. Its verified equation is
 `created = living_after + resorbed`; adding gut mass to `living_after` would
 count the same resorbed material twice.
 
+The native division fixture now checks this equation independently after the
+partition transaction, using parent and child dynamic mass plus parent
+resorption. The `structural_transferred_out` ledger field is intentionally not
+added to this physical equation because the transferred mass is already
+included in the child's dynamic mass.
+
 `tests/test_skeleton_division.py`, `tests/test_structural_mass.py`, and
 `tests/test_material_flow.py` are the current evidence set. The new canonical
 oracle includes structural state and material-flow counters, so future native
