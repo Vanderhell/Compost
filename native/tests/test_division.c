@@ -114,6 +114,31 @@ int main(void)
         compost_organism_destroy(&parent);
         return fail("partition transaction");
     }
+    const uint64_t child_created_before =
+        child.material_flow.structural_created_mass +
+        child.material_flow.structural_transferred_in;
+    compost_organism_t grandchild = {0};
+    compost_division_result_t grandchild_result = {0};
+    const uint8_t nested_region[] = {1U};
+    if (compost_organism_partition(
+            &child, &grandchild, UINT64_C(12), nested_region, 1U, 0.0, &grandchild_result
+        ) != COMPOST_STATUS_OK ||
+        grandchild.parent_id != UINT64_C(11) || grandchild.generation != UINT64_C(2) ||
+        grandchild.territory.depth != 2U || grandchild.territory.path[0] != UINT8_C(1) ||
+        grandchild.territory.path[1] != UINT8_C(1) || child.territory.path[1] != UINT8_C(0) ||
+        child.body.atom_count != UINT64_C(1) || grandchild.body.atom_count != UINT64_C(1) ||
+        child_created_before !=
+            (child.body.structural_mass - UINT64_C(256)) +
+            (grandchild.body.structural_mass - UINT64_C(256)) +
+            child.material_flow.resorbed_mass ||
+        compost_organism_verify_material_conservation(&child) != COMPOST_STATUS_OK ||
+        compost_organism_verify_material_conservation(&grandchild) != COMPOST_STATUS_OK) {
+        compost_organism_destroy(&grandchild);
+        compost_organism_destroy(&child);
+        compost_organism_destroy(&parent);
+        return fail("nested partition transaction");
+    }
+    compost_organism_destroy(&grandchild);
     compost_organism_destroy(&child);
     compost_organism_destroy(&parent);
 
