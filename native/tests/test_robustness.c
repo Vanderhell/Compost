@@ -2,12 +2,26 @@
 
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 static int fail(const char *message)
 {
     (void)fprintf(stderr, "FAIL: %s\n", message);
     return 1;
+}
+
+static void *always_fail_allocate(void *context, size_t size)
+{
+    (void)context;
+    (void)size;
+    return NULL;
+}
+
+static void always_fail_deallocate(void *context, void *memory)
+{
+    (void)context;
+    (void)memory;
 }
 
 int main(void)
@@ -28,6 +42,14 @@ int main(void)
     }
     if (compost_config_default(&config) != COMPOST_STATUS_OK) {
         return fail("default config");
+    }
+    compost_allocator_t failing_allocator = {
+        NULL, always_fail_allocate, always_fail_deallocate
+    };
+    compost_context_t *failed_context = NULL;
+    if (compost_create_with_allocator(&config, &failing_allocator, 2U, &failed_context) != COMPOST_STATUS_OUT_OF_MEMORY ||
+        failed_context != NULL) {
+        return fail("allocation failure injection");
     }
     config.abi_version = UINT32_C(1);
     if (compost_organism_init(&organism, &config, NULL, 3U) != COMPOST_STATUS_INVALID_ARGUMENT) {

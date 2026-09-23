@@ -5,6 +5,7 @@
 #include <string.h>
 
 struct compost_context {
+    compost_allocator_t allocator;
     compost_organism_t organism;
 };
 
@@ -101,18 +102,30 @@ compost_status_t compost_create(
     compost_context_t **context
 )
 {
-    if (context == NULL || !valid_config(config)) {
+    return compost_create_with_allocator(config, NULL, organism_id, context);
+}
+
+compost_status_t compost_create_with_allocator(
+    const compost_config_t *config,
+    const compost_allocator_t *allocator,
+    uint64_t organism_id,
+    compost_context_t **context
+)
+{
+    if (context == NULL || !valid_config(config) || !valid_allocator(allocator)) {
         return COMPOST_STATUS_INVALID_ARGUMENT;
     }
     *context = NULL;
-    compost_context_t *created = malloc(sizeof(*created));
+    const compost_allocator_t effective = effective_allocator(allocator);
+    compost_context_t *created = effective.allocate(effective.context, sizeof(*created));
     if (created == NULL) {
         return COMPOST_STATUS_OUT_OF_MEMORY;
     }
     memset(created, 0, sizeof(*created));
-    const compost_status_t status = compost_organism_init(&created->organism, config, NULL, organism_id);
+    created->allocator = effective;
+    const compost_status_t status = compost_organism_init(&created->organism, config, &effective, organism_id);
     if (status != COMPOST_STATUS_OK) {
-        free(created);
+        effective.deallocate(effective.context, created);
         return status;
     }
     *context = created;
@@ -122,8 +135,9 @@ compost_status_t compost_create(
 void compost_destroy(compost_context_t *context)
 {
     if (context == NULL) return;
+    const compost_allocator_t allocator = context->allocator;
     compost_organism_destroy(&context->organism);
-    free(context);
+    allocator.deallocate(allocator.context, context);
 }
 
 compost_status_t compost_context_snapshot(
@@ -223,11 +237,13 @@ compost_status_t compost_context_partition(
         return COMPOST_STATUS_INVALID_ARGUMENT;
     }
     *child = NULL;
-    compost_context_t *created = malloc(sizeof(*created));
+    const compost_allocator_t allocator = parent->allocator;
+    compost_context_t *created = allocator.allocate(allocator.context, sizeof(*created));
     if (created == NULL) {
         return COMPOST_STATUS_OUT_OF_MEMORY;
     }
     memset(created, 0, sizeof(*created));
+    created->allocator = allocator;
     const compost_status_t status = compost_organism_partition(
         &parent->organism,
         &created->organism,
@@ -1966,7 +1982,7 @@ compost_status_t compost_organism_partition(
         return COMPOST_STATUS_INVALID_STATE;
     }
     compost_organism_t next_parent = *parent;
-    if (compost_organism_init(child, &parent->config, NULL, child_id) != COMPOST_STATUS_OK) {
+    if (compost_organism_init(child, &parent->config, &parent->allocator, child_id) != COMPOST_STATUS_OK) {
         return COMPOST_STATUS_OUT_OF_MEMORY;
     }
     child->parent_id = parent->organism_id;

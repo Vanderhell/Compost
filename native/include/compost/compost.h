@@ -423,6 +423,13 @@ compost_status_t compost_create(
     uint64_t organism_id,
     compost_context_t **context
 );
+/* Uses allocator for opaque context and future owned native containers. */
+compost_status_t compost_create_with_allocator(
+    const compost_config_t *config,
+    const compost_allocator_t *allocator,
+    uint64_t organism_id,
+    compost_context_t **context
+);
 void compost_destroy(compost_context_t *context);
 compost_status_t compost_context_snapshot(
     const compost_context_t *context,
