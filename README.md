@@ -102,11 +102,20 @@ Telemetry is observational and may be eventually consistent while workers run.
 
 ```text
 src/mathematical_organism/  simulator package
+native/                     C17 deterministic core and CTest suite
 tests/                      test suite and fixtures
 tools/                      experiment and diagnostic scripts
 examples/                   small usage example
 experiments/                captured, versioned research runs
+docs/native/                migration boundary, determinism, and audit reports
 ```
+
+The Python implementation remains the behavioral reference oracle. The
+versioned native C ABI is opt-in through the Python `native` and
+`native-population` backends; it currently covers bounded deterministic core
+checkpoints and explicit environment inputs. Filesystem FOOD discovery,
+world/corpse orchestration, telemetry, and the existing parallel runtime
+remain Python responsibilities while native parity is validated.
 
 ## Experiments
 
@@ -128,7 +137,9 @@ python -m pytest
 This remains a research project. Performance scaling and population dynamics
 are active research questions. Results are specific to the implemented rules,
 parameters, and captured inputs; no optimality, security, or scientific proof
-is claimed.
+is claimed. The native migration is not yet a complete replacement for the
+Python sandbox lifecycle; see [`docs/native/FINAL_NATIVE_AUDIT.md`](docs/native/FINAL_NATIVE_AUDIT.md)
+for the current release-readiness verdict.
 
 ## Project status
 
