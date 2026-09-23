@@ -29,14 +29,15 @@ dense cross-split division replay, and field-by-field snapshot checks.
 
 The full per-step Python/C campaign is **NOT READY**. The native organism is
 not yet a complete lifecycle engine. The current native-backed Python run is
-green (`35 passed`), and the complete Python regression suite is green
-(`228 passed, 3 subtests passed`). The selected partition
+green (`36 passed`), and the complete Python regression suite is green
+(`229 passed, 3 subtests passed`). The selected partition
 transaction now has a bounded Python/sandbox comparison, but the automatic
 candidate policy is not yet fully integrated. The native checkpoint now
 includes deterministic starvation removal, dead-step no-ops, and bounded
 external-gut FIFO payload processing, and environment-supplied corpse-energy
 credit; sandbox-level corpse lookup/storage and full division-policy campaign
-remain open.
+remain open, while the validated transient parent/child division action is
+covered separately.
 
 The campaign also includes a two-organism, 256-cycle population boundary
 case. Python performs deterministic nutrition allocation and supplies each
