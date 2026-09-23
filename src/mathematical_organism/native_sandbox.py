@@ -103,7 +103,71 @@ class NativeSandboxReplay:
                     raise RuntimeError(f"Python child already has a native handle: {child.name}")
                 self._native_ids[child.name] = division.child_id
 
-        replayed = self._population.replay_action_traces(traces)
+        # Keep each organism's trace order, but execute a division through the
+        # native reproduction policy.  The Python action remains the oracle:
+        # the selected native child must contain exactly the atoms selected by
+        # that trace, otherwise the first divergent epoch is reported here.
+        replayed: dict[int, tuple[dict[str, object], ...]] = {}
+        for organism_id in sorted(traces):
+            sequence = traces[organism_id]
+            division_index = next(
+                (
+                    index
+                    for index, action in enumerate(sequence)
+                    if action.kind is NativeActionKind.DIVISION
+                ),
+                None,
+            )
+            if division_index is None:
+                replayed[organism_id] = tuple(
+                    self._population.replay_action_traces({organism_id: sequence})[organism_id]
+                )
+                continue
+
+            prefix = sequence[:division_index]
+            results: list[dict[str, object]] = []
+            if prefix:
+                results.extend(
+                    self._population.replay_action_traces({organism_id: prefix})[organism_id]
+                )
+            division = sequence[division_index]
+            native_result = self._population.try_local_reproduction(
+                organism_id,
+                child_id=division.child_id,
+            )
+            native_child = native_result["child"]
+            if not isinstance(native_child, dict):
+                # The reference still has a historical deterministic
+                # ``_divide_locally`` path when the weakest-member policy has
+                # no viable component.  Preserve that behavior through the
+                # native partition transaction and make the policy boundary
+                # observable in the result rather than silently changing it.
+                explicit_result = self._population.replay_action_traces(
+                    {organism_id: (division,)}
+                )[organism_id][0]
+                results.append({
+                    **explicit_result,
+                    "policy": "explicit_partition_fallback",
+                })
+            else:
+                native_child_atoms = tuple(sorted(int(atom[0]) for atom in native_child["atoms"]))
+                if native_child_atoms != tuple(sorted(division.child_atoms)):
+                    raise RuntimeError(
+                        f"native local reproduction diverged at epoch {self._epoch}, "
+                        f"organism {organism_id}: expected child atoms "
+                        f"{tuple(sorted(division.child_atoms))!r}, got {native_child_atoms!r}"
+                    )
+                results.append({
+                    **native_result,
+                    "kind": "division",
+                    "policy": "local_reproduction",
+                })
+            suffix = sequence[division_index + 1 :]
+            if suffix:
+                results.extend(
+                    self._population.replay_action_traces({organism_id: suffix})[organism_id]
+                )
+            replayed[organism_id] = tuple(results)
         snapshots: dict[int, dict[str, object]] = {}
         corpses: dict[int, dict[str, object]] = {}
         for organism_id in self._population.organism_ids:

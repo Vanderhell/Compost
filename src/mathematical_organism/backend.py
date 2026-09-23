@@ -1316,6 +1316,37 @@ class NativePopulationBackend:
             }
         return results
 
+    def try_local_reproduction(
+        self,
+        organism_id: int,
+        *,
+        child_id: int,
+    ) -> dict[str, object]:
+        """Run the native local reproduction policy and retain its child."""
+        if self._closed:
+            raise NativeBackendError("native population backend is closed")
+        if not isinstance(organism_id, int) or organism_id not in self._contexts:
+            raise KeyError(f"unknown organism ID: {organism_id}")
+        if not isinstance(child_id, int) or not 0 <= child_id <= (1 << 64) - 1:
+            raise ValueError("child_id must be an unsigned 64-bit integer")
+        if child_id in self._contexts:
+            raise ValueError(f"division child ID already belongs to the population: {child_id}")
+        child, division = self._contexts[organism_id].try_local_reproduction(child_id=child_id)
+        if child is None:
+            return {"kind": "local_reproduction", "child": None}
+        try:
+            child_snapshot = child.snapshot()
+        except Exception:
+            child.close()
+            raise
+        self._contexts[child_id] = child
+        return {
+            "kind": "local_reproduction",
+            "child": child_snapshot,
+            "child_id": child_id,
+            **division,
+        }
+
     def replay_action_traces(
         self,
         traces: Mapping[int, Iterable[NativeAction]],

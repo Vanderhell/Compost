@@ -66,7 +66,12 @@ primitive. It owns the native population handles, invokes the Python oracle's
 `live_step(..., action_trace=...)`, registers explicit division children,
 returns deterministic epoch snapshots, and transfers dead handles as corpse
 snapshots. It does not change the default Python runtime or silently fall back
-when native execution fails.
+when native execution fails. For a division trace it first invokes the native
+weakest-member local-reproduction transaction. If that policy reports no
+viable component, the adapter preserves the Python oracle's historical
+`_divide_locally` branch through the explicit native partition transaction and
+labels the result `explicit_partition_fallback`; this is a semantic branch,
+not error recovery.
 
 The same one-shot request is returned by `NativeBackend.replay_actions` when a
 single-organism lifecycle trace crosses from alive to dead; a subsequent dead
@@ -107,8 +112,10 @@ physical-food lifecycle checkpoint remain Python-owned; each supplied action
 is compared after execution against the Python oracle in the differential
 campaign.
 
-Automatic metabolic scheduling and division remain separate transactions until
-that action-plan comparison covers their event ordering. A native
+Automatic metabolic scheduling remains a separate transaction. Local
+reproduction selection and its no-candidate fallback are now exercised by the
+adapter, while the broader division policy and event ordering remain separate
+until that action-plan comparison covers them. A native
 `live_step` function must not be introduced before this ordering is frozen.
 
 ## Acceptance rule

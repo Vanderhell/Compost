@@ -1058,6 +1058,7 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                 organism_ids=tuple(int(value) for value in fixture["organism_ids"]),
             ) as replay:
                 saw_division = False
+                division_policies: set[str] = set()
                 for epoch_index in range(int(fixture["epochs"])):
                     epoch = replay.step()
                     self.assertEqual(epoch.index, epoch_index)
@@ -1066,11 +1067,21 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                         for _organism_id, trace in epoch.traces
                         for action in trace
                     )
+                    division_policies.update(
+                        str(result["policy"])
+                        for _organism_id, results in epoch.results
+                        for result in results
+                        if result.get("kind") == "division" and "policy" in result
+                    )
                     self.assertEqual(
                         tuple(organism_id for organism_id, _snapshot in epoch.snapshots),
                         tuple(sorted(organism_id for organism_id, _snapshot in epoch.snapshots)),
                     )
                 self.assertTrue(saw_division)
+                self.assertEqual(
+                    division_policies,
+                    {"explicit_partition_fallback"},
+                )
 
     def test_native_sandbox_replay_rejects_orphan_initial_handles(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
