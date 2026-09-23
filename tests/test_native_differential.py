@@ -263,6 +263,27 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             )
             self.assertAlmostEqual(backend.snapshot()["reserve"], reference.body.reserve, places=12)
             self.assertAlmostEqual(result["parent_reserve_after_cost"], reference.body.reserve, places=12)
+        with NativePopulationBackend(
+            self.library_path,
+            organism_ids=(103,),
+            config=config,
+        ) as population:
+            population.apply_actions({
+                103: NativeAction.external_gut(
+                    b"ABCD",
+                    capacity=4,
+                    nutrition=(10.0,) * 4,
+                )
+            })
+            population.apply_actions({103: NativeAction.process_gut(capacity=4)})
+            transaction = population.try_local_reproduction(103, child_id=104)
+            self.assertEqual(tuple(population.organism_ids), (103, 104))
+            self.assertIsNotNone(transaction["child"])
+            self.assertEqual(
+                transaction["child"]["body"]["structural_mass"],
+                reference_child.body.full_body_mass(),
+            )
+            population.verify_material_conservation()
 
     def test_metabolic_schedule_matches_python_bounded_arithmetic(self) -> None:
         with NativeBackend(self.library_path, organism_id=88) as backend:
