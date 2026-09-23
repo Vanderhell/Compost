@@ -13,6 +13,12 @@ for the native units that currently have matching Python reference functions:
 - bounded external-gut FIFO processing against the sandbox oracle;
 - a bounded simple lifecycle replay comparing native snapshot fields after each step.
 
+Replay parameters are stored in the compact
+`tests/fixtures/native_replays.json` manifest and are consumed by the harness.
+It records the deterministic seed, payload patterns, population size, native
+configuration boundary, and logical cycle count rather than relying only on
+values duplicated in test code.
+
 The test requires `COMPOST_NATIVE_LIBRARY`. If the variable is absent it is
 skipped; if it names a missing file the test fails. There is no silent native
 to Python fallback. The current bounded campaign contains twenty tests,
