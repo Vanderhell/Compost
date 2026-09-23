@@ -592,6 +592,12 @@ class NativeBackend:
             "allowed": bool(plan.allowed),
             "child_atoms": tuple(int(plan.child_atoms[index]) for index in range(plan.child_atom_count)),
             "boundary_ratio": float(plan.boundary_ratio),
+            "boundary_maintenance": float(plan.boundary_maintenance),
+            "child_income": float(plan.child_income),
+            "child_maintenance": float(plan.child_maintenance),
+            "parent_income": float(plan.parent_income),
+            "parent_maintenance": float(plan.parent_maintenance),
+            "birth_gain": float(plan.birth_gain),
         }
         if not child_context.value:
             return None, plan_view
