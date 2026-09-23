@@ -50,16 +50,16 @@ Long-run steps:
 the current ABI v3 replay campaign.
 
 Sanitizer result:
-Current GCC 13.3 under WSL with ASan/UBSan: `8/8` tests passed in `392.54s`,
+Current GCC 13.3 under WSL with ASan/UBSan: `8/8` tests passed in `416.39s`,
 with no sanitizer diagnostics and leak detection enabled. Windows-mounted
 filesystem clock-skew warnings were not present in this WSL run.
 
 GCC result:
-GCC 13.3 Release `-Werror` build and CTest pass: `8/8` in `12.97s`; the
+GCC 13.3 Release `-Werror` build and CTest pass: `8/8` in `13.96s`; the
 native C fuzz target covers 10,000 deterministic public-API cases.
 
 Clang result:
-Linux Clang 18.1.3 Release `-Werror` build and full CTest pass (`8/8`, 13.22s) with
+Linux Clang 18.1.3 Release `-Werror` build and full CTest pass (`8/8`, 13.87s) with
 `-Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Wshadow` enabled.
 The standalone Windows Clang CRT limitation remains irrelevant to the Linux
 Clang CI evidence.
