@@ -57,6 +57,12 @@ the normal Python step remains unchanged. Metabolic scheduling, division, and
 death are intentionally not represented as complete native actions yet and
 remain the next parity boundary.
 
+The regression fixture for a multi-bite FOOD stream asserts this distinction:
+the trace contains the external-gut environment prefix while the Python
+organism later advances `metabolic_steps`. A native replay must therefore not
+be treated as full `AutonomousOrganism` equivalence until that tail has its own
+transaction and first-divergence comparison.
+
 ## Remaining transition work
 
 The next safe integration unit is a host-built `live_step` action plan. The

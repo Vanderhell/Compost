@@ -51,6 +51,21 @@ class SandboxRuntimeTests(unittest.TestCase):
                 [NativeAction.process_gut(capacity=organism.body.bite_limit(organism.config))],
             )
 
+    def test_food_trace_marks_only_environment_prefix_before_metabolic_tail(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = SandboxRuntime(Path(directory) / "sandbox", block_size=4)
+            (runtime.inbox / "payload.bin").write_bytes(b"ABCD" * 64)
+            organism = runtime.bootstrap()
+            traces: list[list[NativeAction]] = []
+            for _ in range(64):
+                trace: list[NativeAction] = []
+                organism.live_step(runtime, action_trace=trace)
+                traces.append(trace)
+                if organism.metabolic_steps:
+                    break
+            self.assertTrue(any([item.kind.value for item in trace] == ["external_gut"] for trace in traces))
+            self.assertGreaterEqual(organism.metabolic_steps, 1)
+
     def test_metabolism_is_charged_by_food_volume_not_each_bite(self) -> None:
         organism = AutonomousOrganism(config=LifecycleConfig(metabolic_minimum_work=64))
         self.assertEqual(organism.metabolic_work_threshold(), 64)
