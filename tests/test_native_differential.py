@@ -340,6 +340,28 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                     self.assertEqual(
                         native["body"]["structural_mass"], organism.body.full_body_mass(), step
                     )
+                    for field in (
+                        "input_mass", "assimilated_mass", "rejected_mass", "resorbed_mass",
+                        "processed_mass", "expelled_mass", "external_expelled_mass",
+                        "resorption_expelled_mass", "structural_created_mass",
+                        "structural_transferred_in", "structural_transferred_out",
+                    ):
+                        self.assertEqual(
+                            native["material_flow"][field],
+                            getattr(organism.material_flow, field),
+                            f"material flow {field} diverged at step {step}",
+                        )
+                    for field in (
+                        "bytes_eaten", "relations_created", "relations_strengthened",
+                        "composites_created", "composites_strengthened", "structural_mass_added",
+                        "structural_mass_lost", "resorption_events", "division_events",
+                        "processed_bytes", "rejected_bytes", "resorbed_processed_bytes",
+                    ):
+                        self.assertEqual(
+                            native["activity"]["counters"][field],
+                            getattr(organism.activity_ledger.counters, field),
+                            f"activity counter {field} diverged at step {step}",
+                        )
                     self.assertAlmostEqual(
                         native["activity"]["metabolic_debt"],
                         organism.activity_ledger.metabolic_debt,
