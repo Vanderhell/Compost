@@ -21,7 +21,7 @@ values duplicated in test code.
 
 The test requires `COMPOST_NATIVE_LIBRARY`. If the variable is absent it is
 skipped; if it names a missing file the test fails. There is no silent native
-to Python fallback. The current bounded campaign contains forty-eight tests,
+to Python fallback. The current bounded campaign contains forty-nine tests,
 including forty deterministic lifecycle replays (10,240 aggregate steps), a
 differential starvation/death replay, a dense cross-split division replay, and
 field-by-field snapshot checks.
@@ -30,9 +30,9 @@ field-by-field snapshot checks.
 
 The full per-step Python/C campaign is **NOT READY**. The native organism is
 not yet a complete lifecycle engine. The current native-backed differential
-run is green (`48 passed`; the focused oracle/member-weakness validation run
-is `56 passed` including the related Python tests), and the complete Python regression suite is green
-(`242 passed, 3 subtests passed`). The selected partition
+run is green (`49 passed`; the focused oracle/member-weakness validation run
+is `57 passed` including the related Python tests), and the complete Python regression suite is green
+(`243 passed, 3 subtests passed`). The selected partition
 transaction now has a bounded Python/sandbox comparison, but the automatic
 candidate policy is not yet fully integrated. The native checkpoint now
 includes deterministic starvation removal, dead-step no-ops, and bounded
