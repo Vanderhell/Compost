@@ -405,6 +405,55 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                     self.assertEqual(native["body"]["relation_count"], len(organism.body.relations), step)
                     self.assertEqual(native["body"]["composite_count"], len(organism.body.composites), step)
                     self.assertAlmostEqual(native["reserve"], organism.body.reserve, places=12, msg=step)
+                    native_atoms = {
+                        left: (strength, maintenance, evidence, income)
+                        for left, _right, strength, maintenance, evidence, income in native["atoms"]
+                    }
+                    expected_atoms = {
+                        key: (item.strength, item.maintenance, item.evidence, item.income_rate)
+                        for key, item in organism.body.atoms.items()
+                    }
+                    self.assertEqual(native_atoms.keys(), expected_atoms.keys(), step)
+                    for key in expected_atoms:
+                        for actual, expected in zip(native_atoms[key], expected_atoms[key]):
+                            self.assertAlmostEqual(actual, expected, places=12, msg=f"step {step} atom {key}")
+                    for field, collection in (
+                        ("relations", organism.body.relations),
+                        ("composites", organism.body.composites),
+                    ):
+                        actual_structures = {
+                            (left, right): (strength, maintenance, evidence, income)
+                            for left, right, strength, maintenance, evidence, income in native[field]
+                        }
+                        expected_structures = {
+                            key: (item.strength, item.maintenance, item.evidence, item.income_rate)
+                            for key, item in collection.items()
+                        }
+                        self.assertEqual(actual_structures.keys(), expected_structures.keys(), step)
+                        for key in expected_structures:
+                            for actual, expected in zip(actual_structures[key], expected_structures[key]):
+                                self.assertAlmostEqual(
+                                    actual, expected, places=12,
+                                    msg=f"step {step} {field} {key}",
+                                )
+                    for field in (
+                        "input_mass", "assimilated_mass", "rejected_mass", "resorbed_mass",
+                        "processed_mass", "expelled_mass", "external_expelled_mass",
+                        "resorption_expelled_mass", "structural_created_mass",
+                        "structural_transferred_in", "structural_transferred_out",
+                    ):
+                        self.assertEqual(native["material_flow"][field], getattr(organism.material_flow, field), step)
+                    for field in (
+                        "bytes_eaten", "relations_created", "relations_strengthened",
+                        "composites_created", "composites_strengthened", "structural_mass_added",
+                        "structural_mass_lost", "resorption_events", "division_events",
+                        "processed_bytes", "rejected_bytes", "resorbed_processed_bytes",
+                    ):
+                        self.assertEqual(
+                            native["activity"]["counters"][field],
+                            getattr(organism.activity_ledger.counters, field),
+                            f"step {step} activity {field}",
+                        )
 
     def test_starvation_lifecycle_replay_reaches_matching_death(self) -> None:
         config = LifecycleConfig(birth_reserve=0.0)
