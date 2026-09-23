@@ -218,6 +218,12 @@ class NativeSandboxReplay:
             native_id = self._native_ids[organism.name]
             corpse = corpses.get(native_id)
             if corpse is None:
+                if native_id not in self._population.organism_ids:
+                    # The corpse was transferred in an earlier epoch.  The
+                    # Python runtime intentionally retains the dead organism
+                    # for history, while the native population no longer owns
+                    # its handle.
+                    continue
                 raise RuntimeError(
                     f"native corpse is missing at epoch {self._epoch}, organism {organism.name}"
                 )
