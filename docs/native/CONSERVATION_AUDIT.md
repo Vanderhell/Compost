@@ -51,6 +51,8 @@ partition transaction, using parent and child dynamic mass plus parent
 resorption. The `structural_transferred_out` ledger field is intentionally not
 added to this physical equation because the transferred mass is already
 included in the child's dynamic mass.
+The same fixture now performs a second-generation partition and repeats the
+independent equation for the intermediate parent and grandchild.
 
 `tests/test_skeleton_division.py`, `tests/test_structural_mass.py`, and
 `tests/test_material_flow.py` are the current evidence set. The new canonical
