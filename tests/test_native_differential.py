@@ -311,6 +311,50 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                 else:
                     self.fail("metabolic lifecycle checkpoint was not reached")
 
+    def test_long_lifecycle_trace_replays_activity_debt_and_settlement(self) -> None:
+        """Lifecycle accounting must remain identical after repeated checkpoints."""
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = SandboxRuntime(Path(directory) / "sandbox", block_size=4)
+            (runtime.inbox / "payload.bin").write_bytes(b"ABCD" * 1024)
+            organism = AutonomousOrganism(config=LifecycleConfig(birth_reserve=100.0))
+            runtime.organisms.append(organism)
+            with NativeBackend(self.library_path, organism_id=0, config=organism.config) as backend:
+                for step in range(100):
+                    trace: list[NativeAction] = []
+                    organism.live_step(runtime, action_trace=trace)
+                    backend.replay_actions(trace)
+                    native = backend.snapshot()
+                    self.assertEqual(native["age_in_cycles"], organism.body.age_in_cycles, step)
+                    self.assertEqual(native["metabolic_steps"], organism.metabolic_steps, step)
+                    self.assertEqual(
+                        native["reserve"],
+                        organism.body.reserve,
+                        f"reserve diverged at step {step}: native debt={native['activity']['metabolic_debt']}, "
+                        f"python debt={organism.activity_ledger.metabolic_debt}, "
+                        f"native mass={native['body']['structural_mass']}, python mass={organism.body.full_body_mass()}, "
+                        f"trace={[action.kind.value for action in trace]}",
+                    )
+                    self.assertEqual(
+                        native["body"]["structural_mass"], organism.body.full_body_mass(), step
+                    )
+                    self.assertAlmostEqual(
+                        native["activity"]["metabolic_debt"],
+                        organism.activity_ledger.metabolic_debt,
+                        places=12,
+                        msg=f"metabolic debt diverged at step {step}",
+                    )
+                    self.assertAlmostEqual(
+                        native["activity"]["energy_spent"],
+                        organism.activity_ledger.energy_spent,
+                        places=12,
+                        msg=f"energy spent diverged at step {step}",
+                    )
+                    self.assertEqual(
+                        native["activity"]["settlements"],
+                        organism.activity_ledger.settlements,
+                        step,
+                    )
+
     def test_sandbox_division_action_replays_parent_and_transient_child(self) -> None:
         config = LifecycleConfig(boundary_ratio_limit=0.5, birth_reserve=10.0)
         with tempfile.TemporaryDirectory() as directory:
