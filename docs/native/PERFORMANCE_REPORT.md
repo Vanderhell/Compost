@@ -113,14 +113,14 @@ Current Windows MSVC Release evidence:
 
 ```text
 workload       backend    median_seconds  steps_per_second  peak_rss_bytes
-digest         python     0.008643800     29616.604         23728128
-digest         native-ffi 0.011882200     21544.832         24178688
-metabolism     python     0.014194700     18034.900         24207360
-metabolism     native-ffi 0.010098600     25350.049         24383488
-structure      python     0.017384200     14726.016         24403968
-structure      native-ffi 0.006271600     40818.930         24408064
-division       python     0.001275300     200737.083        24420352
-division       native-ffi 0.007419600     34503.208         24526848
+digest         python     0.008600000     29767.442         23740416
+digest         native-ffi 0.011366000     22523.315         24190976
+metabolism     python     0.013933200     18373.382         24223744
+metabolism     native-ffi 0.010150800     25219.687         24334336
+structure      python     0.017237200     14851.600         24346624
+structure      native-ffi 0.006370000     40188.383         24424448
+division       python     0.001315500     194602.812        24432640
+division       native-ffi 0.007145400     35827.246         24535040
 ```
 
 These are checkpoint workload measurements, not end-to-end simulator claims.
