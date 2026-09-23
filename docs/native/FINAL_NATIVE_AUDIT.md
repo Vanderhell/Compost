@@ -41,6 +41,8 @@ validation tests, and local weakest-member reproduction component selection.
 The sandbox adapter also invokes the native boundary-partition policy for the
 historical local-division branch and compares its selected child atoms with
 the Python oracle before accepting the epoch.
+Each adapter epoch additionally runs native, per-organism Python, and
+world-level conservation checks.
 Its seed/configuration/epoch parameters are stored in
 `tests/fixtures/native_replays.json`, and failures report the first field with
 Python/native state digests.
