@@ -59,8 +59,11 @@ empty-input `LIFECYCLE_STEP`, which uses the explicit lifecycle-step ABI
 endpoint including activity-debt settlement and covers the validated
 consolidation/maintenance/age checkpoint. A validated `DIVISION` action can
 then replay the parent partition and return a transient child snapshot;
-Python still owns child registration, identity naming, corpse handling, and
-filesystem state. Death remains outside the complete native action sequence.
+this action-trace path is observational and Python still owns child
+registration, identity naming, corpse handling, and filesystem state. The
+separate `NativePopulationBackend.apply_actions` path transfers ownership of
+an explicit child handle and registers it by numeric ID, with collision
+preflight. Death remains outside the complete sandbox action sequence.
 
 The regression fixture for a multi-bite FOOD stream asserts this distinction:
 the trace contains the external-gut environment prefix, bounded metabolic
