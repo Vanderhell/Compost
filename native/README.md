@@ -9,7 +9,9 @@ The current native behavior includes pure biology rules, byte digestion,
 bounded external-gut payload enqueue/process, maintenance/forgetting,
 resorption accounting, deterministic partition selection, selected structural
 partition transactions, consolidation transitions, and a transactional
-digest-plus-maintenance step. It also accepts an environment-supplied corpse
+digest-plus-maintenance step. The opaque context also owns explicitly supplied
+metabolic progress/settled-step accounting and exposes it through snapshots;
+the lifecycle work triggered by due steps remains host-owned. It also accepts an environment-supplied corpse
 energy transfer; corpse lookup, storage, and territory selection remain in
 Python. It is not yet the complete lifecycle engine:
 step-level consolidation/viability integration, population scheduling, corpse
