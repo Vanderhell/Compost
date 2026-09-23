@@ -71,6 +71,12 @@ GCC Release strict builds pass the campaign.
 oracle includes structural state and material-flow counters, so future native
 differential failures can identify the first conservation field.
 
+The native boundary also exposes the read-only local reproduction component
+selector used before a committed partition. It matches the Python weakest-
+member/component ordering on the bounded differential fixture and has a
+maximum-capacity isolated-component regression; selection itself mutates no
+material or reserve state.
+
 ## Native status
 
 `PARTIAL / NOT READY`: C exposes an independent material-conservation validator and a
