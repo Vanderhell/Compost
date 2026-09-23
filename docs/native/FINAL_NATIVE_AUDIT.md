@@ -84,10 +84,11 @@ death transition, and terminal dead no-op.
   selected transactions, not a full population/world snapshot after every
   environment event.
 - Opaque-context allocation failure, custom allocator lifetime, failed-partition
-  cleanup, and selected `UINT64_MAX` transactional boundaries are covered, but
-  broader allocation-failure injection for every future/container path, leak
-  tooling beyond sanitizer coverage, and serialized snapshot parser fuzzing
-  remain release-gate work.
+  cleanup, selected `UINT64_MAX` transactional boundaries, and invalid-state
+  snapshot output preservation are covered, but broader allocation-failure
+  injection for every future/container path and leak tooling beyond sanitizer
+  coverage remain release-gate work. A serialized snapshot parser does not
+  exist in the current ABI; if introduced, it requires a separate fuzzing gate.
 - The native parallel runtime is deliberately deferred. Existing Python
   multiprocessing behavior remains the compatibility implementation.
 - Current performance measurements do not establish an end-to-end speedup;

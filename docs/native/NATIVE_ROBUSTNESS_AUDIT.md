@@ -81,10 +81,13 @@ ASan/UBSan linking remains unavailable in the current MinGW installation because
 CRT libraries are not available to its standalone driver. These are Windows
 toolchain limitations; the WSL GCC sanitizer run above is local sanitizer
 evidence, while CI still provides the release-platform Linux job. A release
-gate still requires broader leak checks, allocation-failure injection across
-every future/container path and serialized corrupt snapshot tests. Opaque-context allocation failure is now explicitly injected
+gate still requires broader leak checks and allocation-failure injection across
+every future/container path. The current ABI has no serialized-state parser,
+so parser fuzzing is not applicable yet; it becomes a release gate if a wire
+format is added. Opaque-context allocation failure is now explicitly injected
 and covered by the native robustness test; the successful custom allocator
-lifetime path is covered there as well.
+lifetime path is covered there as well. Invalid in-memory snapshot state also
+has an output-preservation regression test.
 
 ## Verdict
 
