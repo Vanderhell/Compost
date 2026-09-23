@@ -9,7 +9,15 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from mathematical_organism.biology_rules import lazy_metabolism_delta, structural_mass
+from mathematical_organism.biology_rules import (
+    ACTIVITY_COSTS,
+    ActivityCounters,
+    ActivityLedger,
+    forgetting_delta,
+    lazy_metabolism_delta,
+    maintenance_weakening_budget,
+    structural_mass,
+)
 from mathematical_organism.backend import NativeBackend, NativeBackendError
 from mathematical_organism.canonical import canonical_digest
 from mathematical_organism.lifecycle import LifecycleConfig, LivingStructure, MathematicalLifeOrganism, MathematicalLifePopulation, OrganismStatus
@@ -31,6 +39,40 @@ class _ReproductionAssessment(ctypes.Structure):
         ("allowed", ctypes.c_bool),
         ("selected_count", ctypes.c_uint64),
         ("parent_reserve_after_cost", ctypes.c_double),
+    ]
+
+
+class _ActivityCosts(ctypes.Structure):
+    _fields_ = [(name, ctypes.c_double) for name in (
+        "byte", "digest_per_kib", "reject_per_kib", "resorption_per_kib",
+        "relation_created", "relation_strengthened", "composite_created",
+        "composite_strengthened", "structural_mass_delta", "resorption",
+        "division", "basal_mass", "settlement_base", "settlement_mass_scale",
+    )]
+
+
+class _ActivityCounters(ctypes.Structure):
+    _fields_ = [(name, ctypes.c_uint64) for name in (
+        "bytes_eaten", "relations_created", "relations_strengthened",
+        "composites_created", "composites_strengthened", "structural_mass_added",
+        "structural_mass_lost", "resorption_events", "division_events",
+        "processed_bytes", "rejected_bytes", "resorbed_processed_bytes",
+    )]
+
+
+class _ActivityLedger(ctypes.Structure):
+    _fields_ = [
+        ("metabolic_debt", ctypes.c_double),
+        ("energy_spent", ctypes.c_double),
+        ("settlements", ctypes.c_uint64),
+        ("counters", _ActivityCounters),
+    ]
+
+
+class _ForgettingDelta(ctypes.Structure):
+    _fields_ = [
+        ("strength_after", ctypes.c_double),
+        ("income_rate_after", ctypes.c_double),
     ]
 
 
@@ -87,6 +129,28 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             ctypes.POINTER(_ReproductionAssessment),
         ]
         cls.library.compost_reproduction_assessment.restype = ctypes.c_int
+        cls.library.compost_activity_settlement_threshold.argtypes = [
+            ctypes.c_uint64, ctypes.POINTER(_ActivityCosts), ctypes.POINTER(ctypes.c_double)
+        ]
+        cls.library.compost_activity_settlement_threshold.restype = ctypes.c_int
+        cls.library.compost_activity_basal_cost.argtypes = [
+            ctypes.c_uint64, ctypes.POINTER(_ActivityCosts), ctypes.POINTER(ctypes.c_double)
+        ]
+        cls.library.compost_activity_basal_cost.restype = ctypes.c_int
+        cls.library.compost_activity_ledger_add.argtypes = [
+            ctypes.POINTER(_ActivityLedger), ctypes.POINTER(_ActivityCounters),
+            ctypes.c_uint64, ctypes.POINTER(_ActivityCosts),
+        ]
+        cls.library.compost_activity_ledger_add.restype = ctypes.c_int
+        cls.library.compost_forgetting_delta.argtypes = [
+            ctypes.c_double, ctypes.c_double, ctypes.c_double, ctypes.c_double,
+            ctypes.POINTER(_ForgettingDelta),
+        ]
+        cls.library.compost_forgetting_delta.restype = ctypes.c_int
+        cls.library.compost_maintenance_weakening_budget.argtypes = [
+            ctypes.c_double, ctypes.c_uint64, ctypes.POINTER(ctypes.c_uint64)
+        ]
+        cls.library.compost_maintenance_weakening_budget.restype = ctypes.c_int
 
     def test_public_python_adapter_runs_native_step(self) -> None:
         with NativeBackend(self.library_path, organism_id=99) as backend:
@@ -228,6 +292,70 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             status = self.library.compost_structural_mass(strength, ctypes.byref(native_mass))
             self.assertEqual(status, 0, strength)
             self.assertEqual(native_mass.value, structural_mass(strength), strength)
+
+    def test_activity_forgetting_and_weakening_rules_match_reference(self) -> None:
+        costs = _ActivityCosts(*(
+            getattr(ACTIVITY_COSTS, field)
+            for field, _ctype in _ActivityCosts._fields_
+        ))
+        for body_mass in (0, 1, 256, 4096):
+            threshold = ctypes.c_double()
+            basal = ctypes.c_double()
+            self.assertEqual(
+                self.library.compost_activity_settlement_threshold(
+                    body_mass, ctypes.byref(costs), ctypes.byref(threshold)
+                ), 0
+            )
+            self.assertEqual(
+                self.library.compost_activity_basal_cost(
+                    body_mass, ctypes.byref(costs), ctypes.byref(basal)
+                ), 0
+            )
+            self.assertAlmostEqual(threshold.value, ActivityLedger.settlement_threshold(body_mass), places=12)
+            self.assertAlmostEqual(basal.value, ActivityLedger.basal_cost(body_mass), places=12)
+
+        python_counters = ActivityCounters(
+            bytes_eaten=11, relations_created=2, relations_strengthened=3,
+            composites_created=4, composites_strengthened=5,
+            structural_mass_added=6, structural_mass_lost=7,
+            resorption_events=8, division_events=9, processed_bytes=10,
+            rejected_bytes=12, resorbed_processed_bytes=13,
+        )
+        python_ledger = ActivityLedger()
+        python_delta = python_ledger.add_activity(python_counters, 256)
+        native_counters = _ActivityCounters(*(getattr(python_counters, field) for field, _ in _ActivityCounters._fields_))
+        native_ledger = _ActivityLedger()
+        native_delta = self.library.compost_activity_ledger_add(
+            ctypes.byref(native_ledger), ctypes.byref(native_counters), 256, ctypes.byref(costs)
+        )
+        self.assertEqual(native_delta, 0)
+        self.assertAlmostEqual(native_ledger.metabolic_debt, python_ledger.metabolic_debt, places=12)
+        self.assertAlmostEqual(native_ledger.energy_spent, python_ledger.energy_spent, places=12)
+        self.assertAlmostEqual(native_ledger.metabolic_debt, python_delta, places=12)
+        self.assertEqual(tuple(getattr(native_ledger.counters, field) for field, _ in _ActivityCounters._fields_), tuple(getattr(python_ledger.counters, field) for field, _ in _ActivityCounters._fields_))
+
+        for strength, income, maintenance, decay in ((5.0, 0.0, 0.5, 0.8), (5.0, 2.0, 0.5, 0.8)):
+            structure = LivingStructure("A", "ATOM", maintenance=maintenance)
+            structure.strength = strength
+            structure.income_rate = income
+            expected = forgetting_delta(structure, LifecycleConfig(income_decay=decay))
+            actual = _ForgettingDelta()
+            self.assertEqual(
+                self.library.compost_forgetting_delta(
+                    strength, income, maintenance, decay, ctypes.byref(actual)
+                ), 0
+            )
+            self.assertAlmostEqual(actual.strength_after, expected.strength_after, places=12)
+            self.assertAlmostEqual(actual.income_rate_after, expected.income_rate_after, places=12)
+
+        for deficit, body_mass in ((0.0, 4), (1.0, 4), (4.1, 4), (9.0, 256)):
+            budget = ctypes.c_uint64()
+            self.assertEqual(
+                self.library.compost_maintenance_weakening_budget(
+                    deficit, body_mass, ctypes.byref(budget)
+                ), 0
+            )
+            self.assertEqual(budget.value, maintenance_weakening_budget(deficit, body_mass))
 
     def test_lazy_metabolism_matches_reference(self) -> None:
         cases = (

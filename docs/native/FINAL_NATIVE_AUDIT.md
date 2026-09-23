@@ -24,7 +24,8 @@ Native tests:
 `7/7` CTest tests passed in the current MSVC Release build.
 
 Differential cases:
-`10` Python/native differential tests pass, including bounded external-gut,
+`11` Python/native differential tests pass, including bounded pure-rule and
+external-gut,
 environment corpse-energy credit, and partition transaction comparisons.
 
 Long-run steps:

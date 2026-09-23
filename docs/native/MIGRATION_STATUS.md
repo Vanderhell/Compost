@@ -5,9 +5,9 @@
 | Foundation init/destroy/snapshot | PORTING | `compost_organism_init`, `compost_organism_snapshot` | Scalar foundation only; no simulation behavior yet |
 | Structural mass | DIFFERENTIAL_PASS | `biology_rules.structural_mass` | C unit boundaries and Python/C differential cases pass |
 | Activity cost accounting | DIFFERENTIAL_PASS | `ActivityLedger.add_activity` | C unit tests and bounded Python/C differential cases pass |
-| Settlement threshold/basal cost | PORTING | `ActivityLedger.settlement_threshold`, `basal_cost` | Pure functions added to C API |
-| Forgetting delta | PORTING | `biology_rules.forgetting_delta` | Pure C delta, no organism mutation |
-| Maintenance weakening budget | PORTING | `biology_rules.maintenance_weakening_budget` | Positive deficit guarantees at least one unit |
+| Settlement threshold/basal cost | DIFFERENTIAL_PASS | `ActivityLedger.settlement_threshold`, `basal_cost` | Direct Python/C differential cases cover zero, small, and large body masses |
+| Forgetting delta | DIFFERENTIAL_PASS | `biology_rules.forgetting_delta` | Direct Python/C differential cases cover dormant and active income paths |
+| Maintenance weakening budget | DIFFERENTIAL_PASS | `biology_rules.maintenance_weakening_budget` | Direct Python/C differential cases cover zero, positive, and normalized deficits |
 | Bounded organism structural state | PORTING | `MathematicalLifeOrganism` structures | 256 atoms and 512 relation/composite validation bounds |
 | Deterministic byte digestion checkpoint | DIFFERENTIAL_PASS | `MathematicalLifePopulation._digest` | Explicit food/nutrition view with Python formation-cost ordering, pressure-capacity removal, and bounded replay coverage; maintenance/gut/division tail not yet included |
 | Composed deterministic step checkpoint | DIFFERENTIAL_PASS | `MathematicalLifePopulation._cycle_one` | Native digest+consolidation+maintenance transaction matches the bounded Python replay; full gut and lifecycle policy remain pending |
@@ -19,7 +19,7 @@
 | Opaque native ABI | DIFFERENTIAL_PASS | Python reference boundary | ABI v3 `compost_create/destroy/snapshot/digest/state_digest/select_partition/plan_division/partition` plus external-gut enqueue/process; opaque Python adapter validates the returned version and exposes failures without fallback |
 | Python backend selector/loader | PORTING | Existing Python runtime | Explicit `python`/`native` handles, native step/snapshot/partition adapters, and `checkpoint --backend` CLI mode; full lifecycle acceptance remains pending |
 | Direct-C benchmark | PORTING | Performance phase | Reproducible digest smoke benchmark plus bounded Python/FFI comparison; no speedup claim yet |
-| Public API robustness tests | PORTING | C API failure contract | Null, NaN, transactional failure, and idempotent destroy coverage |
+| Public API robustness tests | PORTING | C API failure contract | Null, NaN, transactional failure, allocator lifetime/failure, integer extrema, and idempotent destroy coverage |
 | Lazy metabolism delta | DIFFERENTIAL_PASS | `biology_rules.lazy_metabolism_delta` | Tolerance-based Python/C differential cases pass |
 | Reproduction assessment | DIFFERENTIAL_PASS | `biology_rules.reproduction_allowed` | Pure eligibility/score differential cases pass; automatic candidate policy remains pending |
 | Material-flow accounting | DIFFERENTIAL_PASS | `sandbox_runtime.MaterialFlow` | Native conservation validator, external/resorption FIFO accounting, cross-edge resorption, and division transfer pass bounded tests; full sandbox ledger differential remains pending |
