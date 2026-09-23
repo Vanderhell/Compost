@@ -774,6 +774,28 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                     places=12,
                 )
 
+    def test_idle_and_corpse_action_trace_replays_without_food(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = SandboxRuntime(Path(directory) / "sandbox")
+            organism = runtime.bootstrap()
+            runtime.add_corpse(Corpse(organism.territory_state.territory, 2.5), "ORG-CORPSE")
+            with NativeBackend(self.library_path, organism_id=79) as backend:
+                for step in range(32):
+                    trace: list[NativeAction] = []
+                    organism.live_step(runtime, action_trace=trace)
+                    backend.replay_actions(trace)
+                    native = backend.snapshot()
+                    self.assertEqual(native["status"], 0 if organism.alive else 1, step)
+                    self.assertEqual(native["body"]["structural_mass"], organism.body.full_body_mass(), step)
+                    self.assertEqual(native["gut"], (), step)
+                    self.assertAlmostEqual(native["reserve"], organism.body.reserve, places=12, msg=step)
+                    self.assertAlmostEqual(
+                        native["activity"]["metabolic_debt"],
+                        organism.activity_ledger.metabolic_debt,
+                        places=12,
+                        msg=f"activity debt diverged at idle step {step}",
+                    )
+
     def test_explicit_corpse_energy_action_matches_oracle(self) -> None:
         reference = AutonomousOrganism("ORG-ROOT")
         with NativeBackend(self.library_path, organism_id=2) as backend:
