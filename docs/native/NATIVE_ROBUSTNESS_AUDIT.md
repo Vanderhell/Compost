@@ -7,7 +7,8 @@ failed-operation state preservation, repeated destroy, opaque handle errors, and
 bounded table behavior through the public C APIs. GCC Debug and MSVC Release builds run
 these tests under CTest. The current Windows evidence includes GCC Debug,
 GCC Release, and MSVC Release runs, with all seven tests passing in each run
-where the fuzz target is enabled.
+where the fuzz target is enabled; the current MSVC Release run also enables
+warnings-as-errors.
 The opaque weakest-structure wrapper also preserves caller outputs when its
 handle is invalid, and the Python adapter exposes the same explicit failure.
 The combined step-and-division ABI test verifies that an invalid child identity

@@ -22,12 +22,14 @@ Python tests:
 (123.76s).
 
 Native tests:
-`7/7` CTest tests passed in the current MSVC Release build.
+`7/7` CTest tests passed in the current MSVC 19.42 Release build with
+warnings-as-errors enabled (10.75s); the same suite passed under GCC/WSL.
 
 Differential cases:
 `16` Python/native differential tests pass, including bounded pure-rule,
 external-gut, environment corpse-energy credit, partition transaction,
-atomic division-boundary, and step-plus-division lifecycle comparisons.
+atomic division-boundary, and step-plus-division lifecycle comparisons. The
+current MSVC DLL run completed in 5.70s.
 
 Long-run steps:
 `1,000,000` single-organism Python/native steps pass with zero divergences in
