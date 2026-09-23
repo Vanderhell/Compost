@@ -250,6 +250,17 @@ class NativeSandboxReplay:
                     f"native corpse diverged at epoch {self._epoch}, organism {organism.name}"
                 )
             del self._native_ids[organism.name]
+        for organism in self.runtime.organisms:
+            if not organism.alive or organism.name not in self._native_ids:
+                continue
+            native_id = self._native_ids[organism.name]
+            native = snapshots.get(native_id)
+            if native is None:
+                raise RuntimeError(
+                    f"native live snapshot is missing at epoch {self._epoch}, "
+                    f"organism {organism.name}"
+                )
+            self._assert_shared_state(native, organism)
         self._population.verify_material_conservation()
         for organism in self.runtime.organisms:
             organism.verify_material_conservation()
@@ -263,6 +274,104 @@ class NativeSandboxReplay:
         )
         self._epoch += 1
         return epoch
+
+    @staticmethod
+    def _assert_shared_state(native: dict[str, object], organism: Any) -> None:
+        """Compare the complete state represented by both current boundaries.
+
+        Python-only names, navigation, caches, and filesystem ownership are
+        deliberately excluded.  The error names the first checked field so a
+        replay failure points to a semantic divergence rather than merely a
+        different final digest.
+        """
+        def fail(field: str, expected: object, actual: object) -> None:
+            if expected != actual:
+                raise RuntimeError(
+                    f"native sandbox state diverged at {field}: "
+                    f"expected {expected!r}, got {actual!r}"
+                )
+
+        body = organism.body
+        fail("status", 0 if organism.alive else 1, native["status"])
+        fail("generation", body.generation, native["generation"])
+        fail("age_in_cycles", body.age_in_cycles, native["age_in_cycles"])
+        fail("reserve", body.reserve, native["reserve"])
+        native_body = native["body"]
+        assert isinstance(native_body, dict)
+        for field, expected in (
+            ("structural_mass", body.full_body_mass()),
+            ("atom_count", len(body.atoms)),
+            ("relation_count", len(body.relations)),
+            ("composite_count", len(body.composites)),
+        ):
+            fail(f"body.{field}", expected, native_body[field])
+
+        def structures(values: dict[object, Any]) -> tuple[tuple[int, int, float, float, float, float], ...]:
+            result: list[tuple[int, int, float, float, float, float]] = []
+            for key, item in sorted(values.items(), key=lambda entry: repr(entry[0])):
+                if isinstance(key, tuple):
+                    left, right = key
+                    if not isinstance(left, int) or not isinstance(right, int):
+                        raise RuntimeError(f"native sandbox cannot compare non-integer structure key {key!r}")
+                else:
+                    if not isinstance(key, int):
+                        raise RuntimeError(f"native sandbox cannot compare non-integer structure key {key!r}")
+                    left, right = key, 0
+                result.append((left, right, float(item.strength), float(item.maintenance),
+                               float(item.evidence), float(item.income_rate)))
+            return tuple(result)
+
+        for field, expected in (
+            ("atoms", structures(body.atoms)),
+            ("relations", structures(body.relations)),
+            ("composites", structures(body.composites)),
+        ):
+            fail(field, expected, native[field])
+
+        expected_receptors = tuple(sorted(body.activated_receptors))
+        fail("activated_receptors", expected_receptors, native["activated_receptors"])
+        expected_territory = organism.territory_state.territory.path
+        fail("territory", expected_territory, native["territory"])
+
+        native_flow = native["material_flow"]
+        assert isinstance(native_flow, dict)
+        for field in (
+            "input_mass", "assimilated_mass", "rejected_mass", "resorbed_mass",
+            "processed_mass", "expelled_mass", "external_expelled_mass",
+            "resorption_expelled_mass", "structural_created_mass",
+            "structural_transferred_in", "structural_transferred_out",
+        ):
+            fail(f"material_flow.{field}", getattr(organism.material_flow, field), native_flow[field])
+
+        native_activity = native["activity"]
+        assert isinstance(native_activity, dict)
+        fail("activity.metabolic_debt", organism.activity_ledger.metabolic_debt,
+             native_activity["metabolic_debt"])
+        fail("activity.energy_spent", organism.activity_ledger.energy_spent,
+             native_activity["energy_spent"])
+        fail("activity.settlements", organism.activity_ledger.settlements,
+             native_activity["settlements"])
+        native_counters = native_activity["counters"]
+        assert isinstance(native_counters, dict)
+        for field in (
+            "bytes_eaten", "relations_created", "relations_strengthened",
+            "composites_created", "composites_strengthened", "structural_mass_added",
+            "structural_mass_lost", "resorption_events", "division_events",
+            "processed_bytes", "rejected_bytes", "resorbed_processed_bytes",
+        ):
+            fail(f"activity.counters.{field}",
+                 getattr(organism.activity_ledger.counters, field), native_counters[field])
+
+        expected_gut = tuple(
+            (
+                chunk.mass,
+                0 if chunk.origin == "external" else 1,
+                bytes(chunk.payload),
+                tuple(chunk.nutrition),
+            )
+            for chunk in organism.gut_queue
+        )
+        fail("gut", expected_gut, native["gut"])
 
     def close(self) -> None:
         """Close all remaining native handles exactly once."""
