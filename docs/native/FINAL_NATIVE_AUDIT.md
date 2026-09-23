@@ -18,8 +18,8 @@ CI: PASS
 Documentation: PASS
 
 Python tests:
-`240 passed, 3 subtests passed` in the latest complete local run with the
-native DLL configured (86.48s).
+`241 passed, 3 subtests passed` in the latest complete local run with the
+native DLL configured (88.59s).
 
 Native tests:
 `8/8` CTest tests passed in the current MSVC 19.42 Debug build with the
@@ -27,14 +27,15 @@ width audit and fuzz target enabled (102.39s). Current GCC and Clang strict
 results are recorded below.
 
 Differential cases:
-`46` Python/native differential tests pass, including bounded pure-rule,
+`47` Python/native differential tests pass, including bounded pure-rule,
 external-gut, environment corpse-energy credit, partition transaction,
 atomic division-boundary, step-plus-division lifecycle, territory predicate,
 deterministic FOOD block-key, two-organism population, and population child
 registration, replayable sandbox action-trace, idle/corpse action replay, and
 physical-food lifecycle comparisons, public native checkpoint CLI, division/child-death replay, plus bounded
 metabolic scheduling arithmetic, starvation/death replay, and opaque metabolic
-progress accumulation.
+progress accumulation. A multi-epoch sandbox trace campaign also replays
+parent and child traces with per-epoch state comparison and corpse transfer.
 The latest MSVC
 DLL run completed in 9.18s; the
 earlier WSL GCC DLL run completed in 6.670s.
