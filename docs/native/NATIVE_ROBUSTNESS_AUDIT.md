@@ -8,6 +8,8 @@ bounded table behavior through the public C APIs. GCC Debug and MSVC Release bui
 these tests under CTest. The current Windows evidence includes GCC Debug,
 GCC Release, and MSVC Release runs, with all seven tests passing in each run
 where the fuzz target is enabled.
+The opaque weakest-structure wrapper also preserves caller outputs when its
+handle is invalid, and the Python adapter exposes the same explicit failure.
 The division fixture additionally verifies duplicate/whole-region rejection,
 unchanged parent state, and an untouched child output on failed partition
 calls.
