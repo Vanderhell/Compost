@@ -50,6 +50,8 @@ and per-organism conservation checks.
 It also verifies child registration, parent/child state after an allowed
 division, and an eight-cycle division/death replay where the child becomes
 dead while the parent remains alive.
+The bounded two-organism campaign also compares every relation and composite
+key and its strength/evidence/income fields after each ordered epoch.
 
 The native-only paired replay test now executes 10,000 deterministic steps and
 compares state digests and step counters after every step. It is a determinism
