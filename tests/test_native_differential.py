@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import ctypes
+from contextlib import redirect_stdout
+import io
 import json
 import os
 import sys
@@ -35,6 +37,7 @@ from mathematical_organism.backend import (
     create_backend,
 )
 from mathematical_organism.canonical import canonical_digest
+from mathematical_organism.cli import main as cli_main
 from mathematical_organism.food_sandbox import SandboxFeedingHarness
 from mathematical_organism.lifecycle import LifecycleConfig, LivingStructure, MathematicalLifeOrganism, MathematicalLifePopulation, OrganismStatus
 from mathematical_organism.sandbox_runtime import AutonomousOrganism, Corpse, SandboxRuntime
@@ -596,6 +599,17 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
         backend.close()
         with self.assertRaises(NativeBackendError):
             backend.snapshots()
+
+    def test_public_cli_checkpoint_uses_explicit_native_backend(self) -> None:
+        output = io.StringIO()
+        with redirect_stdout(output):
+            status = cli_main([
+                "checkpoint", "AB", "--backend", "native",
+                "--library", str(self.library_path), "--steps", "2", "--json",
+            ])
+        self.assertEqual(status, 0)
+        self.assertIn('"backend": "native"', output.getvalue())
+        self.assertIn('"steps": 2', output.getvalue())
 
     def test_native_backend_rejects_unrepresented_scheduling_config(self) -> None:
         with self.assertRaises(NativeBackendError):
