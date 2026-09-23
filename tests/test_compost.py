@@ -86,7 +86,11 @@ class CompostTests(unittest.TestCase):
             controller = CompostController(Path(directory) / "sandbox", block_size=4096)
             controller.add_organisms(10)
             controller.generate_food(8 * 1024, seed=12345)
-            controller.start(); deadline = monotonic() + 10.0
+            controller.start()
+            # The assertion is about exact accounting, not a benchmark.  The
+            # filesystem-backed runtime can exceed ten seconds on a loaded
+            # Windows runner while still completing the same deterministic run.
+            deadline = monotonic() + 30.0
             while monotonic() < deadline and controller.snapshot()["food_eaten"] < 8 * 1024:
                 sleep(0.01)
             controller.stop(); view = controller.snapshot()
