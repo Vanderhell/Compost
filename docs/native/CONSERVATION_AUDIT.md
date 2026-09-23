@@ -77,6 +77,11 @@ member/component ordering on the bounded differential fixture and has a
 maximum-capacity isolated-component regression; selection itself mutates no
 material or reserve state.
 
+The reusable sandbox adapter now runs the independent Python organism and
+world-level conservation validators after every replay epoch, in addition to
+the native population validator. A passing epoch therefore proves both sides'
+material equations at the same logical checkpoint.
+
 ## Native status
 
 `PARTIAL / NOT READY`: C exposes an independent material-conservation validator and a

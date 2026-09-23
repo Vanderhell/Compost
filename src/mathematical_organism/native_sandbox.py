@@ -191,6 +191,9 @@ class NativeSandboxReplay:
             else:
                 snapshots[organism_id] = snapshot
         self._population.verify_material_conservation()
+        for organism in self.runtime.organisms:
+            organism.verify_material_conservation()
+        self.runtime.verify_world_material_conservation()
         epoch = NativeSandboxEpoch(
             self._epoch,
             tuple((organism_id, traces[organism_id]) for organism_id in sorted(traces)),

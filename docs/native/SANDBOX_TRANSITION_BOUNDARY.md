@@ -71,7 +71,9 @@ weakest-member local-reproduction transaction. If that policy reports no
 viable component, the adapter invokes the native boundary-partition policy
 (`try_divide`) corresponding to the Python oracle's historical
 `_divide_locally` branch and labels the result `global_partition_policy`;
-the host does not supply the selected child atom set.
+the host does not supply the selected child atom set. After each epoch it
+independently checks the native population ledger, every Python organism
+ledger, and the Python world-level ownership-transfer equation.
 
 The same one-shot request is returned by `NativeBackend.replay_actions` when a
 single-organism lifecycle trace crosses from alive to dead; a subsequent dead
