@@ -98,8 +98,9 @@ Python-owned corpse-energy selection through the explicit action boundary.
 The multi-epoch sandbox action-trace campaign runs 32 deterministic epochs
 through `NativePopulationBackend`. It compares parent and child state after
 each epoch, including territory, material-flow accounting, activity counters,
-activity debt, energy spent, settlements, and ordered gut chunks. The campaign
-also exercises explicit corpse transfer and child-handle retention. Filesystem
+activity debt, energy spent, settlements, ordered gut chunks, metabolic
+progress, metabolic step count, generation, and activated receptors. The
+campaign also exercises explicit corpse transfer and child-handle retention. Filesystem
 FOOD selection and host event ordering remain Python-owned; the body cursor is
 an adapter diagnostic and is intentionally not treated as behavioral state in
 this campaign.
