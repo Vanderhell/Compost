@@ -565,6 +565,10 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             1,
         )
         self.assertEqual(invalid_key.value, 99)
+        with NativeBackend(self.library_path, organism_id=123) as backend:
+            self.assertEqual(backend.food_block_key("firmware-A", 7), food_block_key("firmware-A", 7))
+            with self.assertRaises(ValueError):
+                backend.food_block_key("firmware-A", -1)
 
     def test_simple_lifecycle_replay_reports_first_divergent_field(self) -> None:
         payloads = (

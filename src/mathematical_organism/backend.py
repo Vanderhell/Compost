@@ -305,6 +305,11 @@ class NativeBackend:
             ctypes.c_void_p, ctypes.POINTER(ctypes.c_bool), ctypes.POINTER(ctypes.c_uint64)
         ]
         library.compost_context_weaken_weakest.restype = ctypes.c_int
+        library.compost_territory_food_block_key.argtypes = [
+            ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t, ctypes.c_uint64,
+            ctypes.POINTER(ctypes.c_uint64),
+        ]
+        library.compost_territory_food_block_key.restype = ctypes.c_int
         library.compost_context_verify_material_conservation.argtypes = [ctypes.c_void_p]
         library.compost_context_verify_material_conservation.restype = ctypes.c_int
         library.compost_context_apply_corpse_energy.argtypes = [
@@ -418,6 +423,19 @@ class NativeBackend:
         )
         self._check(status, "compost_context_weaken_weakest")
         return {"changed": bool(changed.value), "resorbed_mass": int(resorbed_mass.value)}
+
+    def food_block_key(self, file_id: str | bytes, block_index: int) -> int:
+        """Return the native deterministic key for one logical FOOD block."""
+        if block_index < 0 or block_index > (1 << 64) - 1:
+            raise ValueError("block_index must fit uint64")
+        encoded = file_id.encode("utf-8") if isinstance(file_id, str) else bytes(file_id)
+        file_buffer = (ctypes.c_uint8 * len(encoded))(*encoded)
+        key = ctypes.c_uint64()
+        status = self._library.compost_territory_food_block_key(
+            file_buffer, len(encoded), ctypes.c_uint64(block_index), ctypes.byref(key)
+        )
+        self._check(status, "compost_territory_food_block_key")
+        return int(key.value)
 
     def apply_corpse_energy(self, energy: float) -> float:
         """Apply energy already selected by the Python environment."""
