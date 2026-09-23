@@ -798,6 +798,37 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                 })
             self.assertEqual(population.state_digests(), before)
 
+    def test_python_live_step_trace_registers_native_child(self) -> None:
+        config = LifecycleConfig(boundary_ratio_limit=0.5, birth_reserve=10.0)
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = SandboxRuntime(Path(directory) / "sandbox", block_size=2)
+            (runtime.inbox / "payload.bin").write_bytes(bytes((4, 5)) * 64)
+            organism = AutonomousOrganism(config=config)
+            runtime.organisms.append(organism)
+            with NativePopulationBackend(self.library_path, organism_ids=(0,), config=config) as population:
+                for step in range(100):
+                    trace: list[NativeAction] = []
+                    organism.live_step(runtime, action_trace=trace)
+                    population.replay_action_traces({0: tuple(trace)})
+                    division = next(
+                        (action for action in trace if action.kind is NativeActionKind.DIVISION),
+                        None,
+                    )
+                    if division is None:
+                        continue
+                    child = organism.children[-1]
+                    native_child = population.snapshot(division.child_id)
+                    native_parent = population.snapshot(0)
+                    self.assertEqual(population.organism_ids, (0, division.child_id))
+                    self.assertEqual(native_parent["body"]["structural_mass"], organism.body.full_body_mass())
+                    self.assertEqual(native_child["body"]["structural_mass"], child.body.full_body_mass())
+                    self.assertEqual(native_child["body"]["atom_count"], len(child.body.atoms))
+                    self.assertEqual(native_child["reserve"], 0.0)
+                    population.verify_material_conservation()
+                    break
+                else:
+                    self.fail("Python live_step did not emit a division trace")
+
     def test_backend_selector_exposes_native_population_without_fallback(self) -> None:
         backend = create_backend(
             "native-population", library=self.library_path, organism_ids=(0, 1)
