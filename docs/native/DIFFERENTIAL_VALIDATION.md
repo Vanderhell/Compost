@@ -108,3 +108,8 @@ this campaign.
 The replay parameters are declared in the `sandbox_trace` entry of
 `tests/fixtures/native_replays.json`; assertion messages lazily include the
 first field name plus Python canonical and native state digests.
+The reusable adapter additionally compares every shared native/Python field
+after each live epoch: lifecycle status, body structures and values, reserve,
+gut FIFO, receptors, territory, material flow, and activity ledger/counters.
+Its failure names the first divergent field; Python-only navigation, caches,
+filesystem ownership, and telemetry remain explicitly outside this boundary.
