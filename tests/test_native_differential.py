@@ -771,10 +771,12 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             self.assertEqual(population.snapshot(1)["parent_id"], 0)
             self.assertEqual(population.snapshot(1)["reserve"], 0.0)
             population.verify_material_conservation()
+            before_collision = population.state_digests()
             with self.assertRaises(ValueError):
                 population.apply_actions({
                     0: NativeAction.division((5,), child_id=1, birth_cost=1.0),
                 })
+            self.assertEqual(population.state_digests(), before_collision)
 
     def test_backend_selector_exposes_native_population_without_fallback(self) -> None:
         backend = create_backend(
