@@ -26,6 +26,7 @@ class NativeActionKind(str, Enum):
     EXTERNAL_GUT = "external_gut"
     PROCESS_GUT = "process_gut"
     CORPSE_ENERGY = "corpse_energy"
+    METABOLIC_PROGRESS = "metabolic_progress"
     LIFECYCLE_STEP = "lifecycle_step"
 
 
@@ -44,6 +45,9 @@ class NativeAction:
     nutrition: tuple[float, ...] | None = None
     capacity: int = 0
     energy: float = 0.0
+    amount: int = 0
+    minimum_work: int = 0
+    body_size: int = 0
 
     def __post_init__(self) -> None:
         if not isinstance(self.kind, NativeActionKind):
@@ -57,12 +61,25 @@ class NativeAction:
         object.__setattr__(self, "nutrition", values)
         if self.capacity < 0:
             raise ValueError("capacity must be non-negative")
+        for name, value in (
+            ("amount", self.amount), ("minimum_work", self.minimum_work), ("body_size", self.body_size)
+        ):
+            if not isinstance(value, int) or not 0 <= value <= (1 << 64) - 1:
+                raise ValueError(f"{name} must be an unsigned 64-bit integer")
         if not math.isfinite(float(self.energy)) or self.energy < 0.0:
             raise ValueError("energy must be finite and non-negative")
         if self.kind is NativeActionKind.PROCESS_GUT and (payload or values is not None or self.energy):
             raise ValueError("gut-processing action cannot carry material or energy fields")
         if self.kind is NativeActionKind.CORPSE_ENERGY and (payload or values is not None or self.capacity):
             raise ValueError("corpse-energy action cannot carry material fields")
+        if self.kind is NativeActionKind.METABOLIC_PROGRESS and (
+            payload or values is not None or self.capacity or self.energy or self.minimum_work == 0
+        ):
+            raise ValueError("metabolic-progress action requires only bounded accounting fields")
+        if self.kind is not NativeActionKind.METABOLIC_PROGRESS and (
+            self.amount or self.minimum_work or self.body_size
+        ):
+            raise ValueError("non-metabolic action cannot carry accounting fields")
         if self.kind is NativeActionKind.LIFECYCLE_STEP and (self.capacity or self.energy):
             raise ValueError("lifecycle-step action cannot carry capacity or energy")
 
@@ -83,6 +100,15 @@ class NativeAction:
     @classmethod
     def process_gut(cls, *, capacity: int) -> "NativeAction":
         return cls(NativeActionKind.PROCESS_GUT, capacity=capacity)
+
+    @classmethod
+    def metabolic_progress(cls, amount: int, *, minimum_work: int, body_size: int) -> "NativeAction":
+        return cls(
+            NativeActionKind.METABOLIC_PROGRESS,
+            amount=amount,
+            minimum_work=minimum_work,
+            body_size=body_size,
+        )
 
     @classmethod
     def lifecycle_step(
@@ -569,6 +595,11 @@ class NativeBackend:
                 "kind": action.kind.value,
                 "credited_energy": self.apply_corpse_energy(action.energy),
             }
+        if action.kind is NativeActionKind.METABOLIC_PROGRESS:
+            result = self.accumulate_metabolic_progress(
+                action.amount, action.minimum_work, action.body_size
+            )
+            return {"kind": action.kind.value, **result}
         if action.kind is NativeActionKind.LIFECYCLE_STEP:
             return {"kind": action.kind.value, **self.step(action.payload, action.nutrition)}
         raise NativeBackendError(f"unsupported native action: {action.kind!r}")

@@ -63,7 +63,13 @@ class SandboxRuntimeTests(unittest.TestCase):
                 traces.append(trace)
                 if organism.metabolic_steps:
                     break
-            self.assertTrue(any([item.kind.value for item in trace] == ["external_gut"] for trace in traces))
+            self.assertTrue(
+                any(
+                    [item.kind.value for item in trace]
+                    == ["external_gut", "metabolic_progress"]
+                    for trace in traces
+                )
+            )
             self.assertGreaterEqual(organism.metabolic_steps, 1)
 
     def test_metabolism_is_charged_by_food_volume_not_each_bite(self) -> None:

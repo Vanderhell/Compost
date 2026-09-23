@@ -498,6 +498,14 @@ class AutonomousOrganism(AutonomousCore):
                 if claim.length < self.last_claim_request:
                     self.partial_bites += 1
                 self.metabolic_progress += claim.length
+                if action_trace is not None:
+                    action_trace.append(
+                        NativeAction.metabolic_progress(
+                            claim.length,
+                            minimum_work=self.config.metabolic_minimum_work,
+                            body_size=self.body.size,
+                        )
+                    )
                 ate = True
                 sandbox.note_bite(self.name, claim.length)
             finally:

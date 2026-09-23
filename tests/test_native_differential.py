@@ -257,6 +257,17 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                 backend.accumulate_metabolic_progress((1 << 64) - 1, 64, 4)
             self.assertEqual(backend.metabolic_snapshot(), before)
 
+    def test_metabolic_progress_action_replays_python_accounting(self) -> None:
+        with NativeBackend(self.library_path, organism_id=90) as backend:
+            actions = (
+                NativeAction.metabolic_progress(63, minimum_work=64, body_size=4),
+                NativeAction.metabolic_progress(65, minimum_work=64, body_size=4),
+            )
+            results = backend.replay_actions(actions)
+            self.assertEqual(results[0], {"kind": "metabolic_progress", "due_steps": 0, "remaining_progress": 63})
+            self.assertEqual(results[1], {"kind": "metabolic_progress", "due_steps": 2, "remaining_progress": 0})
+            self.assertEqual(backend.metabolic_snapshot(), {"progress": 0, "steps": 2})
+
     def test_public_python_adapter_try_divide_commits_allowed_candidate(self) -> None:
         config = LifecycleConfig(boundary_ratio_limit=0.5, birth_reserve=10.0)
         with NativeBackend(self.library_path, organism_id=110, config=config) as backend:
