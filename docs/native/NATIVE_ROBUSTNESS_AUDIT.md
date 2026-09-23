@@ -6,9 +6,10 @@ The native test suite now checks null arguments, invalid floating-point input,
 failed-operation state preservation, repeated destroy, opaque handle errors, and
 bounded table behavior through the public C APIs. GCC Debug and MSVC Release builds run
 these tests under CTest. The current Windows evidence includes GCC Debug,
-GCC Release, and MSVC Release runs, with all seven tests passing in each run
-where the fuzz target is enabled; the current MSVC Release run also enables
-warnings-as-errors.
+GCC Release, and MSVC Release runs, with all seven pre-width-audit tests
+passing in each run where the fuzz target is enabled; the current MSVC Debug
+run passes all eight tests including the fixed-width ABI audit, and the MSVC
+Release run also enables warnings-as-errors.
 The opaque weakest-structure wrapper also preserves caller outputs when its
 handle is invalid, and the Python adapter exposes the same explicit failure.
 The combined step-and-division ABI test verifies that an invalid child identity
@@ -43,7 +44,7 @@ step-and-division ABI and the metabolic progress accumulator on two identical
 contexts and compares status, digest, division plan, material result, due
 steps, and remainder on every case.
 
-The same seven-test suite was also built and executed from the current tree
+The same seven-test pre-width-audit suite was also built and executed from the current tree
 with GCC 13.3 under WSL using AddressSanitizer and UndefinedBehaviorSanitizer
 after the nested division fixture and population validation changes. All seven
 tests passed in `284.37s`; the run emitted no sanitizer diagnostics. The Windows-mounted workspace did emit

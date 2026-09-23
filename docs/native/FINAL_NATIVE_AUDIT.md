@@ -22,8 +22,9 @@ Python tests:
 native DLL configured (81.31s).
 
 Native tests:
-`7/7` CTest tests passed in the current MSVC 19.42 Release build with
-warnings-as-errors enabled (10.12s); the same suite passed under GCC/WSL.
+`8/8` CTest tests passed in the current MSVC 19.42 Debug build with the
+width audit and fuzz target enabled (96.63s). The historical MSVC Release,
+GCC, and Clang evidence below predates the added width test.
 
 Differential cases:
 `34` Python/native differential tests pass, including bounded pure-rule,
@@ -41,7 +42,7 @@ Long-run steps:
 the current ABI v3 replay campaign.
 
 Sanitizer result:
-Current GCC 13.3 under WSL with ASan/UBSan: `7/7` tests passed in `284.37s`,
+Current GCC 13.3 under WSL with ASan/UBSan: `7/7` pre-width-audit tests passed in `284.37s`,
 with no sanitizer diagnostics. Windows-mounted filesystem clock-skew warnings
 were observed during the build and were not test or sanitizer failures.
 
@@ -50,7 +51,7 @@ GCC 13.3 Debug sanitizer build and test pass; the native C fuzz target covers
 10,000 deterministic public-API cases.
 
 Clang result:
-Linux Clang 18.1.3 Release `-Werror` build and full CTest pass (`7/7`, 9.59s) with
+Linux Clang 18.1.3 Release `-Werror` build and full pre-width-audit CTest pass (`7/7`, 9.59s) with
 `-Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Wshadow` enabled.
 The standalone Windows Clang CRT limitation remains irrelevant to the Linux
 Clang CI evidence.
