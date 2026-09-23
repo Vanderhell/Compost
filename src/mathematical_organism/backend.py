@@ -282,6 +282,13 @@ class _Snapshot(ctypes.Structure):
     ]
 
 
+class _MetabolicSnapshot(ctypes.Structure):
+    _fields_ = [
+        ("progress", ctypes.c_uint64),
+        ("steps", ctypes.c_uint64),
+    ]
+
+
 class NativeBackend:
     """Small explicit ctypes adapter for the versioned native ABI."""
 
@@ -401,6 +408,15 @@ class NativeBackend:
         library.compost_context_apply_corpse_energy.restype = ctypes.c_int
         library.compost_context_state_digest.argtypes = [ctypes.c_void_p]
         library.compost_context_state_digest.restype = ctypes.c_uint64
+        library.compost_context_metabolic_snapshot.argtypes = [
+            ctypes.c_void_p, ctypes.POINTER(_MetabolicSnapshot)
+        ]
+        library.compost_context_metabolic_snapshot.restype = ctypes.c_int
+        library.compost_context_accumulate_metabolic_progress.argtypes = [
+            ctypes.c_void_p, ctypes.c_uint64, ctypes.c_uint64, ctypes.c_uint64,
+            ctypes.POINTER(ctypes.c_uint64), ctypes.POINTER(ctypes.c_uint64),
+        ]
+        library.compost_context_accumulate_metabolic_progress.restype = ctypes.c_int
         library.compost_context_snapshot.argtypes = [ctypes.c_void_p, ctypes.POINTER(_Snapshot)]
         library.compost_context_snapshot.restype = ctypes.c_int
         library.compost_context_select_partition.argtypes = [
@@ -468,6 +484,35 @@ class NativeBackend:
             "threshold": int(outputs[0].value),
             "due_steps": int(outputs[1].value),
             "remaining_progress": int(outputs[2].value),
+        }
+
+    def metabolic_snapshot(self) -> dict[str, int]:
+        """Return the opaque native metabolic backlog and settled-step count."""
+        snapshot = _MetabolicSnapshot()
+        status = self._library.compost_context_metabolic_snapshot(
+            self._context, ctypes.byref(snapshot)
+        )
+        self._check(status, "compost_context_metabolic_snapshot")
+        return {"progress": int(snapshot.progress), "steps": int(snapshot.steps)}
+
+    def accumulate_metabolic_progress(
+        self, amount: int, minimum_work: int, body_size: int
+    ) -> dict[str, int]:
+        """Add bounded work and settle complete units transactionally."""
+        due_steps = ctypes.c_uint64(0)
+        remaining_progress = ctypes.c_uint64(0)
+        status = self._library.compost_context_accumulate_metabolic_progress(
+            self._context,
+            ctypes.c_uint64(amount),
+            ctypes.c_uint64(minimum_work),
+            ctypes.c_uint64(body_size),
+            ctypes.byref(due_steps),
+            ctypes.byref(remaining_progress),
+        )
+        self._check(status, "compost_context_accumulate_metabolic_progress")
+        return {
+            "due_steps": int(due_steps.value),
+            "remaining_progress": int(remaining_progress.value),
         }
 
     def enqueue_external(self, food: bytes | bytearray, nutrition: tuple[float, ...] | None = None) -> None:

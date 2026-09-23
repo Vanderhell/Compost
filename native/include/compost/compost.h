@@ -247,6 +247,11 @@ typedef struct compost_organism {
 
 typedef struct compost_context compost_context_t;
 
+typedef struct compost_metabolic_snapshot {
+    uint64_t progress;
+    uint64_t steps;
+} compost_metabolic_snapshot_t;
+
 typedef struct compost_step_input {
     const uint8_t *food;
     const double *nutrition;
@@ -469,6 +474,25 @@ compost_status_t compost_context_snapshot(
     compost_snapshot_t *snapshot
 );
 uint64_t compost_context_state_digest(const compost_context_t *context);
+/* Copies context-owned metabolic progress without exposing the opaque layout. */
+compost_status_t compost_context_metabolic_snapshot(
+    const compost_context_t *context,
+    compost_metabolic_snapshot_t *snapshot
+);
+/*
+ * Adds environmental work transactionally and settles all complete bounded
+ * work units. Outputs and context state are unchanged on failure. This is
+ * accounting only; lifecycle work performed by each due step remains an
+ * explicit host/native operation until that transition is migrated.
+ */
+compost_status_t compost_context_accumulate_metabolic_progress(
+    compost_context_t *context,
+    uint64_t amount,
+    uint64_t minimum_work,
+    uint64_t body_size,
+    uint64_t *due_steps,
+    uint64_t *remaining_progress
+);
 compost_status_t compost_context_digest(
     compost_context_t *context,
     const compost_step_input_t *input,

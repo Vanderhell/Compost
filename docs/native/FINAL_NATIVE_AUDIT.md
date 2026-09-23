@@ -26,12 +26,13 @@ Native tests:
 warnings-as-errors enabled (10.12s); the same suite passed under GCC/WSL.
 
 Differential cases:
-`29` Python/native differential tests pass, including bounded pure-rule,
+`30` Python/native differential tests pass, including bounded pure-rule,
 external-gut, environment corpse-energy credit, partition transaction,
 atomic division-boundary, step-plus-division lifecycle, territory predicate,
 deterministic FOOD block-key, two-organism population, and population child
 registration, replayable sandbox action-trace, and physical-food lifecycle
-comparisons, plus bounded metabolic scheduling arithmetic. The latest MSVC
+comparisons, plus bounded metabolic scheduling arithmetic and opaque metabolic
+progress accumulation. The latest MSVC
 DLL run completed in 6.24s; the
 earlier WSL GCC DLL run completed in 6.670s.
 
@@ -66,9 +67,9 @@ Known limitations:
   transition, including filesystem FOOD discovery/claims, territory scheduling,
   corpse lookup/storage, automatic metabolic scheduling, and full death/birth
   orchestration.
-- Native metabolic threshold/quotient arithmetic is differential-tested, but
-  the Python loop that accumulates progress and triggers the full tail remains
-  outside the native state machine.
+- Native metabolic threshold/quotient arithmetic is differential-tested, and
+  opaque progress accumulation is transactional, but lifecycle work for due
+  steps remains outside the native state machine.
 - Corpse energy credit is exposed as an explicit environment-supplied ABI
   transfer; corpse selection, persistence, and territory lookup remain Python
   responsibilities.

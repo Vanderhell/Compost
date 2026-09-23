@@ -38,6 +38,9 @@ The first C target is the lifecycle/sandbox behavioral core only:
 - Consolidation, structural mutations, connected-component/bridge predicates,
   partition selection, division, child initialization, and death state.
 - Pure territory path/state math and stable food address predicates.
+- Metabolic progress/settled-step accounting through an explicit opaque
+  context operation; lifecycle work triggered by due steps remains outside the
+  native state machine until its ordering is migrated.
 - A single deterministic step accepting an explicit environment view and
   returning state mutation plus explicit environment/action events.
 
@@ -53,7 +56,7 @@ clock, spawn threads, or make a scheduling decision based on hash iteration.
   deterministic `try_divide` and step-plus-division operations;
   native
   failures are not silently downgraded.
-- Automatic metabolic-progress scheduling and the complete `live_step` tail
+- Automatic metabolic lifecycle scheduling and the complete `live_step` tail
   (division/death orchestration) remain deferred; current action traces expose
   only the validated environment prefix.
 - Native multiprocessing and any throughput-oriented parallel mode.

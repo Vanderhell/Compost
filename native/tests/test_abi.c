@@ -31,6 +31,9 @@ int main(void)
     uint64_t schedule_threshold = 0U;
     uint64_t schedule_steps = 0U;
     uint64_t schedule_remaining = 0U;
+    compost_metabolic_snapshot_t metabolic = {0};
+    uint64_t due_steps = 0U;
+    uint64_t remaining_progress = 0U;
     if (compost_metabolic_schedule(UINT64_C(64), UINT64_C(4), UINT64_C(65),
                                    &schedule_threshold, &schedule_steps,
                                    &schedule_remaining) != COMPOST_STATUS_OK ||
@@ -59,6 +62,27 @@ int main(void)
         compost_destroy(context);
         return fail("opaque ABI");
     }
+    if (compost_context_metabolic_snapshot(context, &metabolic) != COMPOST_STATUS_OK ||
+        metabolic.progress != 0U || metabolic.steps != 0U ||
+        compost_context_accumulate_metabolic_progress(
+            context, UINT64_C(65), UINT64_C(64), UINT64_C(4), &due_steps, &remaining_progress
+        ) != COMPOST_STATUS_OK || due_steps != 1U || remaining_progress != 1U ||
+        compost_context_metabolic_snapshot(context, &metabolic) != COMPOST_STATUS_OK ||
+        metabolic.progress != 1U || metabolic.steps != 1U) {
+        compost_destroy(context);
+        return fail("metabolic context accounting");
+    }
+    due_steps = UINT64_C(9);
+    remaining_progress = UINT64_C(9);
+    if (compost_context_accumulate_metabolic_progress(
+            context, UINT64_MAX, UINT64_C(64), UINT64_C(4), &due_steps, &remaining_progress
+        ) != COMPOST_STATUS_INVALID_ARGUMENT || due_steps != UINT64_C(9) ||
+        remaining_progress != UINT64_C(9) ||
+        compost_context_metabolic_snapshot(context, &metabolic) != COMPOST_STATUS_OK ||
+        metabolic.progress != 1U || metabolic.steps != 1U) {
+        compost_destroy(context);
+        return fail("metabolic context transaction");
+    }
     if (compost_context_try_divide(context, UINT64_C(14), &child, &try_plan, &try_result) != COMPOST_STATUS_OK ||
         child != NULL || try_plan.candidate_found || try_plan.allowed ||
         try_result.child_structural_mass != 0U) {
@@ -83,6 +107,12 @@ int main(void)
         compost_destroy(child);
         compost_destroy(context);
         return fail("opaque partition ABI");
+    }
+    if (compost_context_metabolic_snapshot(child, &metabolic) != COMPOST_STATUS_OK ||
+        metabolic.progress != 0U || metabolic.steps != 0U) {
+        compost_destroy(child);
+        compost_destroy(context);
+        return fail("child metabolic reset");
     }
     compost_destroy(child);
     initial_digest = compost_context_state_digest(context);

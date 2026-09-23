@@ -234,6 +234,29 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             with self.assertRaises(NativeBackendError):
                 backend.metabolic_schedule(0, 1, 1)
 
+    def test_metabolic_context_accumulator_matches_python_and_is_transactional(self) -> None:
+        with NativeBackend(self.library_path, organism_id=89) as backend:
+            self.assertEqual(backend.metabolic_snapshot(), {"progress": 0, "steps": 0})
+            expected_progress = 0
+            expected_steps = 0
+            for amount in (1, 63, 65, 7):
+                expected_progress += amount
+                due, expected_progress = divmod(expected_progress, 64)
+                expected_steps += due
+                actual = backend.accumulate_metabolic_progress(amount, 64, 4)
+                self.assertEqual(
+                    actual,
+                    {"due_steps": due, "remaining_progress": expected_progress},
+                )
+                self.assertEqual(
+                    backend.metabolic_snapshot(),
+                    {"progress": expected_progress, "steps": expected_steps},
+                )
+            before = backend.metabolic_snapshot()
+            with self.assertRaises(NativeBackendError):
+                backend.accumulate_metabolic_progress((1 << 64) - 1, 64, 4)
+            self.assertEqual(backend.metabolic_snapshot(), before)
+
     def test_public_python_adapter_try_divide_commits_allowed_candidate(self) -> None:
         config = LifecycleConfig(boundary_ratio_limit=0.5, birth_reserve=10.0)
         with NativeBackend(self.library_path, organism_id=110, config=config) as backend:

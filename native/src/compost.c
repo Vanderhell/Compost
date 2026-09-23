@@ -7,6 +7,8 @@
 struct compost_context {
     compost_allocator_t allocator;
     compost_organism_t organism;
+    uint64_t metabolic_progress;
+    uint64_t metabolic_steps;
 };
 
 static void *default_allocate(void *context, size_t size)
@@ -42,6 +44,7 @@ static compost_allocator_t effective_allocator(const compost_allocator_t *alloca
 
 static bool finite(double value);
 static bool add_double(double left, double right, double *result);
+static uint64_t digest_u64(uint64_t digest, uint64_t value);
 static bool weaker(const compost_structure_t *left, const compost_structure_t *right);
 static compost_structure_t *weakest_structure(compost_organism_t *organism);
 static double structure_maintenance(const compost_organism_t *organism);
@@ -361,7 +364,52 @@ uint64_t compost_context_state_digest(const compost_context_t *context)
     if (context == NULL) {
         return UINT64_C(0);
     }
-    return compost_organism_state_digest(&context->organism);
+    uint64_t digest = compost_organism_state_digest(&context->organism);
+    digest = digest_u64(digest, context->metabolic_progress);
+    return digest_u64(digest, context->metabolic_steps);
+}
+
+compost_status_t compost_context_metabolic_snapshot(
+    const compost_context_t *context,
+    compost_metabolic_snapshot_t *snapshot
+)
+{
+    if (context == NULL || snapshot == NULL) return COMPOST_STATUS_INVALID_ARGUMENT;
+    snapshot->progress = context->metabolic_progress;
+    snapshot->steps = context->metabolic_steps;
+    return COMPOST_STATUS_OK;
+}
+
+compost_status_t compost_context_accumulate_metabolic_progress(
+    compost_context_t *context,
+    uint64_t amount,
+    uint64_t minimum_work,
+    uint64_t body_size,
+    uint64_t *due_steps,
+    uint64_t *remaining_progress
+)
+{
+    if (context == NULL || due_steps == NULL || remaining_progress == NULL || minimum_work == 0U) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    if (UINT64_MAX - context->metabolic_progress < amount) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    const uint64_t accumulated = context->metabolic_progress + amount;
+    uint64_t threshold = 0U;
+    uint64_t settled = 0U;
+    uint64_t remainder = 0U;
+    compost_status_t status = compost_metabolic_schedule(
+        minimum_work, body_size, accumulated, &threshold, &settled, &remainder
+    );
+    if (status != COMPOST_STATUS_OK || UINT64_MAX - context->metabolic_steps < settled) {
+        return status == COMPOST_STATUS_OK ? COMPOST_STATUS_INVALID_ARGUMENT : status;
+    }
+    context->metabolic_progress = remainder;
+    context->metabolic_steps += settled;
+    *due_steps = settled;
+    *remaining_progress = remainder;
+    return COMPOST_STATUS_OK;
 }
 
 compost_status_t compost_context_digest(
