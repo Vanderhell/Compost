@@ -55,7 +55,8 @@ Python `live_step` action traces.
 immutable action forms for replay. The trace is optional and observational;
 the normal Python step remains unchanged. The metabolic-progress action
 settles only bounded counter accounting. A due epoch may then emit an
-empty-input `LIFECYCLE_STEP`, which covers the validated
+empty-input `LIFECYCLE_STEP`, which uses the explicit lifecycle-step ABI
+endpoint including activity-debt settlement and covers the validated
 consolidation/maintenance/age checkpoint. A validated `DIVISION` action can
 then replay the parent partition and return a transient child snapshot;
 Python still owns child registration, identity naming, corpse handling, and
