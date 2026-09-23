@@ -456,6 +456,40 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             self.assertEqual(child["reserve"], 0.0)
             population.verify_material_conservation()
 
+    def test_native_population_replays_division_and_child_death(self) -> None:
+        config = LifecycleConfig(boundary_ratio_limit=0.5, birth_reserve=10.0)
+        reference = MathematicalLifePopulation(chr(4) + chr(5), config)
+        with NativePopulationBackend(
+            self.library_path, organism_ids=(0,), config=config
+        ) as population:
+            for cycle in range(8):
+                environment = {
+                    organism_id: (
+                        (b"\x04\x05", (1.0, 1.0))
+                        if cycle == 0 and organism_id == 0
+                        else (b"", ())
+                    )
+                    for organism_id in population.organism_ids
+                }
+                population.step(environment)
+                reference.cycle()
+                self.assertEqual(population.organism_ids, tuple(sorted(reference.organisms)))
+                for organism_id in population.organism_ids:
+                    native = population.snapshot(organism_id)
+                    oracle = reference.organisms[organism_id]
+                    prefix = f"division/death cycle {cycle} organism {organism_id}"
+                    self.assertEqual(native["cursor"], oracle.cursor, prefix)
+                    self.assertEqual(native["age_in_cycles"], oracle.age_in_cycles, prefix)
+                    self.assertEqual(
+                        native["status"], 0 if oracle.status is OrganismStatus.ALIVE else 1, prefix
+                    )
+                    self.assertAlmostEqual(native["reserve"], oracle.reserve, places=12, msg=prefix)
+                    self.assertEqual(native["body"]["structural_mass"], oracle.full_body_mass(), prefix)
+                    self.assertEqual(native["body"]["atom_count"], len(oracle.atoms), prefix)
+                    self.assertEqual(native["body"]["relation_count"], len(oracle.relations), prefix)
+                    self.assertEqual(native["body"]["composite_count"], len(oracle.composites), prefix)
+                population.verify_material_conservation()
+
     def test_native_population_applies_host_actions_in_id_order(self) -> None:
         with NativePopulationBackend(self.library_path, organism_ids=(8, 2)) as population:
             result = population.apply_actions({8: NativeAction.corpse_energy(2.0), 2: NativeAction.corpse_energy(1.0)})
