@@ -5,10 +5,19 @@ project(compost_native VERSION 0.1.0 LANGUAGES C)
 option(COMPOST_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
 option(COMPOST_BUILD_TESTS "Build native tests" ON)
 option(COMPOST_BUILD_BENCHMARKS "Build native benchmarks" OFF)
+option(COMPOST_WARNINGS_AS_ERRORS "Treat native compiler warnings as errors" OFF)
 
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
+
+if(COMPOST_WARNINGS_AS_ERRORS)
+    if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+        add_compile_options(-Werror)
+    elseif(MSVC)
+        add_compile_options(/WX)
+    endif()
+endif()
 
 add_library(compost_native SHARED
     src/compost.c

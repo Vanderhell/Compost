@@ -41,7 +41,7 @@ jobs:
             echo "CC=gcc" >> "$GITHUB_ENV"
           fi
       - name: Configure native core
-        run: cmake -S native -B native/build-ci -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCOMPOST_BUILD_TESTS=ON
+        run: cmake -S native -B native/build-ci -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCOMPOST_BUILD_TESTS=ON -DCOMPOST_WARNINGS_AS_ERRORS=ON
       - name: Build native core
         run: cmake --build native/build-ci --parallel
       - name: Run native tests
@@ -67,6 +67,7 @@ jobs:
           CC=gcc cmake -S native -B native/build-sanitizers \
             -DCMAKE_BUILD_TYPE=Debug \
             -DCOMPOST_BUILD_TESTS=ON \
+            -DCOMPOST_WARNINGS_AS_ERRORS=ON \
             -DCOMPOST_ENABLE_SANITIZERS=ON
       - name: Build sanitizer target
         run: cmake --build native/build-sanitizers --parallel
@@ -81,7 +82,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Configure MSVC native core
-        run: cmake -S native -B native/build-msvc -DCOMPOST_BUILD_TESTS=ON
+        run: cmake -S native -B native/build-msvc -DCOMPOST_BUILD_TESTS=ON -DCOMPOST_WARNINGS_AS_ERRORS=ON
       - name: Build MSVC native core
         run: cmake --build native/build-msvc --config Release --parallel
       - name: Run MSVC native tests

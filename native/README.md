@@ -49,6 +49,9 @@ cmake --build native/build
 ctest --test-dir native/build --output-on-failure
 ```
 
+Set `COMPOST_WARNINGS_AS_ERRORS=ON` for release-gate builds. CI enables this
+option for GCC, Clang, and MSVC native jobs.
+
 Set `COMPOST_ENABLE_SANITIZERS=ON` with GCC/Clang toolchains that provide the
 AddressSanitizer and UBSan runtimes. On Windows, compiler runtime availability
 is toolchain-specific; configuration must not be interpreted as evidence that a
