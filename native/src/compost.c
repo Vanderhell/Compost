@@ -196,6 +196,16 @@ compost_status_t compost_context_process_gut(
     return compost_organism_process_gut(&context->organism, capacity, result);
 }
 
+compost_status_t compost_context_weaken_weakest(
+    compost_context_t *context,
+    bool *changed,
+    uint64_t *resorbed_mass
+)
+{
+    if (context == NULL) return COMPOST_STATUS_INVALID_ARGUMENT;
+    return compost_organism_weaken_weakest(&context->organism, changed, resorbed_mass);
+}
+
 compost_status_t compost_context_verify_material_conservation(
     const compost_context_t *context
 )

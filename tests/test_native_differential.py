@@ -165,6 +165,16 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             plan = backend.division_plan()
             self.assertFalse(plan["candidate_found"])
 
+    def test_public_python_adapter_exposes_empty_weakest_transition(self) -> None:
+        reference = AutonomousOrganism("ORG-EMPTY")
+        self.assertFalse(reference.remove_weakest(reference.body, "STARVATION", True))
+        with NativeBackend(self.library_path, organism_id=98) as backend:
+            self.assertEqual(
+                backend.weaken_weakest(),
+                {"changed": False, "resorbed_mass": 0},
+            )
+            backend.verify_material_conservation()
+
     def test_public_python_adapter_try_divide_is_transactional_without_candidate(self) -> None:
         with NativeBackend(self.library_path, organism_id=101) as backend:
             before = backend.state_digest()

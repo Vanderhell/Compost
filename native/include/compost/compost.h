@@ -455,6 +455,12 @@ compost_status_t compost_context_process_gut(
     uint64_t capacity,
     compost_gut_process_result_t *result
 );
+/* Weakens or removes one deterministically selected live structure. */
+compost_status_t compost_context_weaken_weakest(
+    compost_context_t *context,
+    bool *changed,
+    uint64_t *resorbed_mass
+);
 /* Read-only invariant check; returns INVALID_STATE when any material ledger disagrees. */
 compost_status_t compost_context_verify_material_conservation(
     const compost_context_t *context

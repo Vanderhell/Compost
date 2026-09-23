@@ -109,6 +109,12 @@ int main(void)
     if (compost_context_verify_material_conservation(NULL) != COMPOST_STATUS_INVALID_ARGUMENT) {
         return fail("opaque conservation invalid handle");
     }
+    bool changed = true;
+    uint64_t resorbed_mass = UINT64_C(9);
+    if (compost_context_weaken_weakest(NULL, &changed, &resorbed_mass) != COMPOST_STATUS_INVALID_ARGUMENT ||
+        changed != true || resorbed_mass != UINT64_C(9)) {
+        return fail("opaque weakest invalid handle");
+    }
     if (compost_context_try_divide(NULL, 1U, &child, &try_plan, &try_result) != COMPOST_STATUS_INVALID_ARGUMENT) {
         return fail("opaque try-division invalid handle");
     }

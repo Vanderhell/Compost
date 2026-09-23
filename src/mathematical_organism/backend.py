@@ -295,6 +295,10 @@ class NativeBackend:
             ctypes.c_void_p, ctypes.c_uint64, ctypes.POINTER(_GutProcessResult)
         ]
         library.compost_context_process_gut.restype = ctypes.c_int
+        library.compost_context_weaken_weakest.argtypes = [
+            ctypes.c_void_p, ctypes.POINTER(ctypes.c_bool), ctypes.POINTER(ctypes.c_uint64)
+        ]
+        library.compost_context_weaken_weakest.restype = ctypes.c_int
         library.compost_context_verify_material_conservation.argtypes = [ctypes.c_void_p]
         library.compost_context_verify_material_conservation.restype = ctypes.c_int
         library.compost_context_apply_corpse_energy.argtypes = [
@@ -396,6 +400,18 @@ class NativeBackend:
             raise NativeBackendError("native backend is closed")
         status = self._library.compost_context_verify_material_conservation(self._context)
         self._check(status, "compost_context_verify_material_conservation")
+
+    def weaken_weakest(self) -> dict[str, int | bool]:
+        """Apply one native weakest-structure transition."""
+        if not self._context or not self._context.value:
+            raise NativeBackendError("native backend is closed")
+        changed = ctypes.c_bool()
+        resorbed_mass = ctypes.c_uint64()
+        status = self._library.compost_context_weaken_weakest(
+            self._context, ctypes.byref(changed), ctypes.byref(resorbed_mass)
+        )
+        self._check(status, "compost_context_weaken_weakest")
+        return {"changed": bool(changed.value), "resorbed_mass": int(resorbed_mass.value)}
 
     def apply_corpse_energy(self, energy: float) -> float:
         """Apply energy already selected by the Python environment."""
