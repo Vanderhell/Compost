@@ -15,7 +15,7 @@ for the native units that currently have matching Python reference functions:
 
 The test requires `COMPOST_NATIVE_LIBRARY`. If the variable is absent it is
 skipped; if it names a missing file the test fails. There is no silent native
-to Python fallback. The current bounded campaign contains nineteen tests,
+to Python fallback. The current bounded campaign contains twenty tests,
 including forty deterministic lifecycle replays (10,240 aggregate steps)
 with field-by-field snapshot checks.
 
@@ -23,7 +23,7 @@ with field-by-field snapshot checks.
 
 The full per-step Python/C campaign is **NOT READY**. The native organism is
 not yet a complete lifecycle engine. The current native-backed Python run is
-green (`19 passed`), and the complete Python regression suite is green
+green (`20 passed`), and the complete Python regression suite is green
 (`189 passed, 16 skipped, 3 subtests passed`). The selected partition
 transaction now has a bounded Python/sandbox comparison, but the automatic
 candidate policy is not yet fully integrated. The native checkpoint now

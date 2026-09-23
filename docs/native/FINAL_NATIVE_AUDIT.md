@@ -26,7 +26,7 @@ Native tests:
 warnings-as-errors enabled (10.53s); the same suite passed under GCC/WSL.
 
 Differential cases:
-`19` Python/native differential tests pass, including bounded pure-rule,
+`20` Python/native differential tests pass, including bounded pure-rule,
 external-gut, environment corpse-energy credit, partition transaction,
 atomic division-boundary, step-plus-division lifecycle, territory predicate,
 deterministic FOOD block-key, two-organism population, and population child
