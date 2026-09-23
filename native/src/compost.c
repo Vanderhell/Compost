@@ -2761,7 +2761,18 @@ compost_status_t compost_organism_partition(
     next_parent.reserve -= birth_cost;
     next_parent.material_flow.structural_transferred_out += moved_mass;
     child->material_flow.structural_transferred_in = moved_mass;
-    next_parent.activity.counters.division_events += UINT64_C(1);
+    compost_activity_counters_t division_counters = {0};
+    division_counters.division_events = UINT64_C(1);
+    if (compost_activity_ledger_add(
+            &next_parent.activity,
+            &division_counters,
+            next_parent.body.structural_mass,
+            &DEFAULT_ACTIVITY_COSTS
+        ) != COMPOST_STATUS_OK ||
+        settle_activity_debt(&next_parent) != COMPOST_STATUS_OK) {
+        compost_organism_destroy(child);
+        return COMPOST_STATUS_INVALID_STATE;
+    }
     *result = (compost_division_result_t){
         moved_mass,
         cross_mass,
