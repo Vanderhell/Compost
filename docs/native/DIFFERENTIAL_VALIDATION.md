@@ -29,8 +29,8 @@ dense cross-split division replay, and field-by-field snapshot checks.
 
 The full per-step Python/C campaign is **NOT READY**. The native organism is
 not yet a complete lifecycle engine. The current native-backed Python run is
-green (`34 passed`), and the complete Python regression suite is green
-(`227 passed, 3 subtests passed`). The selected partition
+green (`35 passed`), and the complete Python regression suite is green
+(`228 passed, 3 subtests passed`). The selected partition
 transaction now has a bounded Python/sandbox comparison, but the automatic
 candidate policy is not yet fully integrated. The native checkpoint now
 includes deterministic starvation removal, dead-step no-ops, and bounded
@@ -46,8 +46,9 @@ including empty-input lifecycle steps after the food stream is exhausted, not
 filesystem or native parallel scheduling. The case now runs through the
 reusable `NativePopulationBackend`, including deterministic handle ownership
 and per-organism conservation checks.
-It also verifies child registration and parent/child state after an allowed
-division.
+It also verifies child registration, parent/child state after an allowed
+division, and an eight-cycle division/death replay where the child becomes
+dead while the parent remains alive.
 
 The native-only paired replay test now executes 10,000 deterministic steps and
 compares state digests and step counters after every step. It is a determinism

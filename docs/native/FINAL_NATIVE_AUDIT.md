@@ -18,8 +18,8 @@ CI: PASS
 Documentation: PASS
 
 Python tests:
-`227 passed, 3 subtests passed` in the latest complete local run with the
-native DLL configured (81.31s).
+`228 passed, 3 subtests passed` in the latest complete local run with the
+native DLL configured (83.32s).
 
 Native tests:
 `8/8` CTest tests passed in the current MSVC 19.42 Debug build with the
@@ -27,7 +27,7 @@ width audit and fuzz target enabled (96.63s). The historical MSVC Release,
 GCC, and Clang evidence below predates the added width test.
 
 Differential cases:
-`34` Python/native differential tests pass, including bounded pure-rule,
+`35` Python/native differential tests pass, including bounded pure-rule,
 external-gut, environment corpse-energy credit, partition transaction,
 atomic division-boundary, step-plus-division lifecycle, territory predicate,
 deterministic FOOD block-key, two-organism population, and population child
