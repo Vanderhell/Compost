@@ -778,6 +778,15 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
         self.assertIn('"backend": "native"', output.getvalue())
         self.assertIn('"steps": 2', output.getvalue())
 
+    def test_public_cli_native_failure_does_not_fallback(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            missing = Path(directory) / "missing-native.dll"
+            with self.assertRaises(NativeBackendError):
+                cli_main([
+                    "checkpoint", "AB", "--backend", "native",
+                    "--library", str(missing), "--steps", "1",
+                ])
+
     def test_native_backend_rejects_unrepresented_scheduling_config(self) -> None:
         with self.assertRaises(NativeBackendError):
             NativeBackend(
