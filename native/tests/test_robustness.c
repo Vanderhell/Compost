@@ -64,6 +64,20 @@ int main(void)
         compost_organism_digest(NULL, &invalid, &result) != COMPOST_STATUS_INVALID_ARGUMENT) {
         return fail("null validation");
     }
+    compost_context_t *try_child_sentinel = (compost_context_t *)(uintptr_t)1U;
+    compost_division_plan_t try_plan_sentinel = {0};
+    compost_division_result_t try_result_sentinel = {0};
+    try_plan_sentinel.candidate_found = true;
+    try_plan_sentinel.boundary_ratio = 7.0;
+    try_result_sentinel.cross_split_mass = UINT64_C(9);
+    if (compost_context_try_divide(
+            NULL, 1U, &try_child_sentinel, &try_plan_sentinel, &try_result_sentinel
+        ) != COMPOST_STATUS_INVALID_ARGUMENT ||
+        try_child_sentinel != (compost_context_t *)(uintptr_t)1U ||
+        !try_plan_sentinel.candidate_found || try_plan_sentinel.boundary_ratio != 7.0 ||
+        try_result_sentinel.cross_split_mass != UINT64_C(9)) {
+        return fail("try-division failed-output preservation");
+    }
     if (compost_config_default(&config) != COMPOST_STATUS_OK) {
         return fail("default config");
     }
