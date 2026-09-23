@@ -74,6 +74,16 @@ int main(void)
         compost_territory_contains(NULL, 1U, 0U, &territory_contains) != COMPOST_STATUS_INVALID_ARGUMENT) {
         return fail("territory invalid input");
     }
+    const uint8_t block_file[] = "firmware-A";
+    uint64_t block_key = 0U;
+    if (compost_territory_food_block_key(
+            block_file, sizeof(block_file) - 1U, UINT64_C(7), &block_key
+        ) != COMPOST_STATUS_OK ||
+        block_key != UINT64_C(4863105638158506395) ||
+        compost_territory_food_block_key(NULL, 1U, 0U, &block_key) != COMPOST_STATUS_INVALID_ARGUMENT ||
+        block_key != UINT64_C(4863105638158506395)) {
+        return fail("food block key validation");
+    }
     compost_context_t *try_child_sentinel = (compost_context_t *)(uintptr_t)1U;
     compost_division_plan_t try_plan_sentinel = {0};
     compost_division_result_t try_result_sentinel = {0};
