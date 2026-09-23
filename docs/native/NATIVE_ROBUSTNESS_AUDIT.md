@@ -57,6 +57,8 @@ context through that same allocator rather than a hard-coded system `free`.
 The current fixture additionally forces allocation failure while creating a
 valid division child and verifies `COMPOST_STATUS_OUT_OF_MEMORY`, a null child
 handle, and unchanged parent state digest.
+The nested division fixture also accepts `UINT64_MAX` as a child identity and
+checks its parent, generation, territory, and conservation state.
 Invalid `try_divide` handles are checked to preserve all caller output sentinels.
 
 ## Outstanding evidence
