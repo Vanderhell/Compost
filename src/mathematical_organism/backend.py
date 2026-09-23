@@ -1274,6 +1274,27 @@ class NativePopulationBackend:
             raise KeyError(f"unknown organism ID: {organism_id}") from error
         return context.snapshot()
 
+    def take_corpse(self, organism_id: int) -> dict[str, object]:
+        """Transfer a dead native snapshot to the Python host and close it.
+
+        Filesystem persistence, territory release, and observer events remain
+        Python responsibilities.  An alive organism is rejected without
+        changing the population; a successful transfer removes the owned
+        native handle exactly once.
+        """
+        if self._closed:
+            raise NativeBackendError("native population backend is closed")
+        try:
+            context = self._contexts[int(organism_id)]
+        except KeyError as error:
+            raise KeyError(f"unknown organism ID: {organism_id}") from error
+        snapshot = context.snapshot()
+        if int(snapshot["status"]) != 1:
+            raise NativeBackendError("cannot take corpse from a live organism")
+        context.close()
+        del self._contexts[int(organism_id)]
+        return snapshot
+
     def snapshots(self) -> dict[int, dict[str, object]]:
         """Return all snapshots sorted by numeric ID."""
         return {organism_id: self._contexts[organism_id].snapshot() for organism_id in sorted(self._contexts)}

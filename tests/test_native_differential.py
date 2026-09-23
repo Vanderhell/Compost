@@ -754,6 +754,28 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                         self.assertEqual(step_results[organism_id]["requests"], expected_requests, prefix)
                 population.verify_material_conservation()
 
+    def test_native_population_transfers_dead_snapshot_to_host(self) -> None:
+        config = LifecycleConfig(boundary_ratio_limit=0.5, birth_reserve=10.0)
+        with NativePopulationBackend(self.library_path, organism_ids=(0,), config=config) as population:
+            population.step({0: (b"\x04\x05", (1.0, 1.0))}, child_ids={0: 1})
+            with self.assertRaises(NativeBackendError):
+                population.take_corpse(0)
+            for _ in range(16):
+                before = population.organism_ids
+                results = population.step({organism_id: (b"", ()) for organism_id in before})
+                dead_id = next(
+                    (organism_id for organism_id in before
+                     if results[organism_id]["requests"] == ("store_corpse",)),
+                    None,
+                )
+                if dead_id is None:
+                    continue
+                corpse = population.take_corpse(dead_id)
+                self.assertEqual(corpse["status"], 1)
+                self.assertNotIn(dead_id, population.organism_ids)
+                return
+            self.fail("native population did not emit a corpse request")
+
     def test_native_population_applies_host_actions_in_id_order(self) -> None:
         with NativePopulationBackend(self.library_path, organism_ids=(8, 2)) as population:
             result = population.apply_actions({8: NativeAction.corpse_energy(2.0), 2: NativeAction.corpse_energy(1.0)})
