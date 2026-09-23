@@ -18,7 +18,7 @@ from mathematical_organism.biology_rules import (
     maintenance_weakening_budget,
     structural_mass,
 )
-from mathematical_organism.backend import NativeBackend, NativeBackendError
+from mathematical_organism.backend import NativeBackend, NativeBackendError, NativePopulationBackend
 from mathematical_organism.canonical import canonical_digest
 from mathematical_organism.lifecycle import LifecycleConfig, LivingStructure, MathematicalLifeOrganism, MathematicalLifePopulation, OrganismStatus
 from mathematical_organism.sandbox_runtime import AutonomousOrganism
@@ -255,22 +255,28 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             1, None, 0, 0, 0, reserve=config.birth_reserve
         )
         reference.next_id = 2
-        with NativeBackend(self.library_path, organism_id=0, config=config) as first, \
-             NativeBackend(self.library_path, organism_id=1, config=config) as second:
-            native_backends = {0: first, 1: second}
+        with NativePopulationBackend(
+            self.library_path, organism_ids=(0, 1), config=config
+        ) as native_population:
             for cycle in range(16):
                 planned = reference._allocate_nutrition((0, 1))
+                step_results = native_population.step(
+                    {
+                        organism_id: (
+                            bytes(ord(symbol) for symbol in planned[organism_id][0]),
+                            planned[organism_id][1],
+                        )
+                        for organism_id in (0, 1)
+                    },
+                    child_ids={0: 100, 1: 101},
+                )
+                self.assertNotIn("child_id", step_results[0])
+                self.assertNotIn("child_id", step_results[1])
                 for organism_id in (0, 1):
                     organism = reference.organisms[organism_id]
                     bite, nutrition = planned[organism_id]
                     reference._cycle_one(organism, (bite, nutrition))
-                    child, _cycle, _plan = native_backends[organism_id].step_and_try_divide(
-                        bytes(ord(symbol) for symbol in bite),
-                        child_id=100 + organism_id,
-                        nutrition=nutrition,
-                    )
-                    self.assertIsNone(child, f"unexpected division at cycle {cycle}")
-                    native = native_backends[organism_id].snapshot()
+                    native = native_population.snapshot(organism_id)
                     prefix = f"population cycle {cycle} organism {organism_id}"
                     self.assertEqual(native["cursor"], organism.cursor, prefix)
                     self.assertEqual(native["age_in_cycles"], organism.age_in_cycles, prefix)
@@ -292,6 +298,7 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                     for key in sorted(reference_atoms):
                         for actual, expected in zip(native_atoms[key], reference_atoms[key]):
                             self.assertAlmostEqual(actual, expected, places=12, msg=f"{prefix} atom {key}")
+                native_population.verify_material_conservation()
                 reference.result.cycles += 1
 
     def test_native_backend_rejects_unrepresented_scheduling_config(self) -> None:

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import ctypes
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable, Mapping
 
 from .lifecycle import LifecycleConfig, MathematicalLifePopulation
 
@@ -730,6 +730,133 @@ class NativeBackend:
         self.close()
 
 
+class NativePopulationBackend:
+    """Deterministic Python orchestration for multiple opaque native organisms.
+
+    The caller owns environment allocation and supplies one ordered bite per
+    organism. This class only schedules native handles in numeric ID order,
+    applies their explicit transitions, and registers children returned by the
+    ABI. It performs no filesystem access, food claiming, or silent fallback.
+    """
+
+    def __init__(
+        self,
+        library: str | Path,
+        *,
+        organism_ids: Iterable[int] = (0,),
+        config: LifecycleConfig | None = None,
+    ) -> None:
+        ids = tuple(sorted(int(organism_id) for organism_id in organism_ids))
+        if not ids or len(set(ids)) != len(ids) or any(organism_id < 0 for organism_id in ids):
+            raise ValueError("organism_ids must be unique non-negative integers")
+        self.library_path = Path(library).resolve()
+        self._config = config
+        self._contexts: dict[int, NativeBackend] = {}
+        try:
+            for organism_id in ids:
+                self._contexts[organism_id] = NativeBackend(
+                    self.library_path, organism_id=organism_id, config=config
+                )
+        except Exception:
+            for context in self._contexts.values():
+                context.close()
+            raise
+        self._closed = False
+
+    @property
+    def organism_ids(self) -> tuple[int, ...]:
+        """Return currently owned IDs in deterministic scheduling order."""
+        return tuple(sorted(self._contexts))
+
+    def step(
+        self,
+        environment: Mapping[int, tuple[bytes | bytearray, tuple[float, ...] | None]],
+        *,
+        child_ids: Mapping[int, int] | None = None,
+    ) -> dict[int, dict[str, object]]:
+        """Apply one explicit environment epoch in ascending organism ID order.
+
+        Missing environment entries are empty bites. Child IDs are supplied by
+        the Python world/territory owner; a deterministic unused ID is used
+        only when an entry is omitted. A hard native error stops the epoch and
+        is surfaced to the caller.
+        """
+        if self._closed:
+            raise NativeBackendError("native population backend is closed")
+        unknown = set(environment) - set(self._contexts)
+        if unknown:
+            raise ValueError(f"environment contains unknown organism IDs: {sorted(unknown)!r}")
+        supplied_children = child_ids or {}
+        unknown_children = set(supplied_children) - set(self._contexts)
+        if unknown_children:
+            raise ValueError(f"child_ids contains unknown organism IDs: {sorted(unknown_children)!r}")
+        existing = set(self._contexts)
+        requested = [int(value) for value in supplied_children.values()]
+        if any(value < 0 for value in requested) or len(requested) != len(set(requested)):
+            raise ValueError("child IDs must be unique non-negative integers")
+        if existing.intersection(requested):
+            raise ValueError("child ID already belongs to the population")
+
+        results: dict[int, dict[str, object]] = {}
+        scheduled_ids = tuple(sorted(self._contexts))
+        for organism_id in scheduled_ids:
+            payload, nutrition = environment.get(organism_id, (b"", ()))
+            if organism_id in supplied_children:
+                child_id = int(supplied_children[organism_id])
+            else:
+                child_id = max(self._contexts) + 1
+            child, cycle, plan = self._contexts[organism_id].step_and_try_divide(
+                payload, child_id=child_id, nutrition=nutrition
+            )
+            results[organism_id] = {"cycle": cycle, "plan": plan}
+            if child is not None:
+                if child_id in self._contexts:
+                    child.close()
+                    raise NativeBackendError(f"native returned duplicate child ID {child_id}")
+                self._contexts[child_id] = child
+                results[organism_id]["child_id"] = child_id
+        return results
+
+    def snapshot(self, organism_id: int) -> dict[str, object]:
+        """Return one native snapshot by stable population ID."""
+        if self._closed:
+            raise NativeBackendError("native population backend is closed")
+        try:
+            context = self._contexts[int(organism_id)]
+        except KeyError as error:
+            raise KeyError(f"unknown organism ID: {organism_id}") from error
+        return context.snapshot()
+
+    def snapshots(self) -> dict[int, dict[str, object]]:
+        """Return all snapshots sorted by numeric ID."""
+        return {organism_id: self._contexts[organism_id].snapshot() for organism_id in sorted(self._contexts)}
+
+    def verify_material_conservation(self) -> None:
+        """Validate every currently owned native ledger."""
+        if self._closed:
+            raise NativeBackendError("native population backend is closed")
+        for organism_id in sorted(self._contexts):
+            try:
+                self._contexts[organism_id].verify_material_conservation()
+            except NativeBackendError as error:
+                raise NativeBackendError(
+                    f"material conservation failed for organism {organism_id}"
+                ) from error
+
+    def close(self) -> None:
+        if self._closed:
+            return
+        for organism_id in sorted(self._contexts, reverse=True):
+            self._contexts[organism_id].close()
+        self._closed = True
+
+    def __enter__(self) -> "NativePopulationBackend":
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        self.close()
+
+
 class ReferenceBackend:
     """Python reference backend retained as the semantic oracle."""
 
@@ -755,4 +882,7 @@ def create_backend(name: str, **kwargs: Any) -> NativeBackend | ReferenceBackend
     raise ValueError(f"unknown backend: {name!r}")
 
 
-__all__ = ["NativeBackend", "NativeBackendError", "ReferenceBackend", "create_backend"]
+__all__ = [
+    "NativeBackend", "NativePopulationBackend", "NativeBackendError",
+    "ReferenceBackend", "create_backend",
+]
