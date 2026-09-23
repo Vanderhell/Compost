@@ -51,6 +51,12 @@ no-ops for that epoch.
 then replays it in list order. This is the differential-test entry point for
 Python `live_step` action traces.
 
+`NativePopulationBackend.replay_action_traces` extends that boundary to a
+deterministic host-built population epoch: each trace is preflighted before
+execution, organisms are scheduled by numeric ID, action order inside a trace
+is preserved, and explicit division children remain registered for later
+epochs.
+
 `AutonomousOrganism.live_step(..., action_trace=...)` can now emit the same
 immutable action forms for replay. The trace is optional and observational;
 the normal Python step remains unchanged. The metabolic-progress action
