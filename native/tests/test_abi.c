@@ -96,6 +96,44 @@ int main(void)
         return fail("explicit lifecycle-step ABI");
     }
     compost_destroy(lifecycle_context);
+    compost_config_t starvation_config = config;
+    starvation_config.birth_reserve = 0.0;
+    compost_context_t *starvation_context = NULL;
+    const uint8_t starvation_food[] = {65U, 66U, 67U, 68U};
+    const double starvation_nutrition[] = {1.0, 1.0, 1.0, 1.0};
+    const compost_step_input_t starvation_input = {
+        starvation_food, starvation_nutrition, sizeof(starvation_food)
+    };
+    bool reached_dead = false;
+    if (compost_create(&starvation_config, UINT64_C(16), &starvation_context) != COMPOST_STATUS_OK ||
+        compost_context_lifecycle_step(starvation_context, &starvation_input, &lifecycle_result) != COMPOST_STATUS_OK) {
+        compost_destroy(starvation_context);
+        compost_destroy(context);
+        return fail("lifecycle starvation setup");
+    }
+    for (size_t epoch = 0U; epoch < 128U; ++epoch) {
+        if (lifecycle_result.status_after == COMPOST_LIFECYCLE_DEAD) {
+            reached_dead = true;
+            break;
+        }
+        if (compost_context_lifecycle_step(starvation_context, &empty_input, &lifecycle_result) != COMPOST_STATUS_OK) {
+            compost_destroy(starvation_context);
+            compost_destroy(context);
+            return fail("lifecycle starvation transition");
+        }
+    }
+    const uint64_t dead_digest = compost_context_state_digest(starvation_context);
+    compost_cycle_result_t dead_result = {0};
+    if (!reached_dead || compost_context_lifecycle_step(
+            starvation_context, &empty_input, &dead_result) != COMPOST_STATUS_OK ||
+        dead_result.digestion.consumed_bytes != 0U ||
+        dead_result.status_after != COMPOST_LIFECYCLE_DEAD ||
+        compost_context_state_digest(starvation_context) != dead_digest) {
+        compost_destroy(starvation_context);
+        compost_destroy(context);
+        return fail("lifecycle dead no-op");
+    }
+    compost_destroy(starvation_context);
     if (compost_context_try_divide(context, UINT64_C(14), &child, &try_plan, &try_result) != COMPOST_STATUS_OK ||
         child != NULL || try_plan.candidate_found || try_plan.allowed ||
         try_result.child_structural_mass != 0U) {
