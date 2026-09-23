@@ -31,6 +31,11 @@ run emitted no sanitizer diagnostics. The Windows-mounted workspace did emit
 CMake clock-skew warnings caused by filesystem timestamp differences; no test
 or sanitizer failure was associated with those warnings.
 
+The public robustness test now covers both sides of the allocator boundary:
+forced context-allocation failure returns `COMPOST_STATUS_OUT_OF_MEMORY` without
+an output handle, while successful custom allocation is released through the
+same caller-supplied deallocator exactly once during `compost_destroy`.
+
 ## Outstanding evidence
 
 ASan/UBSan linking remains unavailable in the current MinGW installation because
@@ -41,7 +46,8 @@ evidence, while CI still provides the release-platform Linux job. A release
 gate still requires broader leak checks, allocation-failure injection across
 every future/container path, integer-extrema campaigns, and serialized corrupt
 snapshot tests. Opaque-context allocation failure is now explicitly injected
-and covered by the native robustness test.
+and covered by the native robustness test; the successful custom allocator
+lifetime path is covered there as well.
 
 ## Verdict
 

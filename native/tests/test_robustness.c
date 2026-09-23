@@ -24,6 +24,30 @@ static void always_fail_deallocate(void *context, void *memory)
     (void)memory;
 }
 
+typedef struct allocator_probe {
+    size_t allocations;
+    size_t deallocations;
+} allocator_probe_t;
+
+static void *probe_allocate(void *context, size_t size)
+{
+    allocator_probe_t *probe = (allocator_probe_t *)context;
+    void *memory = malloc(size);
+    if (memory != NULL) {
+        probe->allocations += 1U;
+    }
+    return memory;
+}
+
+static void probe_deallocate(void *context, void *memory)
+{
+    allocator_probe_t *probe = (allocator_probe_t *)context;
+    if (memory != NULL) {
+        probe->deallocations += 1U;
+        free(memory);
+    }
+}
+
 int main(void)
 {
     compost_config_t config = {0};
@@ -50,6 +74,24 @@ int main(void)
     if (compost_create_with_allocator(&config, &failing_allocator, 2U, &failed_context) != COMPOST_STATUS_OUT_OF_MEMORY ||
         failed_context != NULL) {
         return fail("allocation failure injection");
+    }
+    allocator_probe_t probe = {0U, 0U};
+    compost_allocator_t probe_allocator = {
+        &probe, probe_allocate, probe_deallocate
+    };
+    compost_context_t *probed_context = NULL;
+    compost_snapshot_t probed_snapshot = {0};
+    if (compost_create_with_allocator(&config, &probe_allocator, 5U, &probed_context) != COMPOST_STATUS_OK ||
+        probed_context == NULL ||
+        compost_context_snapshot(probed_context, &probed_snapshot) != COMPOST_STATUS_OK ||
+        probed_snapshot.organism_id != UINT64_C(5) ||
+        probe.allocations != 1U) {
+        compost_destroy(probed_context);
+        return fail("custom allocator creation");
+    }
+    compost_destroy(probed_context);
+    if (probe.deallocations != 1U) {
+        return fail("custom allocator destruction");
     }
     config.abi_version = UINT32_C(1);
     if (compost_organism_init(&organism, &config, NULL, 3U) != COMPOST_STATUS_INVALID_ARGUMENT) {
