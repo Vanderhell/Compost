@@ -92,3 +92,38 @@ native_population_ffi_steps_per_second=3134.128
 This is still a bounded checkpoint, not a complete world benchmark. It
 demonstrates that the current Python orchestration and FFI boundary cost more
 than the reference path for this workload; no native speedup claim is made.
+
+## Representative workload matrix
+
+`tools/benchmark_native_workloads.py` measures the currently exposed
+digest, metabolism, structure, and division checkpoints with five repetitions
+of 256 logical steps. It reports min/median/max wall time, steps/sec, and the
+peak working set observed by the hosting process through Windows PSAPI. The
+RSS value is process-level evidence (not an isolated allocator measurement),
+so it is reported as a boundary metric rather than a native-only memory claim.
+
+Reproduction:
+
+```text
+python tools/benchmark_native_workloads.py --library <native-library> \
+  --steps 256 --repetitions 5
+```
+
+Current Windows MSVC Release evidence:
+
+```text
+workload       backend    median_seconds  steps_per_second  peak_rss_bytes
+digest         python     0.008116300     31541.466         23707648
+digest         native-ffi 0.011194500     22868.373         24162304
+metabolism     python     0.013329900     19204.945         24199168
+metabolism     native-ffi 0.009594500     26681.953         24379392
+structure      python     0.016554800     15463.793         24416256
+structure      native-ffi 0.005885100     43499.686         24518656
+division       python     0.001250600     204701.745        24522752
+division       native-ffi 0.007302900     35054.567         24645632
+```
+
+These are checkpoint workload measurements, not end-to-end simulator claims.
+The division row measures the explicit native step-plus-division ABI and the
+corresponding reference checkpoint; filesystem, corpse, full sandbox event
+ordering, and parallel scheduling remain outside this matrix.
