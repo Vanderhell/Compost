@@ -143,6 +143,51 @@ int main(void)
     compost_organism_destroy(&child);
     compost_organism_destroy(&parent);
 
+    compost_organism_t dense = {0};
+    compost_organism_t dense_child = {0};
+    compost_division_result_t dense_result = {0};
+    const uint8_t dense_region[] = {10U, 11U, 12U, 13U};
+    if (compost_organism_init(&dense, &config, NULL, UINT64_C(50)) != COMPOST_STATUS_OK) {
+        return fail("dense setup");
+    }
+    dense.reserve = 100.0;
+    for (size_t index = 0U; index < 8U; ++index) {
+        add_atom(&dense, index, (uint8_t)(10U + index));
+    }
+    if (add_edge(&dense, COMPOST_STRUCTURE_RELATION, 0U, 10U, 11U, 8.0) != 0 ||
+        add_edge(&dense, COMPOST_STRUCTURE_RELATION, 1U, 11U, 12U, 8.0) != 0 ||
+        add_edge(&dense, COMPOST_STRUCTURE_RELATION, 2U, 12U, 13U, 8.0) != 0 ||
+        add_edge(&dense, COMPOST_STRUCTURE_RELATION, 3U, 13U, 14U, 4.0) != 0 ||
+        add_edge(&dense, COMPOST_STRUCTURE_RELATION, 4U, 11U, 15U, 4.0) != 0 ||
+        add_edge(&dense, COMPOST_STRUCTURE_COMPOSITE, 0U, 10U, 11U, 4.0) != 0 ||
+        add_edge(&dense, COMPOST_STRUCTURE_COMPOSITE, 1U, 12U, 13U, 4.0) != 0 ||
+        add_edge(&dense, COMPOST_STRUCTURE_COMPOSITE, 2U, 13U, 14U, 4.0) != 0 ||
+        add_edge(&dense, COMPOST_STRUCTURE_COMPOSITE, 3U, 15U, 16U, 4.0) != 0 ||
+        add_edge(&dense, COMPOST_STRUCTURE_COMPOSITE, 4U, 16U, 17U, 4.0) != 0 ||
+        compost_organism_verify_material_conservation(&dense) != COMPOST_STATUS_OK) {
+        compost_organism_destroy(&dense);
+        return fail("dense seed conservation");
+    }
+    const uint64_t dense_created_before =
+        dense.material_flow.structural_created_mass + dense.material_flow.structural_transferred_in;
+    if (compost_organism_partition(
+            &dense, &dense_child, UINT64_C(51), dense_region, 4U, 1.0, &dense_result
+        ) != COMPOST_STATUS_OK ||
+        dense.body.atom_count != UINT64_C(4) || dense_child.body.atom_count != UINT64_C(4) ||
+        dense.gut_count == 0U || dense.material_flow.resorbed_mass == 0U ||
+        dense_created_before !=
+            (dense.body.structural_mass - UINT64_C(256)) +
+            (dense_child.body.structural_mass - UINT64_C(256)) +
+            dense.material_flow.resorbed_mass ||
+        compost_organism_verify_material_conservation(&dense) != COMPOST_STATUS_OK ||
+        compost_organism_verify_material_conservation(&dense_child) != COMPOST_STATUS_OK) {
+        compost_organism_destroy(&dense_child);
+        compost_organism_destroy(&dense);
+        return fail("dense partition conservation");
+    }
+    compost_organism_destroy(&dense_child);
+    compost_organism_destroy(&dense);
+
     compost_organism_t invalid_parent = {0};
     compost_organism_t invalid_child = {0};
     compost_division_result_t invalid_result = {0};
