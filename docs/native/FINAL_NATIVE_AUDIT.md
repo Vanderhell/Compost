@@ -47,7 +47,7 @@ GCC 13.3 Debug sanitizer build and test pass; the native C fuzz target covers
 10,000 deterministic public-API cases.
 
 Clang result:
-Linux Clang 18.1.3 Release `-Werror` build and full CTest pass (`7/7`, 10.07s) with
+Linux Clang 18.1.3 Release `-Werror` build and full CTest pass (`7/7`, 9.59s) with
 `-Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Wshadow` enabled.
 The standalone Windows Clang CRT limitation remains irrelevant to the Linux
 Clang CI evidence.
