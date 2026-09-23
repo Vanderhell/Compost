@@ -277,13 +277,13 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                     child_ids={0: 100, 1: 101},
                 )
             self.assertEqual(native_population.snapshots(), before_invalid_epoch)
-            for cycle in range(16):
+            for cycle in range(64):
                 planned = reference._allocate_nutrition((0, 1))
                 step_results = native_population.step(
                     {
                         organism_id: (
-                            bytes(ord(symbol) for symbol in planned[organism_id][0]),
-                            planned[organism_id][1],
+                            bytes(ord(symbol) for symbol in planned.get(organism_id, ((), ()))[0]),
+                            planned.get(organism_id, ((), ()))[1],
                         )
                         for organism_id in (0, 1)
                     },
@@ -293,7 +293,7 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                 self.assertNotIn("child_id", step_results[1])
                 for organism_id in (0, 1):
                     organism = reference.organisms[organism_id]
-                    bite, nutrition = planned[organism_id]
+                    bite, nutrition = planned.get(organism_id, ((), ()))
                     reference._cycle_one(organism, (bite, nutrition))
                     native = native_population.snapshot(organism_id)
                     prefix = f"population cycle {cycle} organism {organism_id}"
