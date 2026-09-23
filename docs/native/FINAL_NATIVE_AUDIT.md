@@ -32,8 +32,8 @@ external-gut, environment corpse-energy credit, partition transaction,
 atomic division-boundary, step-plus-division lifecycle, territory predicate,
 deterministic FOOD block-key, two-organism population, and population child
 registration, replayable sandbox action-trace, and physical-food lifecycle
-comparisons, plus bounded metabolic scheduling arithmetic and opaque metabolic
-progress accumulation. The latest MSVC
+comparisons, division/child-death replay, plus bounded metabolic scheduling
+arithmetic and opaque metabolic progress accumulation. The latest MSVC
 DLL run completed in 6.24s; the
 earlier WSL GCC DLL run completed in 6.670s.
 
@@ -57,8 +57,8 @@ The standalone Windows Clang CRT limitation remains irrelevant to the Linux
 Clang CI evidence.
 
 Performance evidence detail:
-The direct-C, Python/FFI, and four-organism population checkpoint benchmarks
-are recorded in `docs/native/PERFORMANCE_REPORT.md`. The population checkpoint
+The direct-C, workload-matrix, Python/FFI, and four-organism population
+checkpoint benchmarks are recorded in `docs/native/PERFORMANCE_REPORT.md`. The population checkpoint
 measured lower native-through-FFI throughput than the reference path, so no
 native speedup claim is made.
 
