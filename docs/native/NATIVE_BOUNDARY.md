@@ -30,9 +30,13 @@ The first C target is the lifecycle/sandbox behavioral core only:
 - Activated receptors and activity ledger/counters.
 - Gut FIFO and material-flow accounting.
 - Bounded maintenance settlement, weakening, resorption, and deterministic
-  weakest-member selection for explicit native transitions. Python
-  `live_step` metabolic-progress scheduling remains host-owned until its event
-  ordering is migrated and differentially proven.
+  weakest-member selection for explicit native transitions. The lifecycle
+  endpoint owns the sandbox member policy; the legacy public `weaken_weakest`
+  operation is only a bounded structure-level compatibility primitive and is
+  not a replacement for Python `AutonomousCore.remove_weakest` (which also
+  applies critical-bridge protection). Python `live_step` metabolic-progress
+  scheduling remains host-owned until its event ordering is migrated and
+  differentially proven.
 - Pure biology rules: structural mass, costs, forgetting, maintenance budgets,
   reproduction eligibility, and conservation calculations.
 - Consolidation, structural mutations, connected-component/bridge predicates,
