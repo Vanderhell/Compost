@@ -31,7 +31,7 @@ external-gut, environment corpse-energy credit, partition transaction,
 atomic division-boundary, step-plus-division lifecycle, territory predicate,
 deterministic FOOD block-key, two-organism population, and population child
 registration comparisons. The latest WSL GCC DLL run completed in 6.670s;
-the preceding MSVC DLL run covered the first 17 cases in 5.802s.
+the current MSVC DLL run completed in 5.925s.
 
 Long-run steps:
 `1,000,000` single-organism Python/native steps pass with zero divergences in
