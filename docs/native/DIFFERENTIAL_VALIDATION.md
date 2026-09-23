@@ -104,3 +104,6 @@ campaign also exercises explicit corpse transfer and child-handle retention. Fil
 FOOD selection and host event ordering remain Python-owned; the body cursor is
 an adapter diagnostic and is intentionally not treated as behavioral state in
 this campaign.
+The replay parameters are declared in the `sandbox_trace` entry of
+`tests/fixtures/native_replays.json`; assertion messages lazily include the
+first field name plus Python canonical and native state digests.
