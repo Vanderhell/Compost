@@ -28,6 +28,7 @@ class NativeActionKind(str, Enum):
     CORPSE_ENERGY = "corpse_energy"
     METABOLIC_PROGRESS = "metabolic_progress"
     LIFECYCLE_STEP = "lifecycle_step"
+    DIVISION = "division"
 
 
 @dataclass(frozen=True)
@@ -48,6 +49,9 @@ class NativeAction:
     amount: int = 0
     minimum_work: int = 0
     body_size: int = 0
+    child_atoms: tuple[int, ...] = ()
+    child_id: int = 0
+    birth_cost: float = 0.0
 
     def __post_init__(self) -> None:
         if not isinstance(self.kind, NativeActionKind):
@@ -66,6 +70,14 @@ class NativeAction:
         ):
             if not isinstance(value, int) or not 0 <= value <= (1 << 64) - 1:
                 raise ValueError(f"{name} must be an unsigned 64-bit integer")
+        atom_keys = tuple(int(value) for value in self.child_atoms)
+        if any(value < 0 or value > 255 for value in atom_keys) or len(set(atom_keys)) != len(atom_keys):
+            raise ValueError("child_atoms must contain unique uint8 keys")
+        object.__setattr__(self, "child_atoms", atom_keys)
+        if not isinstance(self.child_id, int) or not 0 <= self.child_id <= (1 << 64) - 1:
+            raise ValueError("child_id must be an unsigned 64-bit integer")
+        if not math.isfinite(float(self.birth_cost)) or self.birth_cost < 0.0:
+            raise ValueError("birth_cost must be finite and non-negative")
         if not math.isfinite(float(self.energy)) or self.energy < 0.0:
             raise ValueError("energy must be finite and non-negative")
         if self.kind is NativeActionKind.PROCESS_GUT and (payload or values is not None or self.energy):
@@ -76,10 +88,19 @@ class NativeAction:
             payload or values is not None or self.capacity or self.energy or self.minimum_work == 0
         ):
             raise ValueError("metabolic-progress action requires only bounded accounting fields")
+        if self.kind is NativeActionKind.DIVISION and (
+            not self.child_atoms or self.capacity or self.energy or self.amount or
+            self.minimum_work or self.body_size or self.birth_cost <= 0.0
+        ):
+            raise ValueError("division action requires child atoms and a positive birth cost")
         if self.kind is not NativeActionKind.METABOLIC_PROGRESS and (
             self.amount or self.minimum_work or self.body_size
         ):
             raise ValueError("non-metabolic action cannot carry accounting fields")
+        if self.kind is not NativeActionKind.DIVISION and (
+            self.child_atoms or self.child_id or self.birth_cost
+        ):
+            raise ValueError("non-division action cannot carry partition fields")
         if self.kind is NativeActionKind.LIFECYCLE_STEP and (self.capacity or self.energy):
             raise ValueError("lifecycle-step action cannot carry capacity or energy")
 
@@ -108,6 +129,17 @@ class NativeAction:
             amount=amount,
             minimum_work=minimum_work,
             body_size=body_size,
+        )
+
+    @classmethod
+    def division(
+        cls, child_atoms: tuple[int, ...], *, child_id: int, birth_cost: float
+    ) -> "NativeAction":
+        return cls(
+            NativeActionKind.DIVISION,
+            child_atoms=tuple(child_atoms),
+            child_id=child_id,
+            birth_cost=birth_cost,
         )
 
     @classmethod
@@ -600,6 +632,20 @@ class NativeBackend:
                 action.amount, action.minimum_work, action.body_size
             )
             return {"kind": action.kind.value, **result}
+        if action.kind is NativeActionKind.DIVISION:
+            child, result = self.partition(
+                action.child_atoms, child_id=action.child_id, birth_cost=action.birth_cost
+            )
+            if child is None:
+                raise NativeBackendError("native division action returned no child")
+            with child:
+                return {
+                    "kind": action.kind.value,
+                    "child": child.snapshot(),
+                    "child_structural_mass": int(result["child_structural_mass"]),
+                    "cross_split_mass": int(result["cross_split_mass"]),
+                    "parent_reserve_after_cost": float(result["parent_reserve_after_cost"]),
+                }
         if action.kind is NativeActionKind.LIFECYCLE_STEP:
             return {"kind": action.kind.value, **self.step(action.payload, action.nutrition)}
         raise NativeBackendError(f"unsupported native action: {action.kind!r}")

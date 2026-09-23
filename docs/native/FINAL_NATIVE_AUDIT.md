@@ -68,10 +68,12 @@ Known limitations:
   transition, including filesystem FOOD discovery/claims, territory scheduling,
   corpse lookup/storage, automatic metabolic scheduling, and full death/birth
   orchestration.
-- Native metabolic threshold/quotient arithmetic and one empty-input
+- Native metabolic threshold/quotient arithmetic, one empty-input
   consolidation/maintenance/age checkpoint are differential-tested, and
-  opaque progress accumulation is transactional. Division and death work for
-  due steps remains outside the native action state machine.
+  opaque progress accumulation is transactional. Parent/child division is
+  replayable through a transient child snapshot; child registration, corpse
+  handling, and death work for due steps remain outside the native action
+  state machine.
 - Corpse energy credit is exposed as an explicit environment-supplied ABI
   transfer; corpse selection, persistence, and territory lookup remain Python
   responsibilities.

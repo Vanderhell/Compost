@@ -28,6 +28,7 @@ from mathematical_organism.biology_rules import (
 )
 from mathematical_organism.backend import (
     NativeAction,
+    NativeActionKind,
     NativeBackend,
     NativeBackendError,
     NativePopulationBackend,
@@ -309,6 +310,44 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                     break
                 else:
                     self.fail("metabolic lifecycle checkpoint was not reached")
+
+    def test_sandbox_division_action_replays_parent_and_transient_child(self) -> None:
+        config = LifecycleConfig(boundary_ratio_limit=0.5, birth_reserve=10.0)
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = SandboxRuntime(Path(directory) / "sandbox", block_size=2)
+            (runtime.inbox / "payload.bin").write_bytes(bytes((4, 5)) * 64)
+            organism = AutonomousOrganism(config=config)
+            runtime.organisms.append(organism)
+            with NativeBackend(self.library_path, organism_id=0, config=config) as backend:
+                for step in range(100):
+                    trace: list[NativeAction] = []
+                    organism.live_step(runtime, action_trace=trace)
+                    results = backend.replay_actions(trace)
+                    if not any(action.kind is NativeActionKind.DIVISION for action in trace):
+                        continue
+                    native_parent = backend.snapshot()
+                    native_child = results[-1]["child"]
+                    assert isinstance(native_child, dict)
+                    self.assertEqual(
+                        [action.kind.value for action in trace],
+                        ["external_gut", "metabolic_progress", "lifecycle_step", "division"],
+                        step,
+                    )
+                    self.assertEqual(native_parent["body"]["structural_mass"], organism.body.full_body_mass())
+                    self.assertEqual(native_parent["body"]["atom_count"], len(organism.body.atoms))
+                    self.assertEqual(native_parent["body"]["relation_count"], len(organism.body.relations))
+                    self.assertEqual(native_parent["body"]["composite_count"], len(organism.body.composites))
+                    self.assertAlmostEqual(native_parent["reserve"], organism.body.reserve, places=12)
+                    child = organism.children[-1]
+                    self.assertEqual(native_child["body"]["structural_mass"], child.body.full_body_mass())
+                    self.assertEqual(native_child["body"]["atom_count"], len(child.body.atoms))
+                    self.assertEqual(native_child["body"]["relation_count"], len(child.body.relations))
+                    self.assertEqual(native_child["body"]["composite_count"], len(child.body.composites))
+                    self.assertEqual(native_child["reserve"], 0.0)
+                    self.assertEqual(child.body.reserve, 0.0)
+                    break
+                else:
+                    self.fail("sandbox division action was not reached")
 
     def test_public_python_adapter_try_divide_commits_allowed_candidate(self) -> None:
         config = LifecycleConfig(boundary_ratio_limit=0.5, birth_reserve=10.0)

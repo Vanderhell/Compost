@@ -693,9 +693,14 @@ class AutonomousOrganism(AutonomousCore):
             self.metabolic_progress -= self.metabolic_work_threshold()
             if action_trace is not None:
                 action_trace.append(NativeAction.lifecycle_step(b"", nutrition=()))
-            self._run_metabolic_step(sandbox)
+            self._run_metabolic_step(sandbox, action_trace=action_trace)
 
-    def _run_metabolic_step(self, sandbox: "SandboxRuntime") -> None:
+    def _run_metabolic_step(
+        self,
+        sandbox: "SandboxRuntime",
+        *,
+        action_trace: list[NativeAction] | None = None,
+    ) -> None:
         """The expensive biological phase, charged by food volume not bites."""
         lifecycle_trace: dict[str, int] = {}
         events_before = len(self.result.events)
@@ -733,6 +738,20 @@ class AutonomousOrganism(AutonomousCore):
             amount = self.activity_ledger.add_activity(ActivityCounters(division_events=1), self.body.body_mass)
             del amount
             self._settle_activity_debt()
+            if action_trace is not None:
+                child_atoms = tuple(child.body.atoms)
+                if all(isinstance(key, int) and 0 <= key <= 255 for key in child_atoms):
+                    path = child.territory_state.territory.path
+                    transport_child_id = (len(path) << 56)
+                    for bit in path:
+                        transport_child_id = (transport_child_id << 1) | int(bit)
+                    action_trace.append(
+                        NativeAction.division(
+                            tuple(sorted(child_atoms)),
+                            child_id=transport_child_id & ((1 << 64) - 1),
+                            birth_cost=self.config.birth_cost,
+                        )
+                    )
         if self.body.size == 0:
             self._die(sandbox)
 
