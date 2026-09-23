@@ -1209,6 +1209,47 @@ class NativePopulationBackend:
             }
         return results
 
+    def replay_action_traces(
+        self,
+        traces: Mapping[int, Iterable[NativeAction]],
+    ) -> dict[int, tuple[dict[str, object], ...]]:
+        """Replay host-built action traces in deterministic organism-ID order.
+
+        Every trace is materialized and type/child-ID preflighted before the
+        first native handle is changed.  Actions within one trace retain their
+        supplied order.  A division child is registered in this population
+        and therefore remains available to later epochs.  Native failures
+        after execution begins are surfaced; this method does not promise
+        rollback of already committed earlier trace entries.
+        """
+        if self._closed:
+            raise NativeBackendError("native population backend is closed")
+        unknown = set(traces) - set(self._contexts)
+        if unknown:
+            raise ValueError(f"traces contain unknown organism IDs: {sorted(unknown)!r}")
+        prepared: dict[int, tuple[NativeAction, ...]] = {}
+        reserved = set(self._contexts)
+        for organism_id in sorted(traces):
+            sequence = tuple(traces[organism_id])
+            for action in sequence:
+                if not isinstance(action, NativeAction):
+                    raise TypeError(f"trace for organism {organism_id} contains a non-NativeAction")
+                if action.kind is NativeActionKind.DIVISION:
+                    if action.child_id in reserved:
+                        raise ValueError(
+                            f"division child ID already belongs to the population: {action.child_id}"
+                        )
+                    reserved.add(action.child_id)
+            prepared[int(organism_id)] = sequence
+
+        results: dict[int, tuple[dict[str, object], ...]] = {}
+        for organism_id in sorted(prepared):
+            epoch_results: list[dict[str, object]] = []
+            for action in prepared[organism_id]:
+                epoch_results.append(self.apply_actions({organism_id: action})[organism_id])
+            results[organism_id] = tuple(epoch_results)
+        return results
+
     def snapshot(self, organism_id: int) -> dict[str, object]:
         """Return one native snapshot by stable population ID."""
         if self._closed:

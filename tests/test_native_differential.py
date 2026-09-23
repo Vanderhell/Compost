@@ -778,6 +778,26 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                 })
             self.assertEqual(population.state_digests(), before_collision)
 
+    def test_native_population_replays_host_action_trace_and_retains_child(self) -> None:
+        config = LifecycleConfig(birth_reserve=10.0, boundary_ratio_limit=0.5)
+        with NativePopulationBackend(self.library_path, organism_ids=(0,), config=config) as population:
+            results = population.replay_action_traces({
+                0: (
+                    NativeAction.external_gut(b"\x04\x05", capacity=2, nutrition=(1.0, 1.0)),
+                    NativeAction.division((4,), child_id=1, birth_cost=1.0),
+                ),
+            })
+            self.assertEqual(tuple(item["kind"] for item in results[0]), ("external_gut", "division"))
+            self.assertEqual(population.organism_ids, (0, 1))
+            self.assertEqual(results[0][1]["child_id"], 1)
+            population.verify_material_conservation()
+            before = population.state_digests()
+            with self.assertRaises(ValueError):
+                population.replay_action_traces({
+                    0: (NativeAction.division((5,), child_id=1, birth_cost=1.0),),
+                })
+            self.assertEqual(population.state_digests(), before)
+
     def test_backend_selector_exposes_native_population_without_fallback(self) -> None:
         backend = create_backend(
             "native-population", library=self.library_path, organism_ids=(0, 1)
