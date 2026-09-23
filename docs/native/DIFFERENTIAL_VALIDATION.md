@@ -84,8 +84,9 @@ that the incomplete native lifecycle already implements the full Python
 canonical schema.
 
 The long sandbox lifecycle regression runs 100 deterministic food-fed steps
-and compares reserve, age, body mass, activity debt, energy spent, and
-settlement count after every step. It covers both lifecycle-checkpoint
-settlement and the separate post-gut settlement path.
+and compares reserve, age, body mass, material-flow counters, all activity
+counters, activity debt, energy spent, and settlement count after every step.
+It covers both lifecycle-checkpoint settlement and the separate post-gut
+settlement path.
 An additional no-food replay covers repeated idle gut processing and
 Python-owned corpse-energy selection through the explicit action boundary.
