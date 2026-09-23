@@ -74,6 +74,17 @@ int main(void)
         return fail("seed conservation");
     }
     parent.config.boundary_ratio_limit = 0.5;
+    parent.config.reproduction_minimum_body = 4U;
+    uint8_t local_child_atoms[COMPOST_MAX_ATOMS] = {0U};
+    size_t local_child_count = 0U;
+    if (compost_organism_select_local_reproduction(
+            &parent, local_child_atoms, COMPOST_MAX_ATOMS, &local_child_count
+        ) != COMPOST_STATUS_OK || local_child_count != 3U ||
+        local_child_atoms[0] != 2U || local_child_atoms[1] != 3U ||
+        local_child_atoms[2] != 4U) {
+        compost_organism_destroy(&parent);
+        return fail("local reproduction selector");
+    }
     compost_division_plan_t plan = {0};
     if (compost_organism_plan_division(&parent, &plan) != COMPOST_STATUS_OK ||
         !plan.candidate_found || !plan.allowed || plan.child_atom_count != 2U ||

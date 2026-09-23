@@ -236,6 +236,20 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             self.assertFalse(plan["allowed"])
             self.assertEqual(backend.state_digest(), before)
 
+    def test_local_reproduction_selector_matches_deterministic_component_policy(self) -> None:
+        config = LifecycleConfig(reproduction_minimum_body=4, birth_cost=1.0)
+        reference = AutonomousOrganism("ORG-LOCAL", config=config)
+        reference.result.available_nutrition_total += 40.0
+        reference.enqueue_external_material((65, 66, 67, 68), (10.0,) * 4)
+        reference.process_gut(4)
+        reference_child = reference._reproduce_conservatively()
+        self.assertIsNotNone(reference_child)
+        assert reference_child is not None
+        expected = tuple(sorted(reference_child.body.atoms))
+        with NativeBackend(self.library_path, organism_id=103, config=config) as backend:
+            backend.digest(b"ABCD", (10.0,) * 4)
+            self.assertEqual(backend.select_local_reproduction(), expected)
+
     def test_metabolic_schedule_matches_python_bounded_arithmetic(self) -> None:
         with NativeBackend(self.library_path, organism_id=88) as backend:
             for minimum_work, body_size, progress in (

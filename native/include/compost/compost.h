@@ -574,6 +574,12 @@ compost_status_t compost_context_select_partition(
     size_t *child_atom_count,
     double *selected_ratio
 );
+compost_status_t compost_context_select_local_reproduction(
+    const compost_context_t *context,
+    uint8_t *child_atoms,
+    size_t child_atom_capacity,
+    size_t *child_atom_count
+);
 compost_status_t compost_context_plan_division(
     const compost_context_t *context,
     compost_division_plan_t *plan
@@ -633,6 +639,20 @@ compost_status_t compost_organism_select_partition(
     size_t child_atom_capacity,
     size_t *child_atom_count,
     double *selected_ratio
+);
+
+/*
+ * Selects the first viable local reproduction component used by the
+ * autonomous sandbox policy.  The operation is read-only and returns atom
+ * keys in deterministic ascending order.  COMPOST_STATUS_INVALID_STATE means
+ * that no viable local component exists; caller outputs are zeroed on that
+ * result and remain unchanged on argument failure.
+ */
+compost_status_t compost_organism_select_local_reproduction(
+    const compost_organism_t *organism,
+    uint8_t *child_atoms,
+    size_t child_atom_capacity,
+    size_t *child_atom_count
 );
 
 /* Evaluates the selected boundary against the native lifecycle viability rule. */

@@ -675,6 +675,22 @@ compost_status_t compost_context_select_partition(
     );
 }
 
+compost_status_t compost_context_select_local_reproduction(
+    const compost_context_t *context,
+    uint8_t *child_atoms,
+    size_t child_atom_capacity,
+    size_t *child_atom_count
+)
+{
+    if (context == NULL) return COMPOST_STATUS_INVALID_ARGUMENT;
+    return compost_organism_select_local_reproduction(
+        &context->organism,
+        child_atoms,
+        child_atom_capacity,
+        child_atom_count
+    );
+}
+
 compost_status_t compost_context_plan_division(
     const compost_context_t *context,
     compost_division_plan_t *plan
@@ -2576,6 +2592,216 @@ compost_status_t compost_organism_select_partition(
     size_t output = 0U;
     for (size_t atom = 0U; atom < COMPOST_MAX_ATOMS; ++atom) if (best_selected[atom]) child_atoms[output++] = (uint8_t)atom;
     return COMPOST_STATUS_OK;
+}
+
+static bool local_component_lexicographically_less(
+    const uint8_t labels[COMPOST_MAX_ATOMS],
+    uint8_t left,
+    uint8_t right
+)
+{
+    for (size_t index = 0U; index < COMPOST_MAX_ATOMS; ++index) {
+        const bool left_present = labels[index] == left;
+        const bool right_present = labels[index] == right;
+        if (left_present != right_present) return left_present;
+    }
+    return false;
+}
+
+static size_t local_reproduction_child_item_count(
+    const compost_organism_t *organism,
+    const bool selected[COMPOST_MAX_ATOMS]
+)
+{
+    size_t count = 0U;
+    for (size_t index = 0U; index < COMPOST_MAX_ATOMS; ++index) {
+        if (organism->atoms[index].occupied && selected[(size_t)organism->atoms[index].left]) ++count;
+    }
+    for (size_t collection = 0U; collection < 2U; ++collection) {
+        const compost_structure_t *structures = collection == 0U
+            ? organism->relations : organism->composites;
+        const size_t structure_count = collection == 0U ? COMPOST_MAX_RELATIONS : COMPOST_MAX_COMPOSITES;
+        for (size_t index = 0U; index < structure_count; ++index) {
+            const compost_structure_t *structure = &structures[index];
+            if (structure->occupied && selected[(size_t)structure->left] &&
+                selected[(size_t)structure->right]) ++count;
+        }
+    }
+    return count;
+}
+
+static size_t local_reproduction_parent_item_count(
+    const compost_organism_t *organism,
+    const bool selected[COMPOST_MAX_ATOMS]
+)
+{
+    size_t count = 0U;
+    for (size_t index = 0U; index < COMPOST_MAX_ATOMS; ++index) {
+        if (organism->atoms[index].occupied && !selected[(size_t)organism->atoms[index].left]) ++count;
+    }
+    for (size_t collection = 0U; collection < 2U; ++collection) {
+        const compost_structure_t *structures = collection == 0U
+            ? organism->relations : organism->composites;
+        const size_t structure_count = collection == 0U ? COMPOST_MAX_RELATIONS : COMPOST_MAX_COMPOSITES;
+        for (size_t index = 0U; index < structure_count; ++index) {
+            const compost_structure_t *structure = &structures[index];
+            if (structure->occupied && !selected[(size_t)structure->left] &&
+                !selected[(size_t)structure->right]) ++count;
+        }
+    }
+    return count;
+}
+
+compost_status_t compost_organism_select_local_reproduction(
+    const compost_organism_t *organism,
+    uint8_t *child_atoms,
+    size_t child_atom_capacity,
+    size_t *child_atom_count
+)
+{
+    if (organism == NULL || child_atoms == NULL || child_atom_count == NULL ||
+        !organism->initialized || organism->status != COMPOST_LIFECYCLE_ALIVE) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    *child_atom_count = 0U;
+    if (organism->body.atom_count < 3U || organism->body.structural_mass == 0U) {
+        return COMPOST_STATUS_INVALID_STATE;
+    }
+
+    bool present[COMPOST_MAX_ATOMS] = {false};
+    bool active[COMPOST_MAX_ATOMS] = {false};
+    bool weighted[COMPOST_MAX_ATOMS] = {false};
+    bool adjacency[COMPOST_MAX_ATOMS][COMPOST_MAX_ATOMS] = {{false}};
+    double weights[COMPOST_MAX_ATOMS] = {0.0};
+    size_t active_count = 0U;
+    for (size_t index = 0U; index < COMPOST_MAX_ATOMS; ++index) {
+        const compost_structure_t *atom = &organism->atoms[index];
+        if (!atom->occupied) continue;
+        present[(size_t)atom->left] = true;
+        if (atom->strength >= 2.0) {
+            active[(size_t)atom->left] = true;
+            ++active_count;
+        }
+    }
+    if (active_count < 3U) return COMPOST_STATUS_INVALID_STATE;
+    for (size_t collection = 0U; collection < 2U; ++collection) {
+        const compost_structure_t *structures = collection == 0U
+            ? organism->relations : organism->composites;
+        const size_t structure_count = collection == 0U ? COMPOST_MAX_RELATIONS : COMPOST_MAX_COMPOSITES;
+        for (size_t index = 0U; index < structure_count; ++index) {
+            const compost_structure_t *structure = &structures[index];
+            if (!structure->occupied || structure->left == structure->right ||
+                atom_for_key(organism, structure->left) == NULL ||
+                atom_for_key(organism, structure->right) == NULL) continue;
+            present[(size_t)structure->left] = true;
+            present[(size_t)structure->right] = true;
+            adjacency[(size_t)structure->left][(size_t)structure->right] = true;
+            adjacency[(size_t)structure->right][(size_t)structure->left] = true;
+            if (!weighted[(size_t)structure->left] || structure->strength < weights[(size_t)structure->left]) {
+                weighted[(size_t)structure->left] = true;
+                weights[(size_t)structure->left] = structure->strength;
+            }
+            if (!weighted[(size_t)structure->right] || structure->strength < weights[(size_t)structure->right]) {
+                weighted[(size_t)structure->right] = true;
+                weights[(size_t)structure->right] = structure->strength;
+            }
+        }
+    }
+
+    double weakest_weight = INFINITY;
+    for (size_t member = 0U; member < COMPOST_MAX_ATOMS; ++member) {
+        if (!present[member]) continue;
+        const double value = weighted[member] ? weights[member] : 0.0;
+        if (value < weakest_weight) weakest_weight = value;
+    }
+    if (!finite(weakest_weight)) return COMPOST_STATUS_INVALID_STATE;
+
+    for (size_t boundary = 0U; boundary < COMPOST_MAX_ATOMS; ++boundary) {
+        if (!present[boundary]) continue;
+        const double boundary_weight = weighted[boundary] ? weights[boundary] : 0.0;
+        if (boundary_weight != weakest_weight) continue;
+
+        bool unseen[COMPOST_MAX_ATOMS] = {false};
+        for (size_t member = 0U; member < COMPOST_MAX_ATOMS; ++member) {
+            unseen[member] = active[member] && member != boundary;
+        }
+        uint8_t component_labels[COMPOST_MAX_ATOMS];
+        for (size_t index = 0U; index < COMPOST_MAX_ATOMS; ++index) {
+            component_labels[index] = UINT8_MAX;
+        }
+        size_t component_sizes[COMPOST_MAX_ATOMS] = {0U};
+        size_t component_count = 0U;
+        for (;;) {
+            size_t seed = COMPOST_MAX_ATOMS;
+            for (size_t member = 0U; member < COMPOST_MAX_ATOMS; ++member) {
+                if (unseen[member]) {
+                    seed = member;
+                    break;
+                }
+            }
+            if (seed == COMPOST_MAX_ATOMS) break;
+            if (component_count >= COMPOST_MAX_ATOMS) return COMPOST_STATUS_INVALID_STATE;
+            uint8_t queue[COMPOST_MAX_ATOMS] = {0U};
+            size_t head = 0U;
+            size_t tail = 0U;
+            queue[tail++] = (uint8_t)seed;
+            unseen[seed] = false;
+            while (head < tail) {
+                const size_t current = queue[head++];
+                component_labels[current] = (uint8_t)component_count;
+                ++component_sizes[component_count];
+                for (size_t neighbour = 0U; neighbour < COMPOST_MAX_ATOMS; ++neighbour) {
+                    if (unseen[neighbour] && adjacency[current][neighbour]) {
+                        unseen[neighbour] = false;
+                        queue[tail++] = (uint8_t)neighbour;
+                    }
+                }
+            }
+            ++component_count;
+        }
+        size_t order[COMPOST_MAX_ATOMS] = {0U};
+        for (size_t index = 0U; index < component_count; ++index) order[index] = index;
+        for (size_t left = 1U; left < component_count; ++left) {
+            const size_t value = order[left];
+            size_t right = left;
+            while (right > 0U) {
+                const size_t previous = order[right - 1U];
+                const bool before = component_sizes[value] < component_sizes[previous] ||
+                    (component_sizes[value] == component_sizes[previous] &&
+                     local_component_lexicographically_less(
+                         component_labels, (uint8_t)value, (uint8_t)previous
+                     ));
+                if (!before) break;
+                order[right] = previous;
+                --right;
+            }
+            order[right] = value;
+        }
+        for (size_t position = 0U; position < component_count; ++position) {
+            const size_t component = order[position];
+            bool selected[COMPOST_MAX_ATOMS] = {false};
+            size_t selected_atoms = 0U;
+            for (size_t member = 0U; member < COMPOST_MAX_ATOMS; ++member) {
+                selected[member] = component_labels[member] == (uint8_t)component;
+                if (selected[member]) ++selected_atoms;
+            }
+            const size_t child_items = local_reproduction_child_item_count(organism, selected);
+            const size_t parent_items = local_reproduction_parent_item_count(organism, selected);
+            const bool viable = selected_atoms > 0U && parent_items > 0U &&
+                organism->body.atom_count + organism->body.relation_count + organism->body.composite_count >=
+                    organism->config.reproduction_minimum_body &&
+                child_items >= 2U && organism->reserve >= organism->config.birth_cost;
+            if (!viable) continue;
+            if (child_atom_capacity < selected_atoms) return COMPOST_STATUS_BUFFER_TOO_SMALL;
+            size_t output = 0U;
+            for (size_t member = 0U; member < COMPOST_MAX_ATOMS; ++member) {
+                if (selected[member]) child_atoms[output++] = (uint8_t)member;
+            }
+            *child_atom_count = selected_atoms;
+            return COMPOST_STATUS_OK;
+        }
+    }
+    return COMPOST_STATUS_INVALID_STATE;
 }
 
 compost_status_t compost_organism_plan_division(

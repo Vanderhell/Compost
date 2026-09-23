@@ -490,6 +490,19 @@ class NativeBackend:
             ctypes.POINTER(ctypes.c_double),
         ]
         library.compost_context_select_partition.restype = ctypes.c_int
+        try:
+            local_reproduction = library.compost_context_select_local_reproduction
+        except AttributeError:
+            self._local_reproduction_symbol = None
+        else:
+            local_reproduction.argtypes = [
+                ctypes.c_void_p,
+                ctypes.POINTER(ctypes.c_uint8),
+                ctypes.c_size_t,
+                ctypes.POINTER(ctypes.c_size_t),
+            ]
+            local_reproduction.restype = ctypes.c_int
+            self._local_reproduction_symbol = local_reproduction
         library.compost_context_plan_division.argtypes = [ctypes.c_void_p, ctypes.POINTER(_DivisionPlan)]
         library.compost_context_plan_division.restype = ctypes.c_int
         library.compost_context_try_divide.argtypes = [
@@ -941,6 +954,25 @@ class NativeBackend:
         )
         self._check(status, "compost_context_select_partition")
         return tuple(int(atoms[index]) for index in range(count.value)), float(ratio.value)
+
+    def select_local_reproduction(self) -> tuple[int, ...]:
+        """Return the read-only weakest-member reproduction component."""
+        if not self._context or not self._context.value:
+            raise NativeBackendError("native backend is closed")
+        if self._local_reproduction_symbol is None:
+            raise NativeBackendError(
+                "native library does not expose local reproduction selector"
+            )
+        atoms = (ctypes.c_uint8 * self.MAX_ATOMS)()
+        count = ctypes.c_size_t()
+        status = self._local_reproduction_symbol(
+            self._context,
+            atoms,
+            self.MAX_ATOMS,
+            ctypes.byref(count),
+        )
+        self._check(status, "compost_context_select_local_reproduction")
+        return tuple(int(atoms[index]) for index in range(count.value))
 
     def division_plan(self) -> dict[str, object]:
         """Return the native lifecycle viability plan without mutating state."""
