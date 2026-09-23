@@ -96,7 +96,7 @@ than the reference path for this workload; no native speedup claim is made.
 ## Representative workload matrix
 
 `tools/benchmark_native_workloads.py` measures the currently exposed
-digest, metabolism, structure, and division checkpoints with five repetitions
+digest, metabolism, structure, and division checkpoints with three repetitions
 of 256 logical steps. It reports min/median/max wall time, steps/sec, and the
 peak working set observed by the hosting process through Windows PSAPI. The
 RSS value is process-level evidence (not an isolated allocator measurement),
@@ -106,21 +106,21 @@ Reproduction:
 
 ```text
 python tools/benchmark_native_workloads.py --library <native-library> \
-  --steps 256 --repetitions 5
+  --steps 256 --repetitions 3
 ```
 
 Current Windows MSVC Release evidence:
 
 ```text
 workload       backend    median_seconds  steps_per_second  peak_rss_bytes
-digest         python     0.008116300     31541.466         23707648
-digest         native-ffi 0.011194500     22868.373         24162304
-metabolism     python     0.013329900     19204.945         24199168
-metabolism     native-ffi 0.009594500     26681.953         24379392
-structure      python     0.016554800     15463.793         24416256
-structure      native-ffi 0.005885100     43499.686         24518656
-division       python     0.001250600     204701.745        24522752
-division       native-ffi 0.007302900     35054.567         24645632
+digest         python     0.008643800     29616.604         23728128
+digest         native-ffi 0.011882200     21544.832         24178688
+metabolism     python     0.014194700     18034.900         24207360
+metabolism     native-ffi 0.010098600     25350.049         24383488
+structure      python     0.017384200     14726.016         24403968
+structure      native-ffi 0.006271600     40818.930         24408064
+division       python     0.001275300     200737.083        24420352
+division       native-ffi 0.007419600     34503.208         24526848
 ```
 
 These are checkpoint workload measurements, not end-to-end simulator claims.
