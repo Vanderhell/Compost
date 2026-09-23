@@ -517,9 +517,11 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             assert claim is not None
             bite, _context = harness.food.read(claim)
             with NativeBackend(self.library_path, organism_id=0) as backend:
-                native_result = backend.step(
-                    bytes(bite),
-                    (1.0,) * len(bite),
+                native_result = backend.apply_action(
+                    NativeAction.lifecycle_step(
+                        bytes(bite),
+                        nutrition=(1.0,) * len(bite),
+                    )
                 )
                 reference.cursor += len(bite)
                 harness.population._digest(reference, bite, (1.0,) * len(bite))
