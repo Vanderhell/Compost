@@ -18,20 +18,21 @@ CI: PASS
 Documentation: PASS
 
 Python tests:
-`220 passed, 3 subtests passed` in the latest complete local run with the
-native DLL configured (82.59s).
+`222 passed, 3 subtests passed` in the latest complete local run with the
+native DLL configured (82.35s).
 
 Native tests:
 `7/7` CTest tests passed in the current MSVC 19.42 Release build with
 warnings-as-errors enabled (10.12s); the same suite passed under GCC/WSL.
 
 Differential cases:
-`28` Python/native differential tests pass, including bounded pure-rule,
+`29` Python/native differential tests pass, including bounded pure-rule,
 external-gut, environment corpse-energy credit, partition transaction,
 atomic division-boundary, step-plus-division lifecycle, territory predicate,
 deterministic FOOD block-key, two-organism population, and population child
 registration, replayable sandbox action-trace, and physical-food lifecycle
-comparisons. The latest MSVC DLL run completed in 6.20s; the
+comparisons, plus bounded metabolic scheduling arithmetic. The latest MSVC
+DLL run completed in 6.24s; the
 earlier WSL GCC DLL run completed in 6.670s.
 
 Long-run steps:
@@ -65,6 +66,9 @@ Known limitations:
   transition, including filesystem FOOD discovery/claims, territory scheduling,
   corpse lookup/storage, automatic metabolic scheduling, and full death/birth
   orchestration.
+- Native metabolic threshold/quotient arithmetic is differential-tested, but
+  the Python loop that accumulates progress and triggers the full tail remains
+  outside the native state machine.
 - Corpse energy credit is exposed as an explicit environment-supplied ABI
   transfer; corpse selection, persistence, and territory lookup remain Python
   responsibilities.

@@ -21,6 +21,7 @@
 | Direct-C benchmark | PORTING | Performance phase | Reproducible digest smoke benchmark plus bounded Python/FFI comparison; no speedup claim yet |
 | Public API robustness tests | PORTING | C API failure contract | Null, NaN, transactional failure, allocator lifetime/failure, integer extrema, and idempotent destroy coverage |
 | Lazy metabolism delta | DIFFERENTIAL_PASS | `biology_rules.lazy_metabolism_delta` | Tolerance-based Python/C differential cases pass |
+| Metabolic schedule arithmetic | DIFFERENTIAL_PASS | `AutonomousOrganism.metabolic_work_threshold` | Native bounded threshold/quotient/remainder helper matches Python max/divmod cases, including uint64 boundaries; automatic scheduling loop remains Python-owned |
 | Reproduction assessment | DIFFERENTIAL_PASS | `biology_rules.reproduction_allowed` | Pure eligibility/score differential cases pass; automatic candidate policy remains pending |
 | Territory address and block-key predicates | DIFFERENTIAL_PASS | `territory.address_bit`, `FoodTerritory.contains`, `food_block_key` | Bounded C17 mix64/contains and portable SHA-256 block-key functions match Python vectors through depth 63, Unicode IDs, UINT64 boundaries, and invalid-input preservation |
 | Material-flow accounting | DIFFERENTIAL_PASS | `sandbox_runtime.MaterialFlow` | Native conservation validator is available through the opaque ABI; external/resorption FIFO accounting, cross-edge resorption, and division transfer pass bounded tests; full sandbox ledger differential remains pending |

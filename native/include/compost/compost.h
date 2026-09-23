@@ -333,6 +333,19 @@ const char *compost_status_name(compost_status_t status);
 /* Pure rule. Finite strength is required; negative strength returns mass zero. */
 compost_status_t compost_structural_mass(double strength, uint64_t *mass);
 
+/* Pure bounded metabolic scheduler.  minimum_work must be non-zero; outputs
+ * are unchanged on invalid input.  The result is equivalent to Python's
+ * threshold=max(minimum_work, body_size), followed by quotient/remainder of
+ * accumulated progress. */
+compost_status_t compost_metabolic_schedule(
+    uint64_t minimum_work,
+    uint64_t body_size,
+    uint64_t progress,
+    uint64_t *threshold,
+    uint64_t *due_steps,
+    uint64_t *remaining_progress
+);
+
 /* Copies counters into the ledger and adds the exact Python reference cost. */
 compost_status_t compost_activity_ledger_add(
     compost_activity_ledger_t *ledger,

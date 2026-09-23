@@ -944,6 +944,26 @@ compost_status_t compost_structural_mass(double strength, uint64_t *mass)
     return COMPOST_STATUS_OK;
 }
 
+compost_status_t compost_metabolic_schedule(
+    uint64_t minimum_work,
+    uint64_t body_size,
+    uint64_t progress,
+    uint64_t *threshold,
+    uint64_t *due_steps,
+    uint64_t *remaining_progress
+)
+{
+    if (minimum_work == 0U || threshold == NULL || due_steps == NULL ||
+        remaining_progress == NULL) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    const uint64_t next_threshold = minimum_work > body_size ? minimum_work : body_size;
+    *threshold = next_threshold;
+    *due_steps = progress / next_threshold;
+    *remaining_progress = progress % next_threshold;
+    return COMPOST_STATUS_OK;
+}
+
 compost_status_t compost_activity_ledger_add(
     compost_activity_ledger_t *ledger,
     const compost_activity_counters_t *counters,

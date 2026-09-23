@@ -214,6 +214,26 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             self.assertFalse(plan["allowed"])
             self.assertEqual(backend.state_digest(), before)
 
+    def test_metabolic_schedule_matches_python_bounded_arithmetic(self) -> None:
+        with NativeBackend(self.library_path, organism_id=88) as backend:
+            for minimum_work, body_size, progress in (
+                (1, 0, 0), (64, 4, 63), (64, 64, 65),
+                (7, 31, 100), ((1 << 64) - 1, (1 << 64) - 1, (1 << 64) - 1),
+            ):
+                expected_threshold = max(minimum_work, body_size)
+                expected_steps, expected_remaining = divmod(progress, expected_threshold)
+                actual = backend.metabolic_schedule(minimum_work, body_size, progress)
+                self.assertEqual(
+                    actual,
+                    {
+                        "threshold": expected_threshold,
+                        "due_steps": expected_steps,
+                        "remaining_progress": expected_remaining,
+                    },
+                )
+            with self.assertRaises(NativeBackendError):
+                backend.metabolic_schedule(0, 1, 1)
+
     def test_public_python_adapter_try_divide_commits_allowed_candidate(self) -> None:
         config = LifecycleConfig(boundary_ratio_limit=0.5, birth_reserve=10.0)
         with NativeBackend(self.library_path, organism_id=110, config=config) as backend:

@@ -364,6 +364,12 @@ class NativeBackend:
         library.compost_destroy.restype = None
         library.compost_context_digest.argtypes = [ctypes.c_void_p, ctypes.POINTER(_Input), ctypes.POINTER(_Result)]
         library.compost_context_digest.restype = ctypes.c_int
+        library.compost_metabolic_schedule.argtypes = [
+            ctypes.c_uint64, ctypes.c_uint64, ctypes.c_uint64,
+            ctypes.POINTER(ctypes.c_uint64), ctypes.POINTER(ctypes.c_uint64),
+            ctypes.POINTER(ctypes.c_uint64),
+        ]
+        library.compost_metabolic_schedule.restype = ctypes.c_int
         library.compost_context_step.argtypes = [ctypes.c_void_p, ctypes.POINTER(_Input), ctypes.POINTER(_CycleResult)]
         library.compost_context_step.restype = ctypes.c_int
         library.compost_context_step_and_try_divide.argtypes = [
@@ -448,6 +454,20 @@ class NativeBackend:
             "rejected_mass": int(result.rejected_mass),
             "relations_created": int(result.relations_created),
             "relations_strengthened": int(result.relations_strengthened),
+        }
+
+    def metabolic_schedule(self, minimum_work: int, body_size: int, progress: int) -> dict[str, int]:
+        """Return the bounded native threshold, due count, and remainder."""
+        outputs = [ctypes.c_uint64(0), ctypes.c_uint64(0), ctypes.c_uint64(0)]
+        status = self._library.compost_metabolic_schedule(
+            ctypes.c_uint64(minimum_work), ctypes.c_uint64(body_size), ctypes.c_uint64(progress),
+            *(ctypes.byref(output) for output in outputs),
+        )
+        self._check(status, "compost_metabolic_schedule")
+        return {
+            "threshold": int(outputs[0].value),
+            "due_steps": int(outputs[1].value),
+            "remaining_progress": int(outputs[2].value),
         }
 
     def enqueue_external(self, food: bytes | bytearray, nutrition: tuple[float, ...] | None = None) -> None:

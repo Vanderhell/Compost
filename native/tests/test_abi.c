@@ -28,6 +28,25 @@ int main(void)
     compost_division_plan_t plan = {0};
     uint64_t initial_digest = 0U;
     uint64_t changed_digest = 0U;
+    uint64_t schedule_threshold = 0U;
+    uint64_t schedule_steps = 0U;
+    uint64_t schedule_remaining = 0U;
+    if (compost_metabolic_schedule(UINT64_C(64), UINT64_C(4), UINT64_C(65),
+                                   &schedule_threshold, &schedule_steps,
+                                   &schedule_remaining) != COMPOST_STATUS_OK ||
+        schedule_threshold != UINT64_C(64) || schedule_steps != UINT64_C(1) ||
+        schedule_remaining != UINT64_C(1)) {
+        return fail("metabolic schedule");
+    }
+    schedule_threshold = UINT64_C(9);
+    schedule_steps = UINT64_C(9);
+    schedule_remaining = UINT64_C(9);
+    if (compost_metabolic_schedule(0U, 1U, 1U, &schedule_threshold, &schedule_steps,
+                                   &schedule_remaining) != COMPOST_STATUS_INVALID_ARGUMENT ||
+        schedule_threshold != UINT64_C(9) || schedule_steps != UINT64_C(9) ||
+        schedule_remaining != UINT64_C(9)) {
+        return fail("metabolic schedule validation");
+    }
     if (COMPOST_NATIVE_ABI_VERSION != UINT32_C(3) ||
         compost_config_default(&config) != COMPOST_STATUS_OK ||
         compost_create(&config, UINT64_C(12), &context) != COMPOST_STATUS_OK ||
