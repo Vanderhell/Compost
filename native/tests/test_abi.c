@@ -19,6 +19,8 @@ int main(void)
     compost_step_result_t result = {0};
     compost_context_t *child = NULL;
     compost_division_result_t division = {0};
+    compost_division_plan_t try_plan = {0};
+    compost_division_result_t try_result = {0};
     const uint8_t child_atoms[] = {4U};
     uint8_t selected_atoms[COMPOST_MAX_ATOMS] = {0};
     size_t selected_count = 0U;
@@ -37,6 +39,13 @@ int main(void)
         snapshot.organism_id != UINT64_C(12) || snapshot.cursor != 2U) {
         compost_destroy(context);
         return fail("opaque ABI");
+    }
+    if (compost_context_try_divide(context, UINT64_C(14), &child, &try_plan, &try_result) != COMPOST_STATUS_OK ||
+        child != NULL || try_plan.candidate_found || try_plan.allowed ||
+        try_result.child_structural_mass != 0U) {
+        compost_destroy(child);
+        compost_destroy(context);
+        return fail("opaque try-division no-op");
     }
     if (compost_context_select_partition(context, 0.5, selected_atoms, COMPOST_MAX_ATOMS,
                                          &selected_count, &selected_ratio) != COMPOST_STATUS_OK ||
@@ -77,6 +86,9 @@ int main(void)
     }
     if (compost_context_verify_material_conservation(NULL) != COMPOST_STATUS_INVALID_ARGUMENT) {
         return fail("opaque conservation invalid handle");
+    }
+    if (compost_context_try_divide(NULL, 1U, &child, &try_plan, &try_result) != COMPOST_STATUS_INVALID_ARGUMENT) {
+        return fail("opaque try-division invalid handle");
     }
     return 0;
 }

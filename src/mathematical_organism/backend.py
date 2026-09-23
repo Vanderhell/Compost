@@ -286,6 +286,11 @@ class NativeBackend:
         library.compost_context_select_partition.restype = ctypes.c_int
         library.compost_context_plan_division.argtypes = [ctypes.c_void_p, ctypes.POINTER(_DivisionPlan)]
         library.compost_context_plan_division.restype = ctypes.c_int
+        library.compost_context_try_divide.argtypes = [
+            ctypes.c_void_p, ctypes.c_uint64, ctypes.POINTER(ctypes.c_void_p),
+            ctypes.POINTER(_DivisionPlan), ctypes.POINTER(_DivisionResult),
+        ]
+        library.compost_context_try_divide.restype = ctypes.c_int
         library.compost_context_partition.argtypes = [
             ctypes.c_void_p,
             ctypes.c_uint64,
@@ -536,6 +541,40 @@ class NativeBackend:
             "cross_split_mass": int(result.cross_split_mass),
             "parent_reserve_after_cost": float(result.parent_reserve_after_cost),
         }
+
+    def try_divide(self, *, child_id: int) -> tuple["NativeBackend | None", dict[str, object]]:
+        """Evaluate and atomically commit the native deterministic division policy."""
+        if not self._context or not self._context.value:
+            raise NativeBackendError("native backend is closed")
+        child_context = ctypes.c_void_p()
+        plan = _DivisionPlan()
+        result = _DivisionResult()
+        status = self._library.compost_context_try_divide(
+            self._context,
+            ctypes.c_uint64(child_id),
+            ctypes.byref(child_context),
+            ctypes.byref(plan),
+            ctypes.byref(result),
+        )
+        self._check(status, "compost_context_try_divide")
+        plan_view = {
+            "candidate_found": bool(plan.candidate_found),
+            "allowed": bool(plan.allowed),
+            "child_atoms": tuple(int(plan.child_atoms[index]) for index in range(plan.child_atom_count)),
+            "boundary_ratio": float(plan.boundary_ratio),
+        }
+        if not child_context.value:
+            return None, plan_view
+        child = object.__new__(NativeBackend)
+        child.library_path = self.library_path
+        child._library = self._library
+        child._context = child_context
+        plan_view["division"] = {
+            "child_structural_mass": int(result.child_structural_mass),
+            "cross_split_mass": int(result.cross_split_mass),
+            "parent_reserve_after_cost": float(result.parent_reserve_after_cost),
+        }
+        return child, plan_view
 
     def close(self) -> None:
         if self._context and self._context.value:

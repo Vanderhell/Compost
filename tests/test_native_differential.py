@@ -165,6 +165,15 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             plan = backend.division_plan()
             self.assertFalse(plan["candidate_found"])
 
+    def test_public_python_adapter_try_divide_is_transactional_without_candidate(self) -> None:
+        with NativeBackend(self.library_path, organism_id=101) as backend:
+            before = backend.state_digest()
+            child, plan = backend.try_divide(child_id=102)
+            self.assertIsNone(child)
+            self.assertFalse(plan["candidate_found"])
+            self.assertFalse(plan["allowed"])
+            self.assertEqual(backend.state_digest(), before)
+
     def test_public_python_adapter_runs_native_external_gut_fifo(self) -> None:
         with NativeBackend(self.library_path, organism_id=100) as backend:
             backend.enqueue_external(b"\x01\x02\x01", (1.0, 2.0, 3.0))

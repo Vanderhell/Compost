@@ -298,6 +298,35 @@ compost_status_t compost_context_plan_division(
     return compost_organism_plan_division(&context->organism, plan);
 }
 
+compost_status_t compost_context_try_divide(
+    compost_context_t *parent,
+    uint64_t child_id,
+    compost_context_t **child,
+    compost_division_plan_t *plan,
+    compost_division_result_t *result
+)
+{
+    if (parent == NULL || child == NULL || plan == NULL || result == NULL) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    *child = NULL;
+    memset(plan, 0, sizeof(*plan));
+    memset(result, 0, sizeof(*result));
+    const compost_status_t status = compost_organism_plan_division(&parent->organism, plan);
+    if (status != COMPOST_STATUS_OK || !plan->candidate_found || !plan->allowed) {
+        return status;
+    }
+    return compost_context_partition(
+        parent,
+        child_id,
+        plan->child_atoms,
+        plan->child_atom_count,
+        parent->organism.config.birth_cost,
+        child,
+        result
+    );
+}
+
 compost_status_t compost_config_default(compost_config_t *config)
 {
     if (config == NULL) {

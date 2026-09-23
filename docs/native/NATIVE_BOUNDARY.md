@@ -44,7 +44,8 @@ clock, spawn threads, or make a scheduling decision based on hash iteration.
 - Full Python ABI/FFI lifecycle integration until corpse, division, population,
   and sandbox-level gut snapshots match per step. The versioned opaque ABI now
   includes bounded external-gut enqueue/process operations, read-only material
-  conservation validation, and an explicit Python backend selector; native
+  conservation validation, and an atomic deterministic `try_divide` operation;
+  native
   failures are not silently downgraded.
 - Native multiprocessing and any throughput-oriented parallel mode.
 - Native physical FOOD storage, filesystem sandboxing, and telemetry.

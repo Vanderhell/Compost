@@ -56,5 +56,6 @@ sanitizer executable was produced.
 
 Foundation value structs remain available for native unit tests. Python-facing
 operations use the opaque context ABI (`compost_create`, `compost_step`,
-`compost_context_partition`, snapshot/digest, conservation validation, and destroy); Python does not
+`compost_context_partition`, `compost_context_try_divide`, snapshot/digest,
+conservation validation, and destroy); Python does not
 depend on internal organism layout.

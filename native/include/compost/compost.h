@@ -487,6 +487,19 @@ compost_status_t compost_context_plan_division(
     const compost_context_t *context,
     compost_division_plan_t *plan
 );
+/*
+ * Evaluates and, when allowed, commits one deterministic division.
+ * With no candidate or a candidate that fails viability, returns OK with
+ * `*child == NULL`, zeroed result, and an explanatory plan. On failure the
+ * parent remains unchanged and any temporary child allocation is released.
+ */
+compost_status_t compost_context_try_divide(
+    compost_context_t *parent,
+    uint64_t child_id,
+    compost_context_t **child,
+    compost_division_plan_t *plan,
+    compost_division_result_t *result
+);
 
 compost_status_t compost_organism_enqueue_resorbed(
     compost_organism_t *organism,
