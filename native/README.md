@@ -8,15 +8,14 @@ behavioral oracle.
 The current native behavior includes pure biology rules, byte digestion,
 bounded external-gut payload enqueue/process, maintenance/forgetting,
 resorption accounting, deterministic partition selection, selected structural
-partition transactions, consolidation transitions, and a transactional
-digest-plus-maintenance step. The opaque context also owns explicitly supplied
-metabolic progress/settled-step accounting and exposes it through snapshots;
-the lifecycle work triggered by due steps remains host-owned. It also accepts an environment-supplied corpse
-energy transfer; corpse lookup, storage, and territory selection remain in
-Python. It is not yet the complete lifecycle engine:
-step-level consolidation/viability integration, population scheduling, corpse
-interaction, and full Python sandbox per-step differential validation remain
-pending.
+partition transactions, consolidation transitions, and transactional
+digest-plus-maintenance/lifecycle checkpoints. The opaque context also owns
+explicitly supplied metabolic progress/settled-step accounting and exposes it
+through snapshots; automatic scheduling of due steps remains host-owned. It
+also accepts an environment-supplied corpse energy transfer; corpse lookup,
+storage, and territory selection remain in Python. It is not yet the complete
+lifecycle engine: population scheduling, corpse interaction, and full Python
+sandbox per-step differential validation remain pending.
 
 ## Ownership and allocation
 
@@ -60,8 +59,9 @@ is toolchain-specific; configuration must not be interpreted as evidence that a
 sanitizer executable was produced.
 
 Foundation value structs remain available for native unit tests. Python-facing
-operations use the opaque context ABI (`compost_create`, `compost_step`,
-`compost_context_partition`, `compost_context_try_divide`,
+operations use the opaque context ABI (`compost_create`, `compost_context_step`,
+`compost_context_lifecycle_step`, `compost_context_partition`,
+`compost_context_try_divide`,
 `compost_context_step_and_try_divide`, snapshot/digest,
 conservation validation, bounded territory predicates and block keys, and destroy); Python does not
 depend on internal organism layout.
