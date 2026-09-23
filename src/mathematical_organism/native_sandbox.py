@@ -223,6 +223,7 @@ class NativeSandboxReplay:
                     # Python runtime intentionally retains the dead organism
                     # for history, while the native population no longer owns
                     # its handle.
+                    del self._native_ids[organism.name]
                     continue
                 raise RuntimeError(
                     f"native corpse is missing at epoch {self._epoch}, organism {organism.name}"
@@ -239,6 +240,7 @@ class NativeSandboxReplay:
                 raise RuntimeError(
                     f"native corpse diverged at epoch {self._epoch}, organism {organism.name}"
                 )
+            del self._native_ids[organism.name]
         self._population.verify_material_conservation()
         for organism in self.runtime.organisms:
             organism.verify_material_conservation()
