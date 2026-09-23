@@ -289,6 +289,12 @@ class NativeBackend:
         library.compost_context_digest.restype = ctypes.c_int
         library.compost_context_step.argtypes = [ctypes.c_void_p, ctypes.POINTER(_Input), ctypes.POINTER(_CycleResult)]
         library.compost_context_step.restype = ctypes.c_int
+        library.compost_context_step_and_try_divide.argtypes = [
+            ctypes.c_void_p, ctypes.POINTER(_Input), ctypes.c_uint64,
+            ctypes.POINTER(ctypes.c_void_p), ctypes.POINTER(_CycleResult),
+            ctypes.POINTER(_DivisionPlan), ctypes.POINTER(_DivisionResult),
+        ]
+        library.compost_context_step_and_try_divide.restype = ctypes.c_int
         library.compost_context_enqueue_external.argtypes = [ctypes.c_void_p, ctypes.POINTER(_Input)]
         library.compost_context_enqueue_external.restype = ctypes.c_int
         library.compost_context_process_gut.argtypes = [
@@ -519,6 +525,72 @@ class NativeBackend:
             "composites_consolidated": int(result.composites_consolidated),
             "status_after": int(result.status_after),
         }
+
+    def step_and_try_divide(
+        self,
+        food: bytes | bytearray,
+        *,
+        child_id: int,
+        nutrition: tuple[float, ...] | None = None,
+    ) -> tuple["NativeBackend | None", dict[str, float | int], dict[str, object]]:
+        """Run one native lifecycle step and its deterministic division policy."""
+        if not self._context or not self._context.value:
+            raise NativeBackendError("native backend is closed")
+        payload = bytes(food)
+        values = tuple(1.0 for _ in payload) if nutrition is None else nutrition
+        if len(values) != len(payload):
+            raise ValueError("food and nutrition lengths differ")
+        food_buffer = (ctypes.c_uint8 * len(payload))(*payload)
+        nutrition_buffer = (ctypes.c_double * len(values))(*values)
+        native_input = _Input(food_buffer, nutrition_buffer, len(payload))
+        child_context = ctypes.c_void_p()
+        cycle = _CycleResult()
+        plan = _DivisionPlan()
+        division = _DivisionResult()
+        status = self._library.compost_context_step_and_try_divide(
+            self._context,
+            ctypes.byref(native_input),
+            ctypes.c_uint64(child_id),
+            ctypes.byref(child_context),
+            ctypes.byref(cycle),
+            ctypes.byref(plan),
+            ctypes.byref(division),
+        )
+        self._check(status, "compost_context_step_and_try_divide")
+        cycle_view: dict[str, float | int] = {
+            "consumed_bytes": int(cycle.digestion.consumed_bytes),
+            "assimilated_mass": int(cycle.digestion.assimilated_mass),
+            "rejected_mass": int(cycle.digestion.rejected_mass),
+            "maintenance_required": float(cycle.maintenance.required),
+            "maintenance_paid": float(cycle.maintenance.paid),
+            "maintenance_deficit": float(cycle.maintenance.deficit),
+            "composites_consolidated": int(cycle.composites_consolidated),
+            "status_after": int(cycle.status_after),
+        }
+        plan_view: dict[str, object] = {
+            "candidate_found": bool(plan.candidate_found),
+            "allowed": bool(plan.allowed),
+            "child_atoms": tuple(int(plan.child_atoms[index]) for index in range(plan.child_atom_count)),
+            "boundary_ratio": float(plan.boundary_ratio),
+            "boundary_maintenance": float(plan.boundary_maintenance),
+            "child_income": float(plan.child_income),
+            "child_maintenance": float(plan.child_maintenance),
+            "parent_income": float(plan.parent_income),
+            "parent_maintenance": float(plan.parent_maintenance),
+            "birth_gain": float(plan.birth_gain),
+        }
+        if not child_context.value:
+            return None, cycle_view, plan_view
+        child = object.__new__(NativeBackend)
+        child.library_path = self.library_path
+        child._library = self._library
+        child._context = child_context
+        plan_view["division"] = {
+            "child_structural_mass": int(division.child_structural_mass),
+            "cross_split_mass": int(division.cross_split_mass),
+            "parent_reserve_after_cost": float(division.parent_reserve_after_cost),
+        }
+        return child, cycle_view, plan_view
 
     def select_partition(self, boundary_ratio_limit: float = 0.15) -> tuple[tuple[int, ...], float]:
         """Return the native deterministic selected child region and ratio."""

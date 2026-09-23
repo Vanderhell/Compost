@@ -118,5 +118,26 @@ int main(void)
     if (compost_context_try_divide(NULL, 1U, &child, &try_plan, &try_result) != COMPOST_STATUS_INVALID_ARGUMENT) {
         return fail("opaque try-division invalid handle");
     }
+    compost_context_t *combined_context = NULL;
+    compost_context_t *combined_child = NULL;
+    compost_cycle_result_t combined_cycle = {0};
+    compost_division_plan_t combined_plan = {0};
+    compost_division_result_t combined_division = {0};
+    if (compost_create(&division_config, UINT64_C(30), &combined_context) != COMPOST_STATUS_OK ||
+        compost_context_step_and_try_divide(
+            combined_context, &input, UINT64_C(31), &combined_child,
+            &combined_cycle, &combined_plan, &combined_division
+        ) != COMPOST_STATUS_OK ||
+        combined_child == NULL || combined_cycle.digestion.consumed_bytes != 2U ||
+        !combined_plan.candidate_found || !combined_plan.allowed ||
+        combined_division.cross_split_mass == 0U ||
+        compost_context_verify_material_conservation(combined_context) != COMPOST_STATUS_OK ||
+        compost_context_verify_material_conservation(combined_child) != COMPOST_STATUS_OK) {
+        compost_destroy(combined_child);
+        compost_destroy(combined_context);
+        return fail("opaque step-and-division ABI");
+    }
+    compost_destroy(combined_child);
+    compost_destroy(combined_context);
     return 0;
 }

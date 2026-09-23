@@ -177,6 +177,58 @@ compost_status_t compost_context_step(
     return compost_organism_step(&context->organism, input, result);
 }
 
+compost_status_t compost_context_step_and_try_divide(
+    compost_context_t *context,
+    const compost_step_input_t *input,
+    uint64_t child_id,
+    compost_context_t **child,
+    compost_cycle_result_t *cycle_result,
+    compost_division_plan_t *plan,
+    compost_division_result_t *division_result
+)
+{
+    if (context == NULL || input == NULL || child == NULL || cycle_result == NULL ||
+        plan == NULL || division_result == NULL) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    compost_context_t working = *context;
+    compost_cycle_result_t next_cycle = {0};
+    compost_division_plan_t next_plan = {0};
+    compost_division_result_t next_division = {0};
+    compost_status_t status = compost_organism_step(&working.organism, input, &next_cycle);
+    if (status != COMPOST_STATUS_OK) return status;
+    if (working.organism.status == COMPOST_LIFECYCLE_ALIVE) {
+        status = compost_organism_plan_division(&working.organism, &next_plan);
+        if (status != COMPOST_STATUS_OK) return status;
+    }
+    compost_context_t *created = NULL;
+    if (next_plan.candidate_found && next_plan.allowed) {
+        created = working.allocator.allocate(working.allocator.context, sizeof(*created));
+        if (created == NULL) return COMPOST_STATUS_OUT_OF_MEMORY;
+        memset(created, 0, sizeof(*created));
+        created->allocator = working.allocator;
+        status = compost_organism_partition(
+            &working.organism,
+            &created->organism,
+            child_id,
+            next_plan.child_atoms,
+            next_plan.child_atom_count,
+            working.organism.config.birth_cost,
+            &next_division
+        );
+        if (status != COMPOST_STATUS_OK) {
+            working.allocator.deallocate(working.allocator.context, created);
+            return status;
+        }
+    }
+    context->organism = working.organism;
+    *child = created;
+    *cycle_result = next_cycle;
+    *plan = next_plan;
+    *division_result = next_division;
+    return COMPOST_STATUS_OK;
+}
+
 compost_status_t compost_context_enqueue_external(
     compost_context_t *context,
     const compost_step_input_t *input

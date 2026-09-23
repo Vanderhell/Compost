@@ -203,6 +203,35 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                 child.verify_material_conservation()
                 self.assertEqual(child.snapshot()["reserve"], 0.0)
 
+    def test_step_and_try_divide_matches_python_lifecycle_boundary(self) -> None:
+        config = LifecycleConfig(boundary_ratio_limit=0.5, birth_reserve=10.0)
+        reference = MathematicalLifePopulation(chr(4) + chr(5), config)
+        reference.cycle()
+        reference_parent = reference.organisms[0]
+        reference_child = reference.organisms[1]
+        with NativeBackend(self.library_path, organism_id=0, config=config) as backend:
+            child, cycle, plan = backend.step_and_try_divide(
+                b"\x04\x05", child_id=1, nutrition=(1.0, 1.0)
+            )
+            self.assertIsNotNone(child)
+            assert child is not None
+            with child:
+                parent = backend.snapshot()
+                child_snapshot = child.snapshot()
+                self.assertEqual(cycle["consumed_bytes"], reference_parent.cursor)
+                self.assertTrue(plan["candidate_found"])
+                self.assertTrue(plan["allowed"])
+                self.assertEqual(parent["cursor"], reference_parent.cursor)
+                self.assertEqual(child_snapshot["cursor"], reference_child.cursor)
+                self.assertAlmostEqual(parent["reserve"], reference_parent.reserve, places=12)
+                self.assertAlmostEqual(child_snapshot["reserve"], reference_child.reserve, places=12)
+                self.assertEqual(parent["body"]["atom_count"], len(reference_parent.atoms))
+                self.assertEqual(child_snapshot["body"]["atom_count"], len(reference_child.atoms))
+                self.assertEqual(parent["body"]["relation_count"], len(reference_parent.relations))
+                self.assertEqual(child_snapshot["body"]["relation_count"], len(reference_child.relations))
+                backend.verify_material_conservation()
+                child.verify_material_conservation()
+
     def test_native_backend_rejects_unrepresented_scheduling_config(self) -> None:
         with self.assertRaises(NativeBackendError):
             NativeBackend(

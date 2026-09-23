@@ -446,6 +446,21 @@ compost_status_t compost_context_step(
     const compost_step_input_t *input,
     compost_cycle_result_t *result
 );
+/*
+ * Runs one deterministic step and then the native division policy. The whole
+ * transition is transactional on hard failure: parent and output arguments
+ * remain unchanged. A non-candidate or non-viable division is successful and
+ * returns a NULL child plus its explanatory plan.
+ */
+compost_status_t compost_context_step_and_try_divide(
+    compost_context_t *context,
+    const compost_step_input_t *input,
+    uint64_t child_id,
+    compost_context_t **child,
+    compost_cycle_result_t *cycle_result,
+    compost_division_plan_t *plan,
+    compost_division_result_t *division_result
+);
 compost_status_t compost_context_enqueue_external(
     compost_context_t *context,
     const compost_step_input_t *input
