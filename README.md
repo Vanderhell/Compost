@@ -120,6 +120,20 @@ can optionally emit replayable `NativeAction` traces for the validated
 external-gut, queued-gut, corpse-energy, and bounded lifecycle prefixes; this
 does not imply complete `live_step` replacement.
 
+To run the bounded deterministic checkpoint explicitly through the native
+library, provide the library path:
+
+```bash
+python -m mathematical_organism checkpoint ABCD --backend native \
+  --library path/to/libcompost_native.so --steps 1 --json
+```
+
+The default checkpoint backend remains `python`. An explicitly requested
+native backend reports library, ABI, argument, and execution failures; it does
+not silently fall back to the Python oracle. Use the Python backend for the
+reference behavior and the native backend for validated differential
+experiments.
+
 ## Experiments
 
 Captured 1m runs live under [`experiments/1m`](experiments/1m). They are
