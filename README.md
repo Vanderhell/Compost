@@ -118,7 +118,9 @@ world/corpse orchestration, telemetry, and the existing parallel runtime
 remain Python responsibilities while native parity is validated. The sandbox
 can optionally emit replayable `NativeAction` traces for the validated
 external-gut, queued-gut, corpse-energy, and bounded lifecycle prefixes; this
-does not imply complete `live_step` replacement.
+does not imply complete `live_step` replacement. Python validation code can
+drive those traces through the reusable `NativeSandboxReplay` boundary while
+retaining the Python sandbox as oracle and filesystem owner.
 
 To run the bounded deterministic checkpoint explicitly through the native
 library, provide the library path:
