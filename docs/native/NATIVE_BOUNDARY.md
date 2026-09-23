@@ -29,8 +29,10 @@ The first C target is the lifecycle/sandbox behavioral core only:
   members, and structural body mass.
 - Activated receptors and activity ledger/counters.
 - Gut FIFO and material-flow accounting.
-- Metabolic progress, maintenance settlement, weakening, resorption, and
-  deterministic weakest-member selection.
+- Bounded maintenance settlement, weakening, resorption, and deterministic
+  weakest-member selection for explicit native transitions. Python
+  `live_step` metabolic-progress scheduling remains host-owned until its event
+  ordering is migrated and differentially proven.
 - Pure biology rules: structural mass, costs, forgetting, maintenance budgets,
   reproduction eligibility, and conservation calculations.
 - Consolidation, structural mutations, connected-component/bridge predicates,
@@ -51,6 +53,9 @@ clock, spawn threads, or make a scheduling decision based on hash iteration.
   deterministic `try_divide` and step-plus-division operations;
   native
   failures are not silently downgraded.
+- Automatic metabolic-progress scheduling and the complete `live_step` tail
+  (division/death orchestration) remain deferred; current action traces expose
+  only the validated environment prefix.
 - Native multiprocessing and any throughput-oriented parallel mode.
 - Native physical FOOD storage, filesystem sandboxing, and telemetry.
 - Porting the legacy graph learner before a compatibility decision and fixtures

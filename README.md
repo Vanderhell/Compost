@@ -115,7 +115,10 @@ versioned native C ABI is opt-in through the Python `native` and
 `native-population` backends; it currently covers bounded deterministic core
 checkpoints and explicit environment inputs. Filesystem FOOD discovery,
 world/corpse orchestration, telemetry, and the existing parallel runtime
-remain Python responsibilities while native parity is validated.
+remain Python responsibilities while native parity is validated. The sandbox
+can optionally emit replayable `NativeAction` traces for the validated
+external-gut, queued-gut, corpse-energy, and bounded lifecycle prefixes; this
+does not imply complete `live_step` replacement.
 
 ## Experiments
 
