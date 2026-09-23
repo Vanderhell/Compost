@@ -63,6 +63,8 @@ The dense cross-split division fixture passes a current GCC 13.3
 AddressSanitizer/UndefinedBehaviorSanitizer targeted run (`1/1`, `0.09s`) with
 no diagnostics.
 Invalid `try_divide` handles are checked to preserve all caller output sentinels.
+The public status-name helper returns stable names for every defined status and
+`UNKNOWN_STATUS` for an invalid enum value without terminating the process.
 
 ## Outstanding evidence
 
