@@ -38,9 +38,9 @@ Long-run steps:
 the current ABI v3 replay campaign.
 
 Sanitizer result:
-GCC 13.3 under WSL with ASan/UBSan: `7/7` tests passed in `190.32s`, with no
-sanitizer diagnostics. Windows-mounted filesystem clock-skew warnings were
-observed during the build and were not test or sanitizer failures.
+Current GCC 13.3 under WSL with ASan/UBSan: `7/7` tests passed in `300.11s`,
+with no sanitizer diagnostics. Windows-mounted filesystem clock-skew warnings
+were observed during the build and were not test or sanitizer failures.
 
 GCC result:
 GCC 13.3 Debug sanitizer build and test pass; the native C fuzz target covers
