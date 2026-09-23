@@ -56,6 +56,9 @@ independent equation for the intermediate parent and grandchild.
 It also includes a dense eight-atom case with five relations, five composites,
 and both internal and cross-split edges; the parent/child equation and both
 per-organism validators pass after that transaction.
+The Python/C differential suite additionally covers an eight-byte dense
+partition and checks the native ledger equation independently of the Python
+body-mass result.
 
 `tests/test_skeleton_division.py`, `tests/test_structural_mass.py`, and
 `tests/test_material_flow.py` are the current evidence set. The new canonical
