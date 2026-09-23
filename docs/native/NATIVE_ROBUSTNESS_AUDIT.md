@@ -47,11 +47,11 @@ steps, and remainder on every case.
 
 The current eight-test suite was built and executed from the current tree with
 GCC 13.3 under WSL using AddressSanitizer and UndefinedBehaviorSanitizer,
-including leak detection. All eight tests passed in `416.39s`; the run emitted
+including leak detection. All eight tests passed in `414.45s`; the run emitted
 no sanitizer diagnostics.
 
 The same current tree also passed the strict GCC 13.3 Release suite (`8/8`,
-`13.96s`) and strict Linux Clang 18.1.3 Release suite (`8/8`, `13.87s`),
+`14.04s`) and strict Linux Clang 18.1.3 Release suite (`8/8`, `13.91s`),
 both with warnings-as-errors enabled.
 
 The public robustness test now covers both sides of the allocator boundary:
