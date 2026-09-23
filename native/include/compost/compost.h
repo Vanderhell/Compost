@@ -503,7 +503,13 @@ compost_status_t compost_context_step(
     const compost_step_input_t *input,
     compost_cycle_result_t *result
 );
-/* Runs the sandbox lifecycle checkpoint, including activity-debt settlement. */
+/*
+ * Runs the sandbox lifecycle checkpoint, including activity-debt settlement,
+ * deficit-budget maintenance, age, and terminal death handling. The input is
+ * an ordered, caller-owned food/nutrition view; no filesystem or callbacks are
+ * consulted. A dead context is a successful no-op. On invalid input, overflow,
+ * or another hard failure, the context and result are unchanged.
+ */
 compost_status_t compost_context_lifecycle_step(
     compost_context_t *context,
     const compost_step_input_t *input,
