@@ -61,6 +61,8 @@ jobs:
         env:
           COMPOST_NATIVE_LIBRARY: ${{ github.workspace }}/native/build-ci/libcompost_native.so
         run: python -m pytest -q
+      - name: Run native workload benchmark matrix
+        run: python tools/benchmark_native_workloads.py --library ${{ github.workspace }}/native/build-ci/libcompost_native.so --steps 256 --repetitions 3
 
   native-sanitizers:
     runs-on: ubuntu-latest
@@ -106,3 +108,5 @@ jobs:
         env:
           COMPOST_NATIVE_LIBRARY: ${{ github.workspace }}/native/build-msvc/Release/compost_native.dll
         run: python -m pytest -q
+      - name: Run Windows native workload benchmark matrix
+        run: python tools/benchmark_native_workloads.py --library ${{ github.workspace }}/native/build-msvc/Release/compost_native.dll --steps 256 --repetitions 3
