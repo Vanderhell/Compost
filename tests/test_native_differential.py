@@ -1114,6 +1114,10 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
         with NativeBackend(self.library_path, organism_id=3) as direct, NativeBackend(
             self.library_path, organism_id=3
         ) as planned:
+            before_corpse = planned.state_digest()
+            with self.assertRaises(NativeBackendError):
+                planned.take_corpse()
+            self.assertEqual(planned.state_digest(), before_corpse)
             expected = direct.lifecycle_step(payload, nutrition)
             actual = planned.apply_action(NativeAction.lifecycle_step(payload, nutrition=nutrition))
             self.assertEqual(actual["kind"], "lifecycle_step")
