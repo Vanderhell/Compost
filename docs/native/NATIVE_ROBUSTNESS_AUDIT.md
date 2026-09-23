@@ -26,7 +26,9 @@ standalone Windows Clang environment lacks the required CRT libraries.
 
 The deterministic C fuzz target executes 10,000 generated public-API cases,
 including NaN inputs and invalid pointer/length combinations, and checks state
-preservation after every failed call.
+preservation after every failed call. It now exercises the combined
+step-and-division ABI on two identical contexts and compares status, digest,
+division plan, and material result on every case.
 
 The same seven-test suite was also built and executed with GCC 13.3 under WSL
 using AddressSanitizer and UndefinedBehaviorSanitizer after the ABI v3 external

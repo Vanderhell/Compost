@@ -21,9 +21,17 @@ int main(void)
     compost_config_t config = {0};
     compost_organism_t first = {0};
     compost_organism_t second = {0};
+    compost_context_t *first_context = NULL;
+    compost_context_t *second_context = NULL;
     if (compost_config_default(&config) != COMPOST_STATUS_OK ||
         compost_organism_init(&first, &config, NULL, UINT64_C(41)) != COMPOST_STATUS_OK ||
-        compost_organism_init(&second, &config, NULL, UINT64_C(41)) != COMPOST_STATUS_OK) {
+        compost_organism_init(&second, &config, NULL, UINT64_C(41)) != COMPOST_STATUS_OK ||
+        compost_create(&config, UINT64_C(42), &first_context) != COMPOST_STATUS_OK ||
+        compost_create(&config, UINT64_C(42), &second_context) != COMPOST_STATUS_OK) {
+        compost_destroy(second_context);
+        compost_destroy(first_context);
+        compost_organism_destroy(&second);
+        compost_organism_destroy(&first);
         return fail("setup");
     }
     uint32_t random_state = UINT32_C(0xC0FFEE12);
@@ -62,8 +70,46 @@ int main(void)
                 return fail("invalid input mutation");
             }
         }
+        compost_context_t *first_child = NULL;
+        compost_context_t *second_child = NULL;
+        compost_cycle_result_t first_cycle = {0};
+        compost_cycle_result_t second_cycle = {0};
+        compost_division_plan_t first_plan = {0};
+        compost_division_plan_t second_plan = {0};
+        compost_division_result_t first_division = {0};
+        compost_division_result_t second_division = {0};
+        const uint64_t first_context_before = compost_context_state_digest(first_context);
+        const uint64_t second_context_before = compost_context_state_digest(second_context);
+        const compost_status_t first_context_status = compost_context_step_and_try_divide(
+            first_context, &input, UINT64_C(1000) + (uint64_t)iteration,
+            &first_child, &first_cycle, &first_plan, &first_division
+        );
+        const compost_status_t second_context_status = compost_context_step_and_try_divide(
+            second_context, &input, UINT64_C(1000) + (uint64_t)iteration,
+            &second_child, &second_cycle, &second_plan, &second_division
+        );
+        if (first_context_status != second_context_status ||
+            compost_context_state_digest(first_context) != compost_context_state_digest(second_context) ||
+            (first_context_status != COMPOST_STATUS_OK &&
+             (compost_context_state_digest(first_context) != first_context_before ||
+              compost_context_state_digest(second_context) != second_context_before)) ||
+            first_plan.candidate_found != second_plan.candidate_found ||
+            first_plan.allowed != second_plan.allowed ||
+            first_division.cross_split_mass != second_division.cross_split_mass) {
+            compost_destroy(second_child);
+            compost_destroy(first_child);
+            compost_destroy(second_context);
+            compost_destroy(first_context);
+            compost_organism_destroy(&first);
+            compost_organism_destroy(&second);
+            return fail("deterministic combined-ABI fuzz case");
+        }
+        compost_destroy(second_child);
+        compost_destroy(first_child);
     }
     compost_organism_destroy(&first);
     compost_organism_destroy(&second);
+    compost_destroy(second_context);
+    compost_destroy(first_context);
     return 0;
 }
