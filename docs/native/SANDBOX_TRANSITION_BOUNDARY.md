@@ -76,8 +76,11 @@ independently checks the native population ledger, every Python organism
 ledger, and the Python world-level ownership-transfer equation.
 Initial living organisms are imported through the transactional native snapshot
 contract when their C-representable state is within the documented bounds.
-Initial dead organisms are rejected because their host-owned corpse registry
-and territory release cannot be inferred from an organism snapshot alone.
+When a runtime also contains dead historical organisms, only the living subset
+is imported into native handles; the dead history remains Python-owned and is
+skipped by native replay. A runtime with no living organisms is rejected,
+because host-owned corpse registry and territory release cannot be inferred
+from an organism snapshot alone.
 Unsupported Python-only state remains host-owned and does not get silently
 discarded.
 All traces for the epoch are materialized and preflighted before any native
