@@ -44,6 +44,8 @@ static compost_allocator_t effective_allocator(const compost_allocator_t *alloca
 
 static bool finite(double value);
 static bool add_double(double left, double right, double *result);
+static bool add_u64(uint64_t left, uint64_t right, uint64_t *result);
+static compost_status_t validate_gut(const compost_organism_t *organism);
 static uint64_t digest_u64(uint64_t digest, uint64_t value);
 static compost_status_t activity_delta(
     const compost_activity_counters_t *counters,
@@ -374,6 +376,140 @@ compost_status_t compost_context_snapshot(
 {
     if (context == NULL) return COMPOST_STATUS_INVALID_ARGUMENT;
     return compost_organism_snapshot(&context->organism, snapshot);
+}
+
+static compost_status_t validate_snapshot_structures(
+    const compost_structure_t *structures,
+    size_t capacity,
+    compost_structure_kind_t kind,
+    uint64_t *occupied
+)
+{
+    if (structures == NULL || occupied == NULL) return COMPOST_STATUS_INVALID_ARGUMENT;
+    uint64_t count = 0U;
+    for (size_t index = 0U; index < capacity; ++index) {
+        const compost_structure_t *structure = &structures[index];
+        if (!structure->occupied) continue;
+        if (structure->kind != kind ||
+            structure->left >= COMPOST_MAX_ATOMS ||
+            structure->right >= COMPOST_MAX_ATOMS ||
+            !finite(structure->strength) || structure->strength < 0.0 ||
+            !finite(structure->maintenance) || structure->maintenance < 0.0 ||
+            !finite(structure->evidence) || structure->evidence < 0.0 ||
+            !finite(structure->income_rate) || structure->income_rate < 0.0 ||
+            !add_u64(count, UINT64_C(1), &count)) {
+            return COMPOST_STATUS_INVALID_STATE;
+        }
+    }
+    *occupied = count;
+    return COMPOST_STATUS_OK;
+}
+
+static compost_status_t validate_snapshot_for_context(
+    const compost_context_t *context,
+    const compost_snapshot_t *snapshot,
+    const compost_metabolic_snapshot_t *metabolic,
+    compost_organism_t *candidate
+)
+{
+    if (context == NULL || snapshot == NULL || metabolic == NULL || candidate == NULL ||
+        !context->organism.initialized) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    if (snapshot->abi_version != COMPOST_NATIVE_ABI_VERSION ||
+        snapshot->organism_id != context->organism.organism_id ||
+        (snapshot->status != COMPOST_LIFECYCLE_ALIVE &&
+         snapshot->status != COMPOST_LIFECYCLE_DEAD) ||
+        !finite(snapshot->reserve) || snapshot->reserve < 0.0 ||
+        snapshot->body.structural_mass < UINT64_C(256) ||
+        snapshot->body.structural_mass > context->organism.config.max_body_mass ||
+        snapshot->territory.depth > context->organism.config.max_territory_depth ||
+        snapshot->territory.organism_id != snapshot->organism_id ||
+        snapshot->territory.alive != (snapshot->status == COMPOST_LIFECYCLE_ALIVE) ||
+        !finite(snapshot->activity.metabolic_debt) || snapshot->activity.metabolic_debt < 0.0 ||
+        !finite(snapshot->activity.energy_spent) || snapshot->activity.energy_spent < 0.0) {
+        return COMPOST_STATUS_INVALID_STATE;
+    }
+    for (size_t index = 0U; index < snapshot->territory.depth; ++index) {
+        if (snapshot->territory.path[index] > UINT8_C(1)) return COMPOST_STATUS_INVALID_STATE;
+    }
+    uint64_t atom_count = 0U;
+    uint64_t relation_count = 0U;
+    uint64_t composite_count = 0U;
+    if (validate_snapshot_structures(snapshot->atoms, COMPOST_MAX_ATOMS,
+                                     COMPOST_STRUCTURE_ATOM, &atom_count) != COMPOST_STATUS_OK ||
+        validate_snapshot_structures(snapshot->relations, COMPOST_MAX_RELATIONS,
+                                     COMPOST_STRUCTURE_RELATION, &relation_count) != COMPOST_STATUS_OK ||
+        validate_snapshot_structures(snapshot->composites, COMPOST_MAX_COMPOSITES,
+                                     COMPOST_STRUCTURE_COMPOSITE, &composite_count) != COMPOST_STATUS_OK ||
+        snapshot->body.atom_count != atom_count ||
+        snapshot->body.relation_count != relation_count ||
+        snapshot->body.composite_count != composite_count) {
+        return COMPOST_STATUS_INVALID_STATE;
+    }
+    compost_organism_t next = context->organism;
+    next.organism_id = snapshot->organism_id;
+    next.parent_id = snapshot->parent_id;
+    next.has_parent = snapshot->has_parent;
+    next.generation = snapshot->generation;
+    next.cursor = snapshot->cursor;
+    next.age_in_cycles = snapshot->age_in_cycles;
+    next.status = snapshot->status;
+    next.reserve = snapshot->reserve;
+    next.body = snapshot->body;
+    next.material_flow = snapshot->material_flow;
+    next.activity = snapshot->activity;
+    next.territory = snapshot->territory;
+    memcpy(next.atoms, snapshot->atoms, sizeof(next.atoms));
+    memcpy(next.relations, snapshot->relations, sizeof(next.relations));
+    memcpy(next.composites, snapshot->composites, sizeof(next.composites));
+    memcpy(next.activated_receptors, snapshot->activated_receptors, sizeof(next.activated_receptors));
+    memcpy(next.gut, snapshot->gut, sizeof(next.gut));
+    next.gut_head = snapshot->gut_head;
+    next.gut_count = snapshot->gut_count;
+    uint64_t structural_mass = UINT64_C(256);
+    for (size_t collection = 1U; collection < 3U; ++collection) {
+        const compost_structure_t *structures = collection == 1U
+            ? next.relations : next.composites;
+        const size_t capacity = collection == 1U
+            ? COMPOST_MAX_RELATIONS : COMPOST_MAX_COMPOSITES;
+        for (size_t index = 0U; index < capacity; ++index) {
+            if (!structures[index].occupied) continue;
+            uint64_t mass = 0U;
+            if (compost_structural_mass(structures[index].strength, &mass) != COMPOST_STATUS_OK ||
+                !add_u64(structural_mass, mass, &structural_mass)) {
+                return COMPOST_STATUS_INVALID_STATE;
+            }
+        }
+    }
+    if (structural_mass != next.body.structural_mass ||
+        validate_gut(&next) != COMPOST_STATUS_OK ||
+        compost_organism_verify_material_conservation(&next) != COMPOST_STATUS_OK) {
+        return COMPOST_STATUS_INVALID_STATE;
+    }
+    *candidate = next;
+    (void)metabolic;
+    return COMPOST_STATUS_OK;
+}
+
+compost_status_t compost_context_restore_snapshot(
+    compost_context_t *context,
+    const compost_snapshot_t *snapshot,
+    const compost_metabolic_snapshot_t *metabolic
+)
+{
+    if (context == NULL || snapshot == NULL || metabolic == NULL) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    compost_organism_t candidate = {0};
+    const compost_status_t status = validate_snapshot_for_context(
+        context, snapshot, metabolic, &candidate
+    );
+    if (status != COMPOST_STATUS_OK) return status;
+    context->organism = candidate;
+    context->metabolic_progress = metabolic->progress;
+    context->metabolic_steps = metabolic->steps;
+    return COMPOST_STATUS_OK;
 }
 
 uint64_t compost_context_state_digest(const compost_context_t *context)

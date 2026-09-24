@@ -474,6 +474,18 @@ compost_status_t compost_context_snapshot(
     const compost_context_t *context,
     compost_snapshot_t *snapshot
 );
+/*
+ * Transactionally restores a native snapshot produced by this ABI. The
+ * snapshot must belong to the same organism identity and ABI version; the
+ * metabolic snapshot is required so the context digest is restored exactly.
+ * Python sandbox state is not an input to this function. On any validation
+ * failure, the context and both caller-owned inputs remain unchanged.
+ */
+compost_status_t compost_context_restore_snapshot(
+    compost_context_t *context,
+    const compost_snapshot_t *snapshot,
+    const compost_metabolic_snapshot_t *metabolic
+);
 uint64_t compost_context_state_digest(const compost_context_t *context);
 /* Copies context-owned metabolic progress without exposing the opaque layout. */
 compost_status_t compost_context_metabolic_snapshot(

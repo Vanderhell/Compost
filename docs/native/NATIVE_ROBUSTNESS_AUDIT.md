@@ -97,5 +97,12 @@ has an output-preservation regression test.
 
 ## Verdict
 
+The ABI also has a transactional native-snapshot restore gate. It rejects
+wrong ABI versions, mismatched organism identity, invalid bounds/territory,
+non-finite activity values, malformed structure/gut state, structural-mass
+inconsistency, or failed conservation validation without changing the target
+context; a valid snapshot plus metabolic backlog restores the native state
+digest exactly.
+
 `NOT READY`: public foundation failure handling is covered, but the native
 organism state and ABI are not yet complete enough for full hostile validation.

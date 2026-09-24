@@ -86,6 +86,33 @@ int main(void)
         compost_destroy(context);
         return fail("metabolic context transaction");
     }
+    compost_snapshot_t restore_snapshot = {0};
+    compost_metabolic_snapshot_t restore_metabolic = {0};
+    compost_context_t *restored_context = NULL;
+    compost_status_t restore_status = COMPOST_STATUS_INVALID_STATE;
+    if (compost_context_snapshot(context, &restore_snapshot) != COMPOST_STATUS_OK ||
+        compost_context_metabolic_snapshot(context, &restore_metabolic) != COMPOST_STATUS_OK ||
+        compost_create(&config, UINT64_C(12), &restored_context) != COMPOST_STATUS_OK ||
+        (restore_status = compost_context_restore_snapshot(
+            restored_context, &restore_snapshot, &restore_metabolic
+        )) != COMPOST_STATUS_OK ||
+        compost_context_state_digest(restored_context) != compost_context_state_digest(context)) {
+        (void)fprintf(stderr, "restore status=%d\n", (int)restore_status);
+        compost_destroy(restored_context);
+        compost_destroy(context);
+        return fail("native snapshot restore");
+    }
+    const uint64_t restored_digest = compost_context_state_digest(restored_context);
+    restore_snapshot.abi_version = UINT32_C(2);
+    if (compost_context_restore_snapshot(
+            restored_context, &restore_snapshot, &restore_metabolic
+        ) != COMPOST_STATUS_INVALID_STATE ||
+        compost_context_state_digest(restored_context) != restored_digest) {
+        compost_destroy(restored_context);
+        compost_destroy(context);
+        return fail("native snapshot restore transaction");
+    }
+    compost_destroy(restored_context);
     if (compost_create(&config, UINT64_C(15), &lifecycle_context) != COMPOST_STATUS_OK ||
         compost_context_digest(lifecycle_context, &input, &result) != COMPOST_STATUS_OK ||
         compost_context_lifecycle_step(lifecycle_context, &empty_input, &lifecycle_result) != COMPOST_STATUS_OK ||

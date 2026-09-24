@@ -109,6 +109,12 @@ include or explicitly externalize each environment-dependent field. It must
 also be transactional: a failed import must leave no partially registered
 native organism.
 
+The C ABI separately supports transactional restore of a complete *native*
+snapshot plus its native metabolic backlog. That operation is intentionally
+not used as a Python sandbox import: it validates native identity,
+structure/gut bounds, material conservation, and exact native digest, but it
+cannot manufacture the Python-only fields listed above.
+
 The same one-shot request is returned by `NativeBackend.replay_actions` when a
 single-organism lifecycle trace crosses from alive to dead; a subsequent dead
 no-op carries no repeated request. `NativeBackend.take_corpse` provides the
