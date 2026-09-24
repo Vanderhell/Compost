@@ -133,6 +133,8 @@ bytes-like value, preventing Python's `bytes(integer)` zero-fill coercion.
 Direct native metering calls apply the same strict contract to threshold,
 progress, due-step, and gut-capacity arguments before constructing ctypes
 values.
+The public territory-state setter is covered for valid root/path updates and
+invalid non-binary paths, with failed updates preserving the native digest.
 The public status-name helper returns stable names for every defined status and
 `UNKNOWN_STATUS` for an invalid enum value without terminating the process.
 
