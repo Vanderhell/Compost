@@ -1,5 +1,6 @@
 #include "compost/compost.h"
 
+#include <math.h>
 #include <stdio.h>
 
 static int fail(const char *message)
@@ -111,6 +112,34 @@ int main(void)
         compost_destroy(restored_context);
         compost_destroy(context);
         return fail("native snapshot restore transaction");
+    }
+    if (compost_context_snapshot(restored_context, &restore_snapshot) != COMPOST_STATUS_OK) {
+        compost_destroy(restored_context);
+        compost_destroy(context);
+        return fail("native snapshot restore recapture");
+    }
+    restore_snapshot.activity.energy_spent = NAN;
+    if (compost_context_restore_snapshot(
+            restored_context, &restore_snapshot, &restore_metabolic
+        ) != COMPOST_STATUS_INVALID_STATE ||
+        compost_context_state_digest(restored_context) != restored_digest) {
+        compost_destroy(restored_context);
+        compost_destroy(context);
+        return fail("native snapshot non-finite rejection");
+    }
+    if (compost_context_snapshot(restored_context, &restore_snapshot) != COMPOST_STATUS_OK) {
+        compost_destroy(restored_context);
+        compost_destroy(context);
+        return fail("native snapshot second recapture");
+    }
+    restore_snapshot.body.structural_mass += UINT64_C(1);
+    if (compost_context_restore_snapshot(
+            restored_context, &restore_snapshot, &restore_metabolic
+        ) != COMPOST_STATUS_INVALID_STATE ||
+        compost_context_state_digest(restored_context) != restored_digest) {
+        compost_destroy(restored_context);
+        compost_destroy(context);
+        return fail("native snapshot mass rejection");
     }
     compost_destroy(restored_context);
     if (compost_create(&config, UINT64_C(15), &lifecycle_context) != COMPOST_STATUS_OK ||
