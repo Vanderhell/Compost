@@ -9,7 +9,7 @@ from typing import Sequence
 
 from .backend import NativeBackend, create_backend
 from .organism import MathematicalOrganism
-from .public_sandbox import PublicMultiprocessingSandbox, read_last_snapshot
+from .public_sandbox import PublicMultiprocessingSandbox, PublicSandbox, read_last_snapshot
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -134,6 +134,8 @@ def _public_parser() -> argparse.ArgumentParser:
     run.add_argument("sandbox", type=Path)
     run.add_argument("--block-size", type=int, default=64 * 1024)
     run.add_argument("--workers", type=int, default=max(1, min(8, os.cpu_count() or 1)), help="persistent autonomous worker processes")
+    run.add_argument("--backend", choices=("python", "native"), default="python")
+    run.add_argument("--library", type=Path, help="native library path; required for --backend native")
     run.add_argument("--snapshot-seconds", type=float, default=0.5)
     run.add_argument("--max-seconds", type=float, help="optional observation bound; terminal reason is USER_STOP")
     status = commands.add_parser("status", help="read the last read-only telemetry snapshot")
@@ -184,7 +186,19 @@ def _public_main(argv: Sequence[str]) -> int:
         return 0
     if args.block_size <= 0 or args.workers <= 0 or args.snapshot_seconds <= 0 or (args.max_seconds is not None and args.max_seconds <= 0):
         raise SystemExit("--block-size, --workers, --snapshot-seconds, and --max-seconds must be positive")
-    sandbox = PublicMultiprocessingSandbox(args.sandbox, workers=args.workers, block_size=args.block_size)
+    if args.backend == "native":
+        if args.library is None:
+            raise SystemExit("--library is required with --backend native")
+        if args.workers != 1:
+            raise SystemExit("--backend native requires --workers 1")
+        sandbox = PublicSandbox(
+            args.sandbox,
+            block_size=args.block_size,
+            backend="native",
+            library=args.library,
+        )
+    else:
+        sandbox = PublicMultiprocessingSandbox(args.sandbox, workers=args.workers, block_size=args.block_size)
     print(f"SANDBOX RUNNING: place binary files in {sandbox.layout.inbox}")
     termination, snapshot = sandbox.run(
         snapshot_seconds=args.snapshot_seconds,

@@ -42,6 +42,7 @@ from mathematical_organism.cli import main as cli_main
 from mathematical_organism.food_sandbox import SandboxFeedingHarness
 from mathematical_organism.lifecycle import LifecycleConfig, LivingStructure, MathematicalLifeOrganism, MathematicalLifePopulation, OrganismStatus
 from mathematical_organism.native_sandbox import NativeSandboxReplay
+from mathematical_organism.public_sandbox import PublicSandbox
 from mathematical_organism.sandbox_runtime import AutonomousOrganism, Corpse, GutChunk, SandboxRuntime
 from mathematical_organism.biology_rules import reproduction_allowed
 from mathematical_organism.territory import FoodTerritory, address_bit, food_block_key
@@ -1552,6 +1553,39 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                     "checkpoint", "AB", "--backend", "native",
                     "--library", str(missing), "--steps", "1",
                 ])
+
+    def test_serial_public_sandbox_exposes_explicit_native_backend(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            sandbox = PublicSandbox(
+                Path(directory) / "sandbox",
+                block_size=4,
+                backend="native",
+                library=self.library_path,
+            )
+            (sandbox.layout.inbox / "payload.bin").write_bytes(b"ABCD")
+            reason, view = sandbox.run(snapshot_seconds=0.001, max_seconds=2.0)
+            self.assertEqual(reason, "FOOD_EXHAUSTED")
+            self.assertEqual(view["food"]["missing"], 0)
+
+    def test_serial_public_sandbox_rejects_native_workers_without_fallback(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaises(SystemExit):
+                cli_main([
+                    "run", str(Path(directory) / "sandbox"), "--backend", "native",
+                    "--library", str(self.library_path), "--workers", "2",
+                ])
+
+    def test_public_cli_runs_serial_native_sandbox_explicitly(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            output = io.StringIO()
+            with redirect_stdout(output):
+                status = cli_main([
+                    "run", str(Path(directory) / "sandbox"), "--backend", "native",
+                    "--library", str(self.library_path), "--workers", "1",
+                    "--max-seconds", "0.05", "--snapshot-seconds", "0.01",
+                ])
+            self.assertEqual(status, 0)
+            self.assertIn("SANDBOX RUNNING", output.getvalue())
 
     def test_native_backend_rejects_unrepresented_scheduling_config(self) -> None:
         with self.assertRaises(NativeBackendError):

@@ -21,7 +21,8 @@ values duplicated in test code.
 
 The test requires `COMPOST_NATIVE_LIBRARY`. If the variable is absent it is
 skipped; if it names a missing file the test fails. There is no silent native
-to Python fallback. The current bounded campaign contains seventy-five tests,
+to Python fallback. The current bounded Python/C differential campaign contains
+seventy-eight tests,
 including forty deterministic lifecycle replays (10,240 aggregate steps), a
 differential configuration matrix (144 additional steps), a
 differential starvation/death replay, a dense cross-split division replay, and
@@ -31,8 +32,9 @@ field-by-field snapshot checks.
 
 The full per-step Python/C campaign is **NOT READY**. The native organism is
 not yet a complete lifecycle engine. The current native-backed differential
-run is green (`75 passed`; the focused sandbox boundary suite is `79 passed`
-including its four ownership/terminal-failure tests). The complete Python
+run is green (`78 passed`; the focused sandbox boundary suite is `82 passed`
+including its four ownership/terminal-failure tests and explicit public CLI
+native-backend coverage). The complete Python
 regression suite without a native library is green (`201 passed, 75 skipped,
 3 subtests passed`); the skipped cases are the native acceptance cases. The
 selected partition

@@ -19,6 +19,7 @@ from typing import Callable
 from .sandbox_runtime import SandboxRuntime
 from .sandbox_runtime import AutonomousOrganism
 from .parallel_runtime import AutonomousMultiprocessingRuntime
+from .native_sandbox import NativeSandboxReplay
 from .territory import FoodTerritory
 
 
@@ -72,12 +73,27 @@ class SandboxLayout:
 class PublicSandbox:
     """Filesystem-only public boundary around one autonomous world."""
 
-    def __init__(self, root: str | Path, *, block_size: int = 64 * 1024) -> None:
+    def __init__(
+        self,
+        root: str | Path,
+        *,
+        block_size: int = 64 * 1024,
+        backend: str = "python",
+        library: str | Path | None = None,
+    ) -> None:
+        if backend not in {"python", "native"}:
+            raise ValueError("backend must be 'python' or 'native'")
+        if backend == "native" and library is None:
+            raise ValueError("library is required for the native sandbox backend")
         base = Path(root)
         self.layout = SandboxLayout(base, base / "inbox", base / "world", base / "telemetry")
         for directory in (self.layout.inbox, self.layout.world, self.layout.telemetry):
             directory.mkdir(parents=True, exist_ok=True)
         self.runtime = SandboxRuntime(self.layout.world, block_size=block_size, inbox=self.layout.inbox)
+        self.backend = backend
+        self._native_library = Path(library) if library is not None else None
+        self._native_replay: NativeSandboxReplay | None = None
+        self._native_failure: BaseException | None = None
         self.started_at = monotonic()
         self.started_cpu = process_time()
         self.max_alive = 0
@@ -170,7 +186,34 @@ class PublicSandbox:
         return snapshot
 
     def step(self) -> None:
-        self.runtime.autonomous_step()
+        if self.backend == "python":
+            self.runtime.autonomous_step()
+        else:
+            if self._native_failure is not None:
+                raise RuntimeError("native sandbox backend is closed after a failed validation epoch") from self._native_failure
+            self.runtime.bootstrap()
+            living = tuple(organism for organism in self.runtime.organisms if organism.alive)
+            native_names = set(self._native_replay._native_ids) if self._native_replay is not None else set()
+            if self._native_replay is None or self._native_replay._closed or native_names != {organism.name for organism in living}:
+                if self._native_replay is not None:
+                    self._native_replay.close()
+                assert self._native_library is not None
+                self._native_replay = NativeSandboxReplay(
+                    self._native_library,
+                    self.runtime,
+                    organism_ids=tuple(range(len(living))),
+                )
+            try:
+                self._native_replay.step()
+            except Exception as error:
+                self._native_failure = error
+                raise
+            for organism in tuple(self.runtime.organisms):
+                for child in organism.children:
+                    if child not in self.runtime.organisms:
+                        self.runtime.organisms.append(child)
+                        self.runtime.mark_organism_alive(child.name)
+                        self.runtime.observer.observe("ORG_BORN", child.name, "child")
         self.max_alive = max(self.max_alive, sum(organism.alive for organism in self.runtime.organisms))
         self.peak_gut = max(self.peak_gut, sum(organism.gut_mass for organism in self.runtime.organisms))
         if self.runtime.food_sources:
@@ -240,6 +283,8 @@ class PublicSandbox:
                     failure = str(error) or error.__class__.__name__
         final = self.write_snapshot(termination=termination, failure=failure)
         self.runtime.sync_organism_markers()
+        if self._native_replay is not None:
+            self._native_replay.close()
         return termination, final
 
 

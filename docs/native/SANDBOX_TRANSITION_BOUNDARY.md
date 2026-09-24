@@ -70,6 +70,12 @@ live organisms without mutation.
 The public `NativePopulationBackend.apply_actions` entry point uses the same
 opaque transaction boundary, so a later-organism failure restores earlier
 actions and removes any child handles created by the failed epoch.
+
+The serial `PublicSandbox` and public CLI also expose this adapter through an
+explicit `--backend native --library PATH` mode. The default public `run` mode
+remains the existing Python multiprocessing runtime. Native public execution
+requires one worker and fails clearly for unsupported worker counts; it never
+silently falls back to Python.
 The direct `try_local_reproduction` and `try_divide` entry points use the
 same boundary: if child snapshot materialization fails after the native parent
 transition, the parent is restored and the transient child is discarded.
