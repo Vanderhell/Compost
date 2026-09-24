@@ -164,5 +164,7 @@ inconsistency, or failed conservation validation without changing the target
 context; a valid snapshot plus metabolic backlog restores the native state
 digest exactly.
 
-`NOT READY`: public foundation failure handling is covered, but the native
+Snapshot restore now explicitly rejects invalid lifecycle enums, territory
+depth, gut counts, and external payload lengths while preserving the target
+digest. `NOT READY`: public foundation failure handling is covered, but the native
 organism state and ABI are not yet complete enough for full hostile validation.

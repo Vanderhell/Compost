@@ -194,6 +194,62 @@ int main(void)
         compost_destroy(context);
         return fail("native snapshot mass rejection");
     }
+    if (compost_context_snapshot(restored_context, &restore_snapshot) != COMPOST_STATUS_OK) {
+        compost_destroy(restored_context);
+        compost_destroy(context);
+        return fail("native snapshot bounded-field recapture");
+    }
+    restore_snapshot.territory.depth = COMPOST_MAX_TERRITORY_DEPTH + 1U;
+    if (compost_context_restore_snapshot(
+            restored_context, &restore_snapshot, &restore_metabolic
+        ) != COMPOST_STATUS_INVALID_STATE ||
+        compost_context_state_digest(restored_context) != restored_digest) {
+        compost_destroy(restored_context);
+        compost_destroy(context);
+        return fail("native snapshot territory bound rejection");
+    }
+    if (compost_context_snapshot(restored_context, &restore_snapshot) != COMPOST_STATUS_OK) {
+        compost_destroy(restored_context);
+        compost_destroy(context);
+        return fail("native snapshot gut recapture");
+    }
+    restore_snapshot.gut_count = COMPOST_MAX_GUT_CHUNKS + 1U;
+    if (compost_context_restore_snapshot(
+            restored_context, &restore_snapshot, &restore_metabolic
+        ) != COMPOST_STATUS_INVALID_STATE ||
+        compost_context_state_digest(restored_context) != restored_digest) {
+        compost_destroy(restored_context);
+        compost_destroy(context);
+        return fail("native snapshot gut-count rejection");
+    }
+    if (compost_context_snapshot(restored_context, &restore_snapshot) != COMPOST_STATUS_OK) {
+        compost_destroy(restored_context);
+        compost_destroy(context);
+        return fail("native snapshot payload recapture");
+    }
+    restore_snapshot.gut[0].payload_length = COMPOST_MAX_GUT_CHUNK_BYTES + 1U;
+    if (compost_context_restore_snapshot(
+            restored_context, &restore_snapshot, &restore_metabolic
+        ) != COMPOST_STATUS_INVALID_STATE ||
+        compost_context_state_digest(restored_context) != restored_digest) {
+        compost_destroy(restored_context);
+        compost_destroy(context);
+        return fail("native snapshot payload bound rejection");
+    }
+    if (compost_context_snapshot(restored_context, &restore_snapshot) != COMPOST_STATUS_OK) {
+        compost_destroy(restored_context);
+        compost_destroy(context);
+        return fail("native snapshot enum recapture");
+    }
+    restore_snapshot.status = (compost_lifecycle_status_t)99;
+    if (compost_context_restore_snapshot(
+            restored_context, &restore_snapshot, &restore_metabolic
+        ) != COMPOST_STATUS_INVALID_STATE ||
+        compost_context_state_digest(restored_context) != restored_digest) {
+        compost_destroy(restored_context);
+        compost_destroy(context);
+        return fail("native snapshot enum rejection");
+    }
     compost_destroy(restored_context);
     if (compost_create(&config, UINT64_C(15), &lifecycle_context) != COMPOST_STATUS_OK ||
         compost_context_digest(lifecycle_context, &input, &result) != COMPOST_STATUS_OK ||
