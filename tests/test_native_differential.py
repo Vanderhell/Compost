@@ -9,6 +9,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
@@ -490,7 +491,10 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             self.assertEqual(population.snapshots(), before)
 
     def test_population_apply_actions_removes_child_created_before_failure(self) -> None:
-        config = LifecycleConfig(birth_reserve=10.0, boundary_ratio_limit=0.5)
+        config = LifecycleConfig(
+            birth_reserve=10.0, boundary_ratio_limit=0.5,
+            reproduction_minimum_body=2,
+        )
         with NativePopulationBackend(self.library_path, organism_ids=(0, 2), config=config) as population:
             population.apply_actions({
                 0: NativeAction.external_gut(b"\x04\x05", capacity=2, nutrition=(1.0, 1.0)),
@@ -511,6 +515,48 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             finally:
                 population._contexts[2].apply_action = original  # type: ignore[method-assign]
             self.assertEqual(population.organism_ids, (0, 2))
+            self.assertEqual(population.snapshots(), before)
+
+    def test_direct_local_reproduction_rolls_back_when_child_snapshot_fails(self) -> None:
+        config = LifecycleConfig(
+            birth_reserve=10.0, boundary_ratio_limit=0.5,
+            reproduction_minimum_body=2,
+        )
+        with NativePopulationBackend(self.library_path, organism_ids=(0,), config=config) as population:
+            population.apply_actions({
+                0: NativeAction.external_gut(
+                    b"\x04\x05\x06\x07", capacity=4,
+                    nutrition=(2.0, 2.0, 2.0, 2.0)
+                ),
+            })
+            before = population.snapshots()
+            with patch.object(
+                NativeBackend,
+                "snapshot",
+                side_effect=NativeBackendError("injected child snapshot failure"),
+            ):
+                with self.assertRaises(NativeBackendError):
+                    population.try_local_reproduction(0, child_id=1)
+            self.assertEqual(population.organism_ids, (0,))
+            self.assertEqual(population.snapshots(), before)
+
+    def test_direct_boundary_division_rolls_back_when_child_snapshot_fails(self) -> None:
+        config = LifecycleConfig(birth_reserve=10.0, boundary_ratio_limit=0.5)
+        with NativePopulationBackend(self.library_path, organism_ids=(0,), config=config) as population:
+            population.apply_actions({
+                0: NativeAction.external_gut(
+                    b"\x04\x05", capacity=2, nutrition=(1.0, 1.0)
+                ),
+            })
+            before = population.snapshots()
+            with patch.object(
+                NativeBackend,
+                "snapshot",
+                side_effect=NativeBackendError("injected child snapshot failure"),
+            ):
+                with self.assertRaises(NativeBackendError):
+                    population.try_divide(0, child_id=1)
+            self.assertEqual(population.organism_ids, (0,))
             self.assertEqual(population.snapshots(), before)
 
     def test_single_action_epoch_rolls_back_on_later_native_failure(self) -> None:

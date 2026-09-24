@@ -1720,6 +1720,16 @@ class NativePopulationBackend:
         child_id: int,
     ) -> dict[str, object]:
         """Run the native local reproduction policy and retain its child."""
+        with self._native_transaction():
+            return self._try_local_reproduction_impl(organism_id, child_id=child_id)
+
+    def _try_local_reproduction_impl(
+        self,
+        organism_id: int,
+        *,
+        child_id: int,
+    ) -> dict[str, object]:
+        """Execute local reproduction inside its caller's transaction."""
         if self._closed:
             raise NativeBackendError("native population backend is closed")
         if not isinstance(organism_id, int) or organism_id not in self._contexts:
@@ -1745,6 +1755,16 @@ class NativePopulationBackend:
         }
 
     def try_divide(self, organism_id: int, *, child_id: int) -> dict[str, object]:
+        with self._native_transaction():
+            return self._try_divide_impl(organism_id, child_id=child_id)
+
+    def _try_divide_impl(
+        self,
+        organism_id: int,
+        *,
+        child_id: int,
+    ) -> dict[str, object]:
+        """Execute boundary partitioning inside its caller's transaction."""
         """Run the native deterministic boundary-partition policy and retain its child."""
         if self._closed:
             raise NativeBackendError("native population backend is closed")
