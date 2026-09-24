@@ -67,6 +67,8 @@ stable source digest and logical byte/block content, not an OS path.
 
 The future Python oracle and C exporter must use the same schema, explicit field
 names, stable type tags, sorted map/set entries, and a defined float encoding.
+The current Python canonical schema version is `2`; changing behavioral fields
+requires incrementing it so stored digests cannot be compared across schemas.
 The preferred initial float encoding is exact IEEE-754 binary64 bit patterns
 with explicit handling for signed zero, NaN, and infinity; every behavioral
 configuration used by a reference organism is included in the canonical
