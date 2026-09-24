@@ -74,9 +74,10 @@ viable component, the adapter invokes the native boundary-partition policy
 the host does not supply the selected child atom set. After each epoch it
 independently checks the native population ledger, every Python organism
 ledger, and the Python world-level ownership-transfer equation.
-Initial organisms must be living and behaviorally empty; importing an already
-evolved Python snapshot into a native handle is intentionally rejected until
-the ABI gains an explicit state-import contract.
+Initial organisms are imported through the transactional native snapshot
+contract when their C-representable state is within the documented bounds.
+Unsupported Python-only state remains host-owned and does not get silently
+discarded.
 All traces for the epoch are materialized and preflighted before any native
 prefix, reproduction policy, or suffix is committed; invalid later actions
 therefore cannot leave an earlier organism partially advanced.
@@ -100,14 +101,13 @@ snapshot does not carry all of the following Python-authoritative state:
 - the Python world state: food-source ownership and remaining ranges, corpse
   registry, territory occupancy/release, and pending environment events.
 
-Those fields can affect a subsequent `live_step`, so copying only the fields
-that happen to have matching names would silently change behavior. The native
-adapter therefore rejects non-empty initial organisms before loading any
-native handle. A future import API must be versioned, validate every bounded
-field, define exact float encoding and structure-member ordering, and either
-include or explicitly externalize each environment-dependent field. It must
-also be transactional: a failed import must leave no partially registered
-native organism.
+Those fields can affect a subsequent native-first `live_step` plan, so the
+adapter does not pretend that the imported C subset is a lossless Python
+world snapshot. Python remains the owner of those fields while the native
+handle executes the imported biological subset. A failed bounded import is
+transactional and leaves no partially registered native organism. A future
+native-first planner must either receive the listed Python-only state as an
+explicit environment view or keep planning in Python.
 
 The C ABI separately supports transactional restore of a complete *native*
 snapshot plus its native metabolic backlog. That operation is intentionally
