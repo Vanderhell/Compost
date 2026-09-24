@@ -54,6 +54,9 @@ and per-organism conservation checks.
 It also verifies child registration, parent/child state after an allowed
 division, and an eight-cycle division/death replay where the child becomes
 dead while the parent remains alive.
+The reusable sandbox epoch comparison now checks metabolic progress and
+settled metabolic-step count at every checkpoint, so a future scheduling
+divergence is reported at its first epoch rather than only at final state.
 The bounded two-organism campaign also compares every relation and composite
 key and its strength/evidence/income fields after each ordered epoch.
 

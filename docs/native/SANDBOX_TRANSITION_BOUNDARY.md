@@ -73,7 +73,8 @@ viable component, the adapter invokes the native boundary-partition policy
 `_divide_locally` branch and labels the result `global_partition_policy`;
 the host does not supply the selected child atom set. After each epoch it
 independently checks the native population ledger, every Python organism
-ledger, and the Python world-level ownership-transfer equation.
+ledger, the metabolic progress/step counters, and the Python world-level
+ownership-transfer equation.
 Initial living organisms are imported through the transactional native snapshot
 contract when their C-representable state is within the documented bounds.
 When a runtime also contains dead historical organisms, only the living subset
