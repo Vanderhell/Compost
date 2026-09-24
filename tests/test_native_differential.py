@@ -489,6 +489,30 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                 population._contexts[1].apply_action = original  # type: ignore[method-assign]
             self.assertEqual(population.snapshots(), before)
 
+    def test_population_apply_actions_removes_child_created_before_failure(self) -> None:
+        config = LifecycleConfig(birth_reserve=10.0, boundary_ratio_limit=0.5)
+        with NativePopulationBackend(self.library_path, organism_ids=(0, 2), config=config) as population:
+            population.apply_actions({
+                0: NativeAction.external_gut(b"\x04\x05", capacity=2, nutrition=(1.0, 1.0)),
+            })
+            before = population.snapshots()
+            original = population._contexts[2].apply_action
+
+            def fail_after_child_creation(_action: NativeAction) -> dict[str, object]:
+                raise NativeBackendError("injected post-division action failure")
+
+            population._contexts[2].apply_action = fail_after_child_creation  # type: ignore[method-assign]
+            try:
+                with self.assertRaises(NativeBackendError):
+                    population.apply_actions({
+                        0: NativeAction.division((4,), child_id=1, birth_cost=1.0),
+                        2: NativeAction.lifecycle_step(b""),
+                    })
+            finally:
+                population._contexts[2].apply_action = original  # type: ignore[method-assign]
+            self.assertEqual(population.organism_ids, (0, 2))
+            self.assertEqual(population.snapshots(), before)
+
     def test_single_action_epoch_rolls_back_on_later_native_failure(self) -> None:
         with NativeBackend(self.library_path, organism_id=2) as backend:
             before = backend.state_digest()
