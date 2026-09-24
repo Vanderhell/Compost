@@ -439,6 +439,24 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                 self.assertEqual(batched.snapshot(), repeated.snapshot())
                 self.assertEqual(batched.state_digest(), repeated.state_digest())
 
+    def test_population_progress_and_due_batch_is_atomic(self) -> None:
+        with NativePopulationBackend(self.library_path, organism_ids=(0,)) as population:
+            before = population.snapshots()
+            original = population._contexts[0].run_due_lifecycle
+
+            def fail_due(_count: int) -> dict[str, float | int]:
+                raise NativeBackendError("injected due batch failure")
+
+            population._contexts[0].run_due_lifecycle = fail_due  # type: ignore[method-assign]
+            try:
+                with self.assertRaises(NativeBackendError):
+                    population.accumulate_metabolic_progress_and_run_due(
+                        0, 64, 64, 4
+                    )
+            finally:
+                population._contexts[0].run_due_lifecycle = original  # type: ignore[method-assign]
+            self.assertEqual(population.snapshots(), before)
+
     def test_population_due_lifecycle_rolls_back_earlier_handles_on_failure(self) -> None:
         with NativePopulationBackend(self.library_path, organism_ids=(0, 1)) as population:
             before = population.snapshots()
