@@ -1768,6 +1768,48 @@ class NativePopulationBackend:
             raise
         return results
 
+    def accumulate_metabolic_progress_and_run_due(
+        self,
+        organism_id: int,
+        amount: int,
+        minimum_work: int,
+        body_size: int,
+    ) -> dict[str, float | int]:
+        """Atomically accumulate work and execute every resulting due step.
+
+        This is the native scheduling boundary used by sandbox replay. The
+        environment supplies the work amount; the native context computes the
+        due count and owns the lifecycle batch. A failure restores the exact
+        pre-call native state and does not silently fall back to Python.
+        """
+        organism_id = _require_uint64(organism_id, "organism_id")
+        amount = _require_uint64(amount, "amount")
+        minimum_work = _require_uint64(minimum_work, "minimum_work")
+        body_size = _require_uint64(body_size, "body_size")
+        if minimum_work == 0:
+            raise ValueError("minimum_work must be positive")
+        if self._closed:
+            raise NativeBackendError("native population backend is closed")
+        try:
+            context = self._contexts[organism_id]
+        except KeyError as error:
+            raise KeyError(f"unknown organism ID: {organism_id}") from error
+        before = context._capture_native_state()
+        try:
+            progress = context.accumulate_metabolic_progress(
+                amount, minimum_work, body_size
+            )
+            due = int(progress["due_steps"])
+            lifecycle = context.run_due_lifecycle(due)
+        except Exception:
+            context._restore_native_state(before)
+            raise
+        return {
+            "kind": NativeActionKind.METABOLIC_PROGRESS.value,
+            **progress,
+            **lifecycle,
+        }
+
     def try_local_reproduction(
         self,
         organism_id: int,

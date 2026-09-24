@@ -150,25 +150,40 @@ class NativeSandboxReplay:
             sequence: tuple[NativeAction, ...],
         ) -> list[dict[str, object]]:
             results: list[dict[str, object]] = []
-            for index, action in enumerate(sequence):
-                results.extend(
-                    self._population.replay_action_traces(
-                        {organism_id: (action,)}
-                    )[organism_id]
-                )
-                # Python records the accepted byte count before its following
-                # due-lifecycle loop subtracts the threshold. The native
-                # accumulator commits the remainder in the same action, so a
-                # progress action immediately followed by lifecycle work is
-                # one observable scheduling group rather than two comparable
-                # intermediate states.
-                if (
-                    action.kind is NativeActionKind.METABOLIC_PROGRESS
-                    and index + 1 < len(sequence)
-                    and sequence[index + 1].kind is NativeActionKind.LIFECYCLE_STEP
-                ):
-                    continue
-                expected = python_action_states.get(organism_id, {}).get(id(action))
+            index = 0
+            while index < len(sequence):
+                action = sequence[index]
+                expected_action = action
+                if action.kind is NativeActionKind.METABOLIC_PROGRESS:
+                    grouped = self._population.accumulate_metabolic_progress_and_run_due(
+                        organism_id,
+                        action.amount,
+                        action.minimum_work,
+                        action.body_size,
+                    )
+                    executed = int(grouped["executed_steps"])
+                    lifecycle_actions = sequence[index + 1:index + 1 + executed]
+                    if any(
+                        item.kind is not NativeActionKind.LIFECYCLE_STEP
+                        for item in lifecycle_actions
+                    ) or len(lifecycle_actions) != executed:
+                        raise RuntimeError(
+                            f"native due-lifecycle count diverged at epoch {self._epoch}, "
+                            f"organism {organism_id}: native executed {executed}, "
+                            f"trace has {len(lifecycle_actions)} lifecycle actions"
+                        )
+                    if executed:
+                        expected_action = lifecycle_actions[-1]
+                    results.append(dict(grouped))
+                    index += executed + 1
+                else:
+                    results.extend(
+                        self._population.replay_action_traces(
+                            {organism_id: (action,)}
+                        )[organism_id]
+                    )
+                    index += 1
+                expected = python_action_states.get(organism_id, {}).get(id(expected_action))
                 if expected is not None:
                     self._assert_shared_state(
                         self._population.snapshot(organism_id), expected

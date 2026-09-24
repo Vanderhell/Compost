@@ -1451,6 +1451,7 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                 organism_ids=tuple(int(value) for value in fixture["organism_ids"]),
             ) as replay:
                 saw_division = False
+                saw_native_due_batch = False
                 division_policies: set[str] = set()
                 for epoch_index in range(int(fixture["epochs"])):
                     epoch = replay.step()
@@ -1466,11 +1467,18 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                         for result in results
                         if result.get("kind") == "division" and "policy" in result
                     )
+                    saw_native_due_batch |= any(
+                        result.get("kind") == "metabolic_progress"
+                        and "executed_steps" in result
+                        for _organism_id, results in epoch.results
+                        for result in results
+                    )
                     self.assertEqual(
                         tuple(organism_id for organism_id, _snapshot in epoch.snapshots),
                         tuple(sorted(organism_id for organism_id, _snapshot in epoch.snapshots)),
                     )
                 self.assertTrue(saw_division)
+                self.assertTrue(saw_native_due_batch)
                 self.assertEqual(
                     division_policies,
                     {"global_partition_policy"},
