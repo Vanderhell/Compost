@@ -52,7 +52,7 @@ Its seed/configuration/epoch parameters are stored in
 `tests/fixtures/native_replays.json`, and failures report the first field with
 Python/native state digests.
 The latest ABI v4 MSVC Debug DLL differential and sandbox run completed in
-29.25s; the
+26.45s; the
 earlier WSL GCC DLL run completed in 6.670s.
 
 Long-run steps:
