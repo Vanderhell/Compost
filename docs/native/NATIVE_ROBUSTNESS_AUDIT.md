@@ -19,6 +19,9 @@ The Python population orchestrator rejects unknown environment IDs, duplicate
 or colliding child IDs, and reserves automatic IDs before scheduling an epoch.
 It also preflights all bite/nutrition lengths and finite values before the
 first handle mutates, preserving every population snapshot on input failure.
+Due-lifecycle population batches additionally capture exact opaque snapshots
+for every scheduled handle and restore all handles if a later execution fails;
+this cross-handle rollback is covered by an injected-failure regression test.
 Sandbox action traces now have an epoch-wide preflight as well, including
 action types and globally reserved division IDs, before any prefix or native
 reproduction transaction commits.
