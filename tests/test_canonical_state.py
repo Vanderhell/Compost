@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import sys
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -65,6 +66,12 @@ class CanonicalStateTests(unittest.TestCase):
             first.live_step(first_runtime)
             second.live_step(second_runtime)
             self.assertEqual(canonical_digest(first_runtime), canonical_digest(second_runtime))
+
+    def test_autonomous_digest_includes_behavioral_configuration(self) -> None:
+        default = AutonomousOrganism("ORG-ROOT")
+        changed = AutonomousOrganism("ORG-ROOT")
+        changed.config = replace(changed.config, metabolic_minimum_work=65)
+        self.assertNotEqual(canonical_digest(default), canonical_digest(changed))
 
 
 if __name__ == "__main__":

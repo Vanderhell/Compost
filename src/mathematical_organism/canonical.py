@@ -183,6 +183,7 @@ def _autonomous_organism(organism: AutonomousOrganism) -> tuple[Any, ...]:
     return (
         "autonomous-organism",
         ("name", organism.name),
+        ("config", _config(organism.config)),
         ("body", body),
         ("territory", (territory.organism_id, tuple(territory.territory.path), territory.local_birth_counter, territory.alive)),
         ("navigation", navigation),
