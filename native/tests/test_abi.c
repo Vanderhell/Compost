@@ -334,7 +334,14 @@ int main(void)
         changed != true || resorbed_mass != UINT64_C(9)) {
         return fail("opaque weakest invalid handle");
     }
-    if (compost_context_try_divide(NULL, 1U, &child, &try_plan, &try_result) != COMPOST_STATUS_INVALID_ARGUMENT) {
+    child = (compost_context_t *)(uintptr_t)UINTPTR_MAX;
+    try_plan.candidate_found = true;
+    try_plan.child_atom_count = 1U;
+    try_result.cross_split_mass = UINT64_C(92);
+    if (compost_context_try_divide(NULL, 1U, &child, &try_plan, &try_result) != COMPOST_STATUS_INVALID_ARGUMENT ||
+        child != (compost_context_t *)(uintptr_t)UINTPTR_MAX ||
+        !try_plan.candidate_found || try_plan.child_atom_count != 1U ||
+        try_result.cross_split_mass != UINT64_C(92)) {
         return fail("opaque try-division invalid handle");
     }
     compost_context_t *invalid_local_child = (compost_context_t *)(uintptr_t)UINTPTR_MAX;
