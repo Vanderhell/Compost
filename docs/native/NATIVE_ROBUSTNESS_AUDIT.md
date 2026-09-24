@@ -135,6 +135,8 @@ progress, due-step, and gut-capacity arguments before constructing ctypes
 values.
 The public territory-state setter is covered for valid root/path updates and
 invalid non-binary paths, with failed updates preserving the native digest.
+Native/Python snapshot comparison now also checks the territory local birth
+counter, which controls deterministic child identity allocation after division.
 The public status-name helper returns stable names for every defined status and
 `UNKNOWN_STATUS` for an invalid enum value without terminating the process.
 
