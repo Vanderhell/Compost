@@ -84,6 +84,9 @@ warning set and warnings-as-errors; its complete CTest run passed `8/8` in
 validation no longer contains comparisons that GCC can prove impossible for
 the declared `uint8_t` key domain.
 
+The matching Windows GCC 16.1 Release build also passed the complete CTest
+set, including fuzz and width targets: `8/8` in `13.53s`.
+
 Windows Clang 22.1.8 can compile all nine native C translation units with the
 same strict warning set when pointed at the installed MinGW headers. Linking
 is unavailable in this environment because the standalone LLVM installation

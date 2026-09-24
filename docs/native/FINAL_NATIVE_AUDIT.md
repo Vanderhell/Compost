@@ -59,7 +59,8 @@ earlier WSL GCC DLL run completed in 6.670s.
 
 Long-run steps:
 `1,000,000` single-organism Python/native steps pass with zero divergences in
-the current ABI v4 replay campaign (`408.41s`).
+the current ABI v4 replay campaign using the Windows GCC 16.1 Release DLL
+(`474.69s`).
 
 Sanitizer result:
 Current GCC 13.3 under WSL with ASan/UBSan: `8/8` tests passed in `414.45s`,
@@ -71,6 +72,8 @@ GCC 13.3 Release `-Werror` build and CTest pass: `8/8` in `14.04s`; the
 native C fuzz target covers 10,000 deterministic public-API cases.
 The current Windows GCC 16.1 Debug `-Werror` build and CTest pass is also
 `8/8` in `97.94s`.
+The Windows GCC 16.1 Release `-Werror` build and CTest pass is `8/8` in
+`13.53s`.
 Windows Clang 22.1.8 strict compilation passes for all nine C translation
 units; executable linking remains unavailable locally because the LLVM
 installation lacks `oldnames.lib` and `msvcrtd.lib`.
