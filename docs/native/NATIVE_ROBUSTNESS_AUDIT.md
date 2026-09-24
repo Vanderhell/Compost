@@ -85,7 +85,7 @@ snapshot before propagating the error.
 The current MSVC 19.42 Release tree also passes all eight CTest targets,
 including the due-lifecycle ABI regression and fuzz target (`8/8`, `14.14s`).
 The current MSVC 19.42 Debug tree independently passes all eight CTest targets
-with the same fuzz and width checks (`8/8`, `108.20s`).
+with the same fuzz and width checks (`8/8`, `98.98s`).
 
 The public robustness test now covers both sides of the allocator boundary:
 forced context-allocation failure returns `COMPOST_STATUS_OUT_OF_MEMORY` without
@@ -104,6 +104,9 @@ The dense cross-split division fixture passes a current GCC 13.3
 AddressSanitizer/UndefinedBehaviorSanitizer targeted run (`1/1`, `0.09s`) with
 no diagnostics.
 Invalid `try_divide` handles are checked to preserve all caller output sentinels.
+Direct population reproduction and boundary-partition registration also roll
+back the parent and remove the transient child when child snapshot
+materialization fails.
 The public status-name helper returns stable names for every defined status and
 `UNKNOWN_STATUS` for an invalid enum value without terminating the process.
 

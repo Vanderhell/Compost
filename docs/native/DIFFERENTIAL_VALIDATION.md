@@ -31,9 +31,9 @@ field-by-field snapshot checks.
 
 The full per-step Python/C campaign is **NOT READY**. The native organism is
 not yet a complete lifecycle engine. The current native-backed differential
-run is green (`67 passed`; the focused oracle/member-weakness validation run
-is `70 passed` including the related Python tests), and the complete Python regression suite is green
-(`267 passed, 3 subtests passed` in the latest ABI v4 run). The selected partition
+run is green (`69 passed`; the focused oracle/member-weakness validation run
+is `72 passed` including the related Python tests), and the complete Python regression suite is green
+(`269 passed, 3 subtests passed` in the latest ABI v4 run). The selected partition
 transaction now has a bounded Python/sandbox comparison, and both native
 reproduction policies are selected by the sandbox adapter and compared with
 the Python child atom set. The native checkpoint now
@@ -80,7 +80,8 @@ checks the complete native snapshot and state digest, including the dead-state
 and zero-step status contract at the C ABI boundary.
 The population adapter also runs these batches in ascending organism-ID order
 with epoch-wide ID/count preflight, exact cross-handle rollback on execution
-failure, and per-population conservation validation.
+failure, atomic direct reproduction/partition child registration, and
+per-population conservation validation.
 
 The current Python/reference campaign executes 40 deterministic payload
 scenarios for 256 cycles each, for `10,240` aggregate steps, plus a three-case

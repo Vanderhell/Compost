@@ -70,6 +70,9 @@ live organisms without mutation.
 The public `NativePopulationBackend.apply_actions` entry point uses the same
 opaque transaction boundary, so a later-organism failure restores earlier
 actions and removes any child handles created by the failed epoch.
+The direct `try_local_reproduction` and `try_divide` entry points use the
+same boundary: if child snapshot materialization fails after the native parent
+transition, the parent is restored and the transient child is discarded.
 
 `NativeSandboxReplay` is the reusable host-built epoch adapter around this
 primitive. It owns the native population handles, invokes the Python oracle's
