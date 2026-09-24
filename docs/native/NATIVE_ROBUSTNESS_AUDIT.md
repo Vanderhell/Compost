@@ -65,6 +65,9 @@ steps, and remainder on every case.
 The metabolic accounting regression also verifies that progress accumulation
 does not claim lifecycle steps before execution, and that queued due work stops
 without incrementing the completed-step counter after an organism is dead.
+The same hostile suite sets the completed-step counter to `UINT64_MAX` through
+the native snapshot API and verifies that lifecycle overflow rejects the call
+without changing either the context digest or caller result outputs.
 
 The current eight-test suite was built and executed from the current tree with
 GCC 13.3 under WSL using AddressSanitizer and UndefinedBehaviorSanitizer,
