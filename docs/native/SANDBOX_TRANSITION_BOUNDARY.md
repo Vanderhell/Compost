@@ -67,6 +67,9 @@ epochs. A native `ALIVE` to `DEAD` transition returns the one-shot
 territory release, and observer events. `NativePopulationBackend.take_corpse`
 transfers the dead snapshot and closes/removes the native handle; it rejects
 live organisms without mutation.
+The public `NativePopulationBackend.apply_actions` entry point uses the same
+opaque transaction boundary, so a later-organism failure restores earlier
+actions and removes any child handles created by the failed epoch.
 
 `NativeSandboxReplay` is the reusable host-built epoch adapter around this
 primitive. It owns the native population handles, invokes the Python oracle's
