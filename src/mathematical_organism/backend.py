@@ -139,7 +139,7 @@ class NativeAction:
         capacity: int,
         nutrition: tuple[float, ...] | None = None,
     ) -> "NativeAction":
-        return cls(NativeActionKind.EXTERNAL_GUT, bytes(payload), nutrition, capacity, 0.0)
+        return cls(NativeActionKind.EXTERNAL_GUT, payload, nutrition, capacity, 0.0)
 
     @classmethod
     def corpse_energy(cls, energy: float) -> "NativeAction":
@@ -176,7 +176,7 @@ class NativeAction:
         *,
         nutrition: tuple[float, ...] | None = None,
     ) -> "NativeAction":
-        return cls(NativeActionKind.LIFECYCLE_STEP, bytes(payload), nutrition)
+        return cls(NativeActionKind.LIFECYCLE_STEP, payload, nutrition)
 
 
 class _Config(ctypes.Structure):

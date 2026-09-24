@@ -489,7 +489,7 @@ class AutonomousOrganism(AutonomousCore):
             try:
                 self.result.available_nutrition_total += len(bite)
                 external_action = NativeAction.external_gut(
-                    bite,
+                    bytes(bite),
                     capacity=self.body.bite_limit(self.config),
                 )
                 self.enqueue_external_material(bite)
