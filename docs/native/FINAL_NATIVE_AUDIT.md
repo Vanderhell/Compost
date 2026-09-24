@@ -52,7 +52,7 @@ earlier WSL GCC DLL run completed in 6.670s.
 
 Long-run steps:
 `1,000,000` single-organism Python/native steps pass with zero divergences in
-the current ABI v4 replay campaign.
+the current ABI v4 replay campaign (`408.41s`).
 
 Sanitizer result:
 Current GCC 13.3 under WSL with ASan/UBSan: `8/8` tests passed in `414.45s`,
