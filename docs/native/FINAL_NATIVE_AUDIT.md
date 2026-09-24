@@ -19,7 +19,7 @@ Documentation: PASS
 
 Python tests:
 `272 passed, 3 subtests passed` in the latest complete local run with the
-ABI v4 native DLL configured (106.94s).
+ABI v4 native DLL configured (103.03s).
 
 Native tests:
 `8/8` CTest tests passed in the current MSVC 19.42 Debug build with the
@@ -52,7 +52,7 @@ Its seed/configuration/epoch parameters are stored in
 `tests/fixtures/native_replays.json`, and failures report the first field with
 Python/native state digests.
 The latest ABI v4 MSVC Debug DLL differential and sandbox run completed in
-26.45s; the
+26.47s; the
 earlier WSL GCC DLL run completed in 6.670s.
 
 Long-run steps:
