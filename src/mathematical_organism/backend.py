@@ -64,6 +64,8 @@ class NativeAction:
     def __post_init__(self) -> None:
         if not isinstance(self.kind, NativeActionKind):
             raise ValueError("kind must be a NativeActionKind")
+        if not isinstance(self.payload, (bytes, bytearray, memoryview)):
+            raise TypeError("payload must be bytes-like")
         payload = bytes(self.payload)
         object.__setattr__(self, "payload", payload)
         values = None if self.nutrition is None else tuple(self.nutrition)
