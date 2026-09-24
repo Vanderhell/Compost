@@ -88,6 +88,28 @@ navigation cursors, lifecycle diagnostics, and world-owned FOOD/corpse state
 remain host-owned. They are not silently serialized into the native handle;
 native-first planning must receive them explicitly or remain Python-owned.
 
+## Fields intentionally not duplicated in the sandbox ABI
+
+The Python sandbox has several public fields that are included in the
+canonical Python oracle for observability, but are not separate native
+behavioral fields:
+
+| Python field | Native representation or reason for exclusion |
+| --- | --- |
+| `consumed_total` | `activity.counters.bytes_eaten`; the differential boundary compares this counter. |
+| `assimilated_total`, `waste_total`, `nutrition_consumed_total` | Material-flow counters and nutrition accounting; these are compared through the native material-flow snapshot. |
+| `children_created` | Native division counter (`activity.counters.division_events`) plus the territory birth counter where local IDs are allocated. |
+| `peak_strength`, `peak_age` | Observer history only; no current transition reads either value. |
+| `first_consolidation_age` | Observer history only after consolidation; consolidation eligibility is represented by the structure state and current reserve. |
+| `death_age` | Death history only; the live/dead status and corpse snapshot are the behavioral boundary. |
+| `biomass_consumed` | Host-owned corpse telemetry; corpse transfer is explicit and native reserve/material state is compared separately. |
+| `last_metabolic_epoch` on a Python structure | The native core currently performs the equivalent bounded eager epoch transition over its structure arrays, so no per-structure lazy clock is needed at this boundary. If lazy structure scheduling is introduced, this field must become part of the native structure snapshot before integration. |
+
+These exclusions are deliberate and tested by the first-divergent-field
+comparison in `native_sandbox.py`; they are not permission to omit a field
+that later becomes an input to a transition. Any such change requires a
+snapshot version update and a regression fixture.
+
 ## Legacy graph snapshot
 
 The separate `MathematicalOrganism.snapshot()` contract must retain sorted nodes,
