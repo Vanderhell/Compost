@@ -125,7 +125,8 @@ Host-built `NativeAction` values now apply the same rule to capacities,
 metabolic counters, child IDs, and child atom keys; numeric energy and
 nutrition fields reject strings and booleans instead of passing through
 lossy `float()`/`int()` conversion. Regression coverage verifies these plans
-fail before a native handle is touched.
+fail before a native handle is touched. Payloads also require an explicit
+bytes-like value, preventing Python's `bytes(integer)` zero-fill coercion.
 The public status-name helper returns stable names for every defined status and
 `UNKNOWN_STATUS` for an invalid enum value without terminating the process.
 
