@@ -1491,6 +1491,18 @@ class NativePopulationBackend:
         *,
         child_ids: Mapping[int, int] | None = None,
     ) -> dict[int, dict[str, object]]:
+        """Apply one explicit environment epoch atomically."""
+        if self._closed:
+            raise NativeBackendError("native population backend is closed")
+        with self._native_transaction():
+            return self._step_impl(environment, child_ids=child_ids)
+
+    def _step_impl(
+        self,
+        environment: Mapping[int, tuple[bytes | bytearray, tuple[float, ...] | None]],
+        *,
+        child_ids: Mapping[int, int] | None = None,
+    ) -> dict[int, dict[str, object]]:
         """Apply one explicit environment epoch in ascending organism ID order.
 
         Missing environment entries are empty bites. Child IDs are supplied by

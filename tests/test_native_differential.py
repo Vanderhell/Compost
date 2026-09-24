@@ -485,6 +485,25 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             self.assertEqual(population.organism_ids, (0,))
             self.assertEqual(population.snapshots(), before)
 
+    def test_population_environment_step_rolls_back_on_later_handle_failure(self) -> None:
+        with NativePopulationBackend(self.library_path, organism_ids=(0, 1)) as population:
+            before = population.snapshots()
+            original = population._contexts[1].step_and_try_divide
+
+            def fail_after_first_handle(
+                _food: bytes,
+                *,
+                child_id: int,
+                nutrition: tuple[float, ...] | None = None,
+            ) -> tuple[None, dict[str, float | int], dict[str, object]]:
+                raise NativeBackendError("injected environment-step failure")
+
+            population._contexts[1].step_and_try_divide = fail_after_first_handle  # type: ignore[method-assign]
+            with self.assertRaises(NativeBackendError):
+                population.step({0: (b"A", (1.0,)), 1: (b"B", (1.0,))})
+            population._contexts[1].step_and_try_divide = original  # type: ignore[method-assign]
+            self.assertEqual(population.snapshots(), before)
+
     def test_metabolic_progress_action_replays_python_accounting(self) -> None:
         with NativeBackend(self.library_path, organism_id=90) as backend:
             actions = (
