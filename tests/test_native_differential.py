@@ -406,11 +406,9 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
         with NativeBackend(self.library_path, organism_id=89) as backend:
             self.assertEqual(backend.metabolic_snapshot(), {"progress": 0, "steps": 0})
             expected_progress = 0
-            expected_steps = 0
             for amount in (1, 63, 65, 7):
                 expected_progress += amount
                 due, expected_progress = divmod(expected_progress, 64)
-                expected_steps += due
                 actual = backend.accumulate_metabolic_progress(amount, 64, 4)
                 self.assertEqual(
                     actual,
@@ -418,7 +416,7 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                 )
                 self.assertEqual(
                     backend.metabolic_snapshot(),
-                    {"progress": expected_progress, "steps": expected_steps},
+                    {"progress": expected_progress, "steps": 0},
                 )
             before = backend.metabolic_snapshot()
             with self.assertRaises(NativeBackendError):
@@ -513,7 +511,21 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             results = backend.replay_actions(actions)
             self.assertEqual(results[0], {"kind": "metabolic_progress", "due_steps": 0, "remaining_progress": 63})
             self.assertEqual(results[1], {"kind": "metabolic_progress", "due_steps": 2, "remaining_progress": 0})
-            self.assertEqual(backend.metabolic_snapshot(), {"progress": 0, "steps": 2})
+            self.assertEqual(backend.metabolic_snapshot(), {"progress": 0, "steps": 0})
+
+    def test_due_accounting_does_not_count_lifecycle_work_after_dead_stop(self) -> None:
+        dead = AutonomousOrganism("ORG-DEAD")
+        dead.territory_state.die()
+        with NativeBackend(self.library_path, organism_id=91) as backend:
+            backend.restore_from_python(dead)
+            self.assertEqual(
+                backend.accumulate_metabolic_progress(128, 64, 4),
+                {"due_steps": 2, "remaining_progress": 0},
+            )
+            self.assertEqual(backend.metabolic_snapshot(), {"progress": 0, "steps": 0})
+            result = backend.run_due_lifecycle(2)
+            self.assertEqual(result["executed_steps"], 0)
+            self.assertEqual(backend.metabolic_snapshot(), {"progress": 0, "steps": 0})
 
     def test_native_snapshot_exposes_replayed_metabolic_state(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

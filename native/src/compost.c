@@ -565,11 +565,8 @@ compost_status_t compost_context_accumulate_metabolic_progress(
     compost_status_t status = compost_metabolic_schedule(
         minimum_work, body_size, accumulated, &threshold, &settled, &remainder
     );
-    if (status != COMPOST_STATUS_OK || UINT64_MAX - context->metabolic_steps < settled) {
-        return status == COMPOST_STATUS_OK ? COMPOST_STATUS_INVALID_ARGUMENT : status;
-    }
+    if (status != COMPOST_STATUS_OK) return status;
     context->metabolic_progress = remainder;
-    context->metabolic_steps += settled;
     *due_steps = settled;
     *remaining_progress = remainder;
     return COMPOST_STATUS_OK;
@@ -674,6 +671,8 @@ compost_status_t compost_context_lifecycle_step(
     *result = next_result;
     status = settle_activity_debt(&next.organism);
     if (status != COMPOST_STATUS_OK) return status;
+    if (next.metabolic_steps == UINT64_MAX) return COMPOST_STATUS_INVALID_ARGUMENT;
+    next.metabolic_steps += UINT64_C(1);
     *context = next;
     return COMPOST_STATUS_OK;
 }

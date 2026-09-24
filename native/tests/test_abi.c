@@ -104,7 +104,7 @@ int main(void)
             context, UINT64_C(65), UINT64_C(64), UINT64_C(4), &due_steps, &remaining_progress
         ) != COMPOST_STATUS_OK || due_steps != 1U || remaining_progress != 1U ||
         compost_context_metabolic_snapshot(context, &metabolic) != COMPOST_STATUS_OK ||
-        metabolic.progress != 1U || metabolic.steps != 1U) {
+        metabolic.progress != 1U || metabolic.steps != 0U) {
         compost_destroy(context);
         return fail("metabolic context accounting");
     }
@@ -115,7 +115,7 @@ int main(void)
         ) != COMPOST_STATUS_INVALID_ARGUMENT || due_steps != UINT64_C(9) ||
         remaining_progress != UINT64_C(9) ||
         compost_context_metabolic_snapshot(context, &metabolic) != COMPOST_STATUS_OK ||
-        metabolic.progress != 1U || metabolic.steps != 1U) {
+        metabolic.progress != 1U || metabolic.steps != 0U) {
         compost_destroy(context);
         return fail("metabolic context transaction");
     }
@@ -178,7 +178,9 @@ int main(void)
         compost_context_digest(lifecycle_context, &input, &result) != COMPOST_STATUS_OK ||
         compost_context_lifecycle_step(lifecycle_context, &empty_input, &lifecycle_result) != COMPOST_STATUS_OK ||
         compost_context_snapshot(lifecycle_context, &snapshot) != COMPOST_STATUS_OK ||
+        compost_context_metabolic_snapshot(lifecycle_context, &metabolic) != COMPOST_STATUS_OK ||
         snapshot.age_in_cycles != UINT64_C(1) ||
+        metabolic.steps != UINT64_C(1) ||
         snapshot.current_metabolic_epoch != UINT64_C(1) ||
         !isfinite(snapshot.maintenance_deficit) || snapshot.maintenance_deficit < 0.0 ||
         !isfinite(snapshot.maintenance_deficit_total) || snapshot.maintenance_deficit_total < 0.0 ||

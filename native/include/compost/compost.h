@@ -497,7 +497,9 @@ compost_status_t compost_context_restore_snapshot(
     const compost_metabolic_snapshot_t *metabolic
 );
 uint64_t compost_context_state_digest(const compost_context_t *context);
-/* Copies context-owned metabolic progress without exposing the opaque layout. */
+/* Copies context-owned metabolic progress without exposing the opaque layout.
+ * `steps` counts completed lifecycle checkpoints, not merely due work found
+ * by the progress accumulator. */
 compost_status_t compost_context_metabolic_snapshot(
     const compost_context_t *context,
     compost_metabolic_snapshot_t *snapshot
