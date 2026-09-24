@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import ctypes
 import math
+from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -1439,6 +1440,50 @@ class NativePopulationBackend:
     def organism_ids(self) -> tuple[int, ...]:
         """Return currently owned IDs in deterministic scheduling order."""
         return tuple(sorted(self._contexts))
+
+    @contextmanager
+    def _native_transaction(self) -> Iterable[None]:
+        """Protect one multi-handle native epoch with exact rollback.
+
+        The transaction is private because it snapshots opaque ABI state, not
+        the Python world.  If an epoch removes a dead handle, rollback creates
+        a fresh handle with the same stable ID before restoring its snapshot.
+        Newly registered children are closed and removed on failure.
+        """
+        original_ids = tuple(sorted(self._contexts))
+        rollback_state = {
+            organism_id: self._contexts[organism_id]._capture_native_state()
+            for organism_id in original_ids
+        }
+        try:
+            yield
+        except BaseException:
+            rollback_errors: list[BaseException] = []
+            created_ids = sorted(set(self._contexts) - set(original_ids), reverse=True)
+            for organism_id in created_ids:
+                try:
+                    self._contexts[organism_id].close()
+                    del self._contexts[organism_id]
+                except BaseException as rollback_error:
+                    rollback_errors.append(rollback_error)
+            for organism_id in original_ids:
+                try:
+                    context = self._contexts.get(organism_id)
+                    if context is None:
+                        context = NativeBackend(
+                            self.library_path,
+                            organism_id=organism_id,
+                            config=self._config,
+                        )
+                        self._contexts[organism_id] = context
+                    context._restore_native_state(rollback_state[organism_id])
+                except BaseException as rollback_error:
+                    rollback_errors.append(rollback_error)
+            if rollback_errors:
+                raise NativeBackendError(
+                    "native population transaction rollback failed"
+                ) from rollback_errors[0]
+            raise
 
     def step(
         self,

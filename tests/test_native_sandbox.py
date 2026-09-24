@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 import tempfile
 import unittest
+from contextlib import contextmanager
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -30,6 +31,10 @@ class _Runtime:
 
 
 class _Population:
+    @contextmanager
+    def _native_transaction(self):
+        yield
+
     @property
     def organism_ids(self) -> tuple[int, ...]:
         return ()

@@ -91,6 +91,13 @@ class NativeSandboxReplay:
         """Run one Python-oracle step and replay its native action traces."""
         if self._closed:
             raise RuntimeError("native sandbox replay is closed")
+        with self._population._native_transaction():
+            return self._step_impl()
+
+    def _step_impl(self) -> NativeSandboxEpoch:
+        """Execute one epoch inside the population's native transaction."""
+        if self._closed:
+            raise RuntimeError("native sandbox replay is closed")
         traces: dict[int, tuple[NativeAction, ...]] = {}
         python_division_children: dict[int, Any] = {}
         for organism in tuple(self.runtime.organisms):

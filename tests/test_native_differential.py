@@ -472,6 +472,19 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             population._contexts[1].apply_action = original  # type: ignore[method-assign]
             self.assertEqual(population.snapshots(), before)
 
+    def test_population_transaction_restores_handle_removed_during_failed_epoch(self) -> None:
+        dead = AutonomousOrganism("ORG-DEAD")
+        dead.territory_state.die()
+        with NativePopulationBackend(self.library_path, organism_ids=(0,)) as population:
+            population.restore_from_python(0, dead)
+            before = population.snapshots()
+            with self.assertRaises(RuntimeError):
+                with population._native_transaction():
+                    population.take_corpse(0)
+                    raise RuntimeError("injected epoch failure")
+            self.assertEqual(population.organism_ids, (0,))
+            self.assertEqual(population.snapshots(), before)
+
     def test_metabolic_progress_action_replays_python_accounting(self) -> None:
         with NativeBackend(self.library_path, organism_id=90) as backend:
             actions = (
