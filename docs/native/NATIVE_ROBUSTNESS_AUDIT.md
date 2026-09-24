@@ -85,7 +85,7 @@ snapshot before propagating the error.
 The current MSVC 19.42 Release tree also passes all eight CTest targets,
 including the due-lifecycle ABI regression and fuzz target (`8/8`, `14.14s`).
 The current MSVC 19.42 Debug tree independently passes all eight CTest targets
-with the same fuzz and width checks (`8/8`, `98.98s`).
+with the same fuzz and width checks (`8/8`, `98.54s`).
 
 The public robustness test now covers both sides of the allocator boundary:
 forced context-allocation failure returns `COMPOST_STATUS_OUT_OF_MEMORY` without
