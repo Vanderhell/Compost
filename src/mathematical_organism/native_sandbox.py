@@ -262,6 +262,7 @@ class NativeSandboxReplay:
                     "kind": "division",
                     "policy": "global_partition_policy",
                 })
+                self._assert_shared_state(native_child, python_child)
                 self._assert_shared_state(
                     self._population.snapshot(organism_id),
                     python_organisms[organism_id],
@@ -289,6 +290,7 @@ class NativeSandboxReplay:
                     "kind": "division",
                     "policy": "local_reproduction",
                 })
+                self._assert_shared_state(native_child, python_child)
                 self._assert_shared_state(
                     self._population.snapshot(organism_id),
                     python_organisms[organism_id],

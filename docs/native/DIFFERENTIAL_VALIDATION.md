@@ -74,6 +74,10 @@ native rollback, because the Python oracle has already been advanced while the
 trace is being built and cannot safely be retried from the restored C state.
 The bounded two-organism campaign also compares every relation and composite
 key and its strength/evidence/income fields after each ordered epoch.
+Division replay now applies the same complete shared-state comparison to the
+new child as to the parent, including generation/age, material flow, activity
+ledger, gut contents, territory counter, and structure fields; child atom-set,
+reserve, and territory checks remain explicit first-failure diagnostics.
 
 The native-only paired replay test now executes 10,000 deterministic steps and
 compares state digests and step counters after every step. It is a determinism
