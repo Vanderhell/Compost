@@ -81,7 +81,10 @@ returns deterministic epoch snapshots, and transfers dead handles as corpse
 snapshots. Each complete native epoch is wrapped in an exact opaque-state
 transaction; failed suffixes restore earlier handles and recreate handles
 removed by an interrupted corpse transfer. It does not change the default Python runtime or silently fall back
-when native execution fails. For a division trace it first invokes the native
+when native execution fails. Since the Python oracle is advanced while the
+trace is being built, a failed validation epoch closes the replay object after
+native rollback; retrying it would pair restored native state with a mutated
+Python world. For a division trace it first invokes the native
 weakest-member local-reproduction transaction. If that policy reports no
 viable component, the adapter invokes the native boundary-partition policy
 (`try_divide`) corresponding to the Python oracle's historical

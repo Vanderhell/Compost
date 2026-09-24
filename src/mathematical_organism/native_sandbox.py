@@ -92,8 +92,18 @@ class NativeSandboxReplay:
         """Run one Python-oracle step and replay its native action traces."""
         if self._closed:
             raise RuntimeError("native sandbox replay is closed")
-        with self._population._native_transaction():
-            return self._step_impl()
+        try:
+            with self._population._native_transaction():
+                return self._step_impl()
+        except Exception:
+            # The native transaction restores opaque C state, but the Python
+            # oracle was already advanced while building the action trace.
+            # Retrying would therefore pair a restored native handle with a
+            # mutated Python world.  Make failed validation epochs terminal
+            # and release the native handles instead of allowing that invalid
+            # mixed state to escape or be replayed.
+            self.close()
+            raise
 
     def _step_impl(self) -> NativeSandboxEpoch:
         """Execute one epoch inside the population's native transaction."""

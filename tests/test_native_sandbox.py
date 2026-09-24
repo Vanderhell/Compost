@@ -31,6 +31,9 @@ class _Runtime:
 
 
 class _Population:
+    def __init__(self) -> None:
+        self.closed = False
+
     @contextmanager
     def _native_transaction(self):
         yield
@@ -41,6 +44,9 @@ class _Population:
 
     def verify_material_conservation(self) -> None:
         return None
+
+    def close(self) -> None:
+        self.closed = True
 
     def preflight_action_traces(self, _traces: object) -> None:
         return None
@@ -86,6 +92,25 @@ class NativeSandboxOwnershipTests(unittest.TestCase):
         self.assertEqual(epoch.traces, ())
         self.assertEqual(epoch.snapshots, ())
         self.assertEqual(epoch.corpses, ())
+
+    def test_failed_epoch_closes_replay_instead_of_allowing_mixed_state_retry(self) -> None:
+        replay = object.__new__(NativeSandboxReplay)
+        replay.runtime = _Runtime()
+        replay._native_ids = {}
+        replay._population = _Population()
+        replay._epoch = 4
+        replay._closed = False
+
+        def fail() -> NativeSandboxEpoch:
+            raise RuntimeError("synthetic differential failure")
+
+        replay._step_impl = fail  # type: ignore[method-assign]
+        with self.assertRaisesRegex(RuntimeError, "synthetic differential failure"):
+            replay.step()
+        self.assertTrue(replay._closed)
+        self.assertTrue(replay._population.closed)
+        with self.assertRaisesRegex(RuntimeError, "native sandbox replay is closed"):
+            replay.step()
 
 
 if __name__ == "__main__":
