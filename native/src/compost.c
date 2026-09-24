@@ -2185,7 +2185,7 @@ static compost_status_t lifecycle_maintenance(
                                  &next_result.weakened_candidates)) {
             return COMPOST_STATUS_INVALID_ARGUMENT;
         }
-    if (!add_u64(next_result.resorbed_mass, resorbed, &next_result.resorbed_mass)) {
+        if (!add_u64(next_result.resorbed_mass, resorbed, &next_result.resorbed_mass)) {
             return COMPOST_STATUS_INVALID_ARGUMENT;
         }
     }
