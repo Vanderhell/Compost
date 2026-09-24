@@ -60,6 +60,9 @@ The same current tree also passed the strict GCC 13.3 Release suite (`8/8`,
 `14.04s`) and strict Linux Clang 18.1.3 Release suite (`8/8`, `13.91s`),
 both with warnings-as-errors enabled.
 
+The current MSVC 19.42 Release tree also passes all eight CTest targets,
+including the due-lifecycle ABI regression and fuzz target (`8/8`, `14.14s`).
+
 The public robustness test now covers both sides of the allocator boundary:
 forced context-allocation failure returns `COMPOST_STATUS_OUT_OF_MEMORY` without
 an output handle, while successful custom allocation is released through the
