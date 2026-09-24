@@ -64,7 +64,7 @@ the current ABI v4 replay campaign using the Windows GCC 16.1 Release DLL
 (`474.69s`).
 
 Sanitizer result:
-Current GCC 13.3 under WSL with ASan/UBSan: `8/8` tests passed in `414.45s`,
+Current GCC 13.3 under WSL with ASan/UBSan: `8/8` tests passed in `432.63s`,
 with no sanitizer diagnostics and leak detection enabled. Windows-mounted
 filesystem clock-skew warnings were not present in this WSL run.
 
