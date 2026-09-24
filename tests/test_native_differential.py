@@ -43,7 +43,7 @@ from mathematical_organism.lifecycle import LifecycleConfig, LivingStructure, Ma
 from mathematical_organism.native_sandbox import NativeSandboxReplay
 from mathematical_organism.sandbox_runtime import AutonomousOrganism, Corpse, SandboxRuntime
 from mathematical_organism.biology_rules import reproduction_allowed
-from mathematical_organism.territory import address_bit, food_block_key
+from mathematical_organism.territory import FoodTerritory, address_bit, food_block_key
 
 
 class _LazyDelta(ctypes.Structure):
@@ -272,10 +272,35 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                     evidence=1.0, income_rate=2.0,
                 ),
             )
+            organism.body.add_structure(
+                organism.body.atoms,
+                LivingStructure(
+                    66, "ATOM", strength=2.0, maintenance=0.25,
+                    evidence=1.0, income_rate=2.0,
+                ),
+            )
+            organism.body.add_structure(
+                organism.body.relations,
+                LivingStructure(
+                    (65, 66), "RELATION", strength=2.0, maintenance=0.5,
+                    evidence=1.0, income_rate=1.6,
+                ),
+            )
+            organism.material_flow.structural_created_mass = 2
+            organism.territory_state.territory = FoodTerritory((1, 0))
+            organism.territory_state.local_birth_counter = 3
+            organism.result.available_nutrition_total += 1.0
+            organism.enqueue_external_material((65,), (1.0,))
+            organism.metabolic_progress = 7
+            organism.metabolic_steps = 2
             runtime.organisms.append(organism)
             with NativeSandboxReplay(self.library_path, runtime) as replay:
-                epoch = replay.step()
-            self.assertEqual(tuple(item[0] for item in epoch.snapshots), (0,))
+                imported = replay.population.snapshot(0)
+            self.assertEqual(imported["territory"], (1, 0))
+            self.assertEqual(imported["gut"], ((1, 0, b"A", (1.0,)),))
+            self.assertEqual(imported["metabolic_progress"], 7)
+            self.assertEqual(imported["metabolic_steps"], 2)
+            self.assertEqual(imported["body"]["relation_count"], 1)
 
     def test_population_trace_preflight_is_epoch_wide_and_non_mutating(self) -> None:
         with NativePopulationBackend(self.library_path, organism_ids=(0, 1)) as population:
