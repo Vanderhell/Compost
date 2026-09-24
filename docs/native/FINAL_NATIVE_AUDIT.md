@@ -18,13 +18,13 @@ CI: PASS
 Documentation: PASS
 
 Python tests:
-`252 passed, 3 subtests passed` in the latest complete local run with the
-ABI v4 native DLL configured (102.67s).
+`256 passed, 3 subtests passed` in the latest complete local run with the
+ABI v4 native DLL configured (106.20s).
 
 Native tests:
-`8/8` CTest tests passed in the current MSVC 19.42 Release build with the
-width audit and fuzz target enabled (14.14s). Current GCC and Clang strict
-results are recorded below.
+`8/8` CTest tests passed in the current MSVC 19.42 Debug build with the
+width audit and fuzz target enabled (98.27s). The current MSVC Release,
+GCC, and Clang strict results are recorded below.
 
 Differential cases:
 `59` Python/native differential tests pass, including bounded pure-rule,
@@ -46,7 +46,7 @@ world-level conservation checks.
 Its seed/configuration/epoch parameters are stored in
 `tests/fixtures/native_replays.json`, and failures report the first field with
 Python/native state digests.
-The latest ABI v4 MSVC Debug DLL differential run completed in 27.16s; the
+The latest ABI v4 MSVC Debug DLL differential run completed in 25.17s; the
 earlier WSL GCC DLL run completed in 6.670s.
 
 Long-run steps:
