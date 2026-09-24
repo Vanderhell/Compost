@@ -913,11 +913,17 @@ class NativeBackend:
         for index, chunk in enumerate(gut):
             native_chunk = snapshot.gut[index]
             native_chunk.mass = int(chunk.mass)
+            if chunk.origin not in ("external", "resorption"):
+                raise ValueError(f"native import gut origin is invalid: {chunk.origin!r}")
             native_chunk.origin = 0 if chunk.origin == "external" else 1
             payload = tuple(int(value) for value in chunk.payload)
             nutrition = tuple(float(value) for value in chunk.nutrition)
             if len(payload) > 16 or len(payload) != len(nutrition):
                 raise ValueError("Python gut chunk exceeds native capacity")
+            if chunk.origin == "resorption" and (payload or nutrition):
+                raise ValueError("resorption gut chunks cannot contain payload data")
+            if any(not 0 <= value <= 255 for value in payload):
+                raise ValueError("native import gut payload is outside uint8")
             native_chunk.payload_length = len(payload) if chunk.origin == "external" else 0
             for byte_index, value in enumerate(payload):
                 native_chunk.payload[byte_index] = value
