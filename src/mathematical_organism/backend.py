@@ -1196,6 +1196,7 @@ class NativeBackend:
         nutrition: tuple[float, ...] | None = None,
     ) -> tuple["NativeBackend | None", dict[str, float | int], dict[str, object]]:
         """Run one native lifecycle step and its deterministic division policy."""
+        child_id = _require_uint64(child_id, "child_id")
         if not self._context or not self._context.value:
             raise NativeBackendError("native backend is closed")
         payload = bytes(food)
@@ -1310,6 +1311,7 @@ class NativeBackend:
 
     def partition(self, child_atoms: tuple[int, ...], *, child_id: int, birth_cost: float = 1.0) -> tuple["NativeBackend", dict[str, float | int]]:
         """Commit a selected partition and return an owned child backend."""
+        child_id = _require_uint64(child_id, "child_id")
         if not self._context or not self._context.value:
             raise NativeBackendError("native backend is closed")
         values = tuple(int(value) for value in child_atoms)
@@ -1337,6 +1339,7 @@ class NativeBackend:
 
     def try_divide(self, *, child_id: int) -> tuple["NativeBackend | None", dict[str, object]]:
         """Evaluate and atomically commit the native deterministic division policy."""
+        child_id = _require_uint64(child_id, "child_id")
         if not self._context or not self._context.value:
             raise NativeBackendError("native backend is closed")
         child_context = ctypes.c_void_p()
@@ -1376,6 +1379,7 @@ class NativeBackend:
         self, *, child_id: int
     ) -> tuple["NativeBackend | None", dict[str, float | int]]:
         """Commit the native local weakest-member reproduction policy."""
+        child_id = _require_uint64(child_id, "child_id")
         if not self._context or not self._context.value:
             raise NativeBackendError("native backend is closed")
         if self._local_reproduction_transaction_symbol is None:
@@ -1747,10 +1751,10 @@ class NativePopulationBackend:
         """Execute local reproduction inside its caller's transaction."""
         if self._closed:
             raise NativeBackendError("native population backend is closed")
-        if not isinstance(organism_id, int) or organism_id not in self._contexts:
+        organism_id = _require_uint64(organism_id, "organism_id")
+        child_id = _require_uint64(child_id, "child_id")
+        if organism_id not in self._contexts:
             raise KeyError(f"unknown organism ID: {organism_id}")
-        if not isinstance(child_id, int) or not 0 <= child_id <= (1 << 64) - 1:
-            raise ValueError("child_id must be an unsigned 64-bit integer")
         if child_id in self._contexts:
             raise ValueError(f"division child ID already belongs to the population: {child_id}")
         child, division = self._contexts[organism_id].try_local_reproduction(child_id=child_id)
@@ -1770,6 +1774,7 @@ class NativePopulationBackend:
         }
 
     def try_divide(self, organism_id: int, *, child_id: int) -> dict[str, object]:
+        """Run the native deterministic boundary-partition policy atomically."""
         with self._native_transaction():
             return self._try_divide_impl(organism_id, child_id=child_id)
 
@@ -1779,14 +1784,13 @@ class NativePopulationBackend:
         *,
         child_id: int,
     ) -> dict[str, object]:
-        """Execute boundary partitioning inside its caller's transaction."""
         """Run the native deterministic boundary-partition policy and retain its child."""
         if self._closed:
             raise NativeBackendError("native population backend is closed")
-        if not isinstance(organism_id, int) or organism_id not in self._contexts:
+        organism_id = _require_uint64(organism_id, "organism_id")
+        child_id = _require_uint64(child_id, "child_id")
+        if organism_id not in self._contexts:
             raise KeyError(f"unknown organism ID: {organism_id}")
-        if not isinstance(child_id, int) or not 0 <= child_id <= (1 << 64) - 1:
-            raise ValueError("child_id must be an unsigned 64-bit integer")
         if child_id in self._contexts:
             raise ValueError(f"division child ID already belongs to the population: {child_id}")
         child, plan = self._contexts[organism_id].try_divide(child_id=child_id)
@@ -1901,8 +1905,9 @@ class NativePopulationBackend:
         """Return one native snapshot by stable population ID."""
         if self._closed:
             raise NativeBackendError("native population backend is closed")
+        organism_id = _require_uint64(organism_id, "organism_id")
         try:
-            context = self._contexts[int(organism_id)]
+            context = self._contexts[organism_id]
         except KeyError as error:
             raise KeyError(f"unknown organism ID: {organism_id}") from error
         return context.snapshot()
@@ -1917,15 +1922,16 @@ class NativePopulationBackend:
         """
         if self._closed:
             raise NativeBackendError("native population backend is closed")
+        organism_id = _require_uint64(organism_id, "organism_id")
         try:
-            context = self._contexts[int(organism_id)]
+            context = self._contexts[organism_id]
         except KeyError as error:
             raise KeyError(f"unknown organism ID: {organism_id}") from error
         snapshot = context.snapshot()
         if int(snapshot["status"]) != 1:
             raise NativeBackendError("cannot take corpse from a live organism")
         context.close()
-        del self._contexts[int(organism_id)]
+        del self._contexts[organism_id]
         return snapshot
 
     def snapshots(self) -> dict[int, dict[str, object]]:
@@ -1957,8 +1963,9 @@ class NativePopulationBackend:
         """Import one host organism's C-representable state transactionally."""
         if self._closed:
             raise NativeBackendError("native population backend is closed")
+        organism_id = _require_uint64(organism_id, "organism_id")
         try:
-            context = self._contexts[int(organism_id)]
+            context = self._contexts[organism_id]
         except KeyError as error:
             raise KeyError(f"unknown organism ID: {organism_id}") from error
         context.restore_from_python(organism)
