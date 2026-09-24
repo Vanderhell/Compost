@@ -107,6 +107,8 @@ Invalid `try_divide` handles are checked to preserve all caller output sentinels
 Direct population reproduction and boundary-partition registration also roll
 back the parent and remove the transient child when child snapshot
 materialization fails.
+Population environment, action, due-lifecycle, and trace map keys now reject
+non-uint64 values before native state capture or mutation.
 The public status-name helper returns stable names for every defined status and
 `UNKNOWN_STATUS` for an invalid enum value without terminating the process.
 
