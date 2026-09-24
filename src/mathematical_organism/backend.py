@@ -1695,25 +1695,52 @@ class NativePopulationBackend:
         Every trace is materialized and type/child-ID preflighted before the
         first native handle is changed.  Actions within one trace retain their
         supplied order.  A division child is registered in this population
-        and therefore remains available to later epochs.  Native failures
-        after execution begins are surfaced; this method does not promise
-        rollback of already committed earlier trace entries.
+        and therefore remains available to later epochs.  If execution fails,
+        all pre-existing handles are restored and children created by the
+        failed epoch are closed and removed before the error is re-raised.
         """
         prepared = self._prepare_action_traces(traces)
 
+        original_ids = tuple(sorted(self._contexts))
+        rollback_state = {
+            organism_id: self._contexts[organism_id]._capture_native_state()
+            for organism_id in original_ids
+        }
         results: dict[int, tuple[dict[str, object], ...]] = {}
-        for organism_id in sorted(prepared):
-            epoch_results: list[dict[str, object]] = []
-            for action in prepared[organism_id]:
-                status_before = int(self._contexts[organism_id].snapshot()["status"])
-                result = self.apply_actions({organism_id: action})[organism_id]
-                epoch_results.append({
-                    **result,
-                    "requests": ("store_corpse",)
-                    if status_before == 0 and int(result.get("status_after", 0)) == 1
-                    else (),
-                })
-            results[organism_id] = tuple(epoch_results)
+        try:
+            for organism_id in sorted(prepared):
+                epoch_results: list[dict[str, object]] = []
+                for action in prepared[organism_id]:
+                    status_before = int(self._contexts[organism_id].snapshot()["status"])
+                    result = self.apply_actions({organism_id: action})[organism_id]
+                    epoch_results.append({
+                        **result,
+                        "requests": ("store_corpse",)
+                        if status_before == 0 and int(result.get("status_after", 0)) == 1
+                        else (),
+                    })
+                results[organism_id] = tuple(epoch_results)
+        except Exception:
+            rollback_errors: list[BaseException] = []
+            created_ids = sorted(set(self._contexts) - set(original_ids), reverse=True)
+            for organism_id in created_ids:
+                try:
+                    self._contexts[organism_id].close()
+                    del self._contexts[organism_id]
+                except BaseException as rollback_error:
+                    rollback_errors.append(rollback_error)
+            for organism_id in original_ids:
+                try:
+                    self._contexts[organism_id]._restore_native_state(
+                        rollback_state[organism_id]
+                    )
+                except BaseException as rollback_error:
+                    rollback_errors.append(rollback_error)
+            if rollback_errors:
+                raise NativeBackendError(
+                    "native action-trace epoch rollback failed"
+                ) from rollback_errors[0]
+            raise
         return results
 
     def preflight_action_traces(

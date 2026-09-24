@@ -454,6 +454,24 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             population._contexts[1].run_due_lifecycle = original  # type: ignore[method-assign]
             self.assertEqual(population.snapshots(), before)
 
+    def test_population_action_epoch_rolls_back_on_later_native_failure(self) -> None:
+        with NativePopulationBackend(self.library_path, organism_ids=(0, 1)) as population:
+            before = population.snapshots()
+            original = population._contexts[1].apply_action
+
+            def fail_after_first_action(_action: NativeAction) -> dict[str, object]:
+                raise NativeBackendError("injected action-trace failure")
+
+            population._contexts[1].apply_action = fail_after_first_action  # type: ignore[method-assign]
+            traces = {
+                0: (NativeAction.lifecycle_step(b"", nutrition=()),),
+                1: (NativeAction.lifecycle_step(b"", nutrition=()),),
+            }
+            with self.assertRaises(NativeBackendError):
+                population.replay_action_traces(traces)
+            population._contexts[1].apply_action = original  # type: ignore[method-assign]
+            self.assertEqual(population.snapshots(), before)
+
     def test_metabolic_progress_action_replays_python_accounting(self) -> None:
         with NativeBackend(self.library_path, organism_id=90) as backend:
             actions = (
