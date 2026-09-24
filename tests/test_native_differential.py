@@ -1091,6 +1091,24 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                 population.restore_from_python(1.5, object())  # type: ignore[arg-type]
             self.assertEqual(population.snapshots(), before)
 
+    def test_invalid_population_ids_preflight_before_native_capture(self) -> None:
+        with NativePopulationBackend(self.library_path, organism_ids=(0,)) as population:
+            original = population._contexts[0]._capture_native_state
+
+            def unexpected_capture() -> object:
+                raise AssertionError("invalid input reached native transaction capture")
+
+            population._contexts[0]._capture_native_state = unexpected_capture  # type: ignore[method-assign]
+            try:
+                with self.assertRaises(ValueError):
+                    population.step({"0": (b"", ())})  # type: ignore[dict-item]
+                with self.assertRaises(ValueError):
+                    population.apply_actions({"0": NativeAction.lifecycle_step(b"")})  # type: ignore[dict-item]
+                with self.assertRaises(ValueError):
+                    population.try_divide(0, child_id="1")  # type: ignore[arg-type]
+            finally:
+                population._contexts[0]._capture_native_state = original  # type: ignore[method-assign]
+
     def test_backend_constructors_reject_lossy_organism_ids(self) -> None:
         invalid_ids = ("0", 1.5, -1, 1 << 64, True)
         for organism_id in invalid_ids:

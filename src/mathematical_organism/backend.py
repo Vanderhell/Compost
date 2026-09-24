@@ -1474,6 +1474,18 @@ class NativePopulationBackend:
         if invalid:
             raise ValueError(f"{label} keys must be unsigned 64-bit integers: {invalid!r}")
 
+    @staticmethod
+    def _validate_child_values(values: Mapping[object, object]) -> None:
+        """Reject lossy child IDs before an epoch transaction is captured."""
+        invalid = [
+            value for value in values.values()
+            if type(value) is not int or not 0 <= value <= (1 << 64) - 1
+        ]
+        if invalid:
+            raise ValueError(
+                f"child_ids values must be unsigned 64-bit integers: {invalid!r}"
+            )
+
     @contextmanager
     def _native_transaction(self) -> Iterable[None]:
         """Protect one multi-handle native epoch with exact rollback.
@@ -1527,6 +1539,10 @@ class NativePopulationBackend:
         """Apply one explicit environment epoch atomically."""
         if self._closed:
             raise NativeBackendError("native population backend is closed")
+        self._validate_id_keys(environment, "environment")
+        if child_ids is not None:
+            self._validate_id_keys(child_ids, "child_ids")
+            self._validate_child_values(child_ids)
         with self._native_transaction():
             return self._step_impl(environment, child_ids=child_ids)
 
@@ -1631,6 +1647,7 @@ class NativePopulationBackend:
         the complete epoch, restore every pre-existing handle, close/remove
         any child created by the epoch, and are surfaced to the caller.
         """
+        self._validate_id_keys(actions, "actions")
         with self._native_transaction():
             return self._apply_actions_impl(actions)
 
@@ -1739,6 +1756,8 @@ class NativePopulationBackend:
         child_id: int,
     ) -> dict[str, object]:
         """Run the native local reproduction policy and retain its child."""
+        _require_uint64(organism_id, "organism_id")
+        _require_uint64(child_id, "child_id")
         with self._native_transaction():
             return self._try_local_reproduction_impl(organism_id, child_id=child_id)
 
@@ -1775,6 +1794,8 @@ class NativePopulationBackend:
 
     def try_divide(self, organism_id: int, *, child_id: int) -> dict[str, object]:
         """Run the native deterministic boundary-partition policy atomically."""
+        _require_uint64(organism_id, "organism_id")
+        _require_uint64(child_id, "child_id")
         with self._native_transaction():
             return self._try_divide_impl(organism_id, child_id=child_id)
 
