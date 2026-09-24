@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from mathematical_organism.lifecycle import LifecycleConfig, LivingStructure, MathematicalLifePopulation  # noqa: E402
-from mathematical_organism.backend import NativeAction  # noqa: E402
+from mathematical_organism.backend import NativeAction, NativeActionKind  # noqa: E402
 from mathematical_organism.sandbox_runtime import AutonomousOrganism, SandboxObserver, SandboxRuntime  # noqa: E402
 
 
@@ -71,6 +71,26 @@ class SandboxRuntimeTests(unittest.TestCase):
                 )
             )
             self.assertGreaterEqual(organism.metabolic_steps, 1)
+
+    def test_action_observer_runs_after_each_python_action_mutation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = SandboxRuntime(Path(directory) / "sandbox", block_size=4)
+            (runtime.inbox / "payload.bin").write_bytes(b"ABCD")
+            organism = runtime.bootstrap()
+            trace: list[NativeAction] = []
+            observed: list[tuple[NativeActionKind, int]] = []
+
+            def observe(action: NativeAction) -> None:
+                observed.append((action.kind, organism.metabolic_progress))
+
+            organism.live_step(
+                runtime,
+                action_trace=trace,
+                action_observer=observe,
+            )
+            self.assertEqual([kind for kind, _progress in observed], [item.kind for item in trace])
+            progress = [value for kind, value in observed if kind is NativeActionKind.METABOLIC_PROGRESS]
+            self.assertEqual(progress, [4])
 
     def test_metabolism_is_charged_by_food_volume_not_each_bite(self) -> None:
         organism = AutonomousOrganism(config=LifecycleConfig(metabolic_minimum_work=64))

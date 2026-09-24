@@ -438,6 +438,7 @@ class AutonomousOrganism(AutonomousCore):
         sandbox: "SandboxRuntime",
         *,
         action_trace: list[NativeAction] | None = None,
+        action_observer: Callable[[NativeAction], None] | None = None,
     ) -> None:
         """Discover, ingest, and continue one reference step.
 
@@ -448,6 +449,13 @@ class AutonomousOrganism(AutonomousCore):
         """
         if not self.alive:
             return
+
+        def emit(action: NativeAction, *, observe: bool = True) -> None:
+            if action_trace is not None:
+                action_trace.append(action)
+            if observe and action_observer is not None:
+                action_observer(action)
+
         self.live_steps += 1
         self._reclaim_sibling_if_available(sandbox)
         if not sandbox.has_active_food():
@@ -458,10 +466,9 @@ class AutonomousOrganism(AutonomousCore):
         # claim another byte range yet.  This is backpressure, not a second
         # capacity lane: a full gut cannot make a new bite durable early.
         if self.gut_queue:
-            if action_trace is not None:
-                action_trace.append(NativeAction.process_gut(capacity=self.body.bite_limit(self.config)))
             started = perf_counter() if self.hot_metrics is not None else 0.0
             self.process_gut(self.body.bite_limit(self.config))
+            emit(NativeAction.process_gut(capacity=self.body.bite_limit(self.config)))
             if self.hot_metrics is not None:
                 self.hot_metrics.add("metabolism", started)
             return
@@ -476,15 +483,13 @@ class AutonomousOrganism(AutonomousCore):
                 self.hot_metrics.add("read", started)
             try:
                 self.result.available_nutrition_total += len(bite)
-                if action_trace is not None:
-                    action_trace.append(
-                        NativeAction.external_gut(
-                            bite,
-                            capacity=self.body.bite_limit(self.config),
-                        )
-                    )
+                external_action = NativeAction.external_gut(
+                    bite,
+                    capacity=self.body.bite_limit(self.config),
+                )
                 self.enqueue_external_material(bite)
                 self.process_gut(self.body.bite_limit(self.config))
+                emit(external_action)
             except Exception:
                 raise
             else:
@@ -498,14 +503,11 @@ class AutonomousOrganism(AutonomousCore):
                 if claim.length < self.last_claim_request:
                     self.partial_bites += 1
                 self.metabolic_progress += claim.length
-                if action_trace is not None:
-                    action_trace.append(
-                        NativeAction.metabolic_progress(
-                            claim.length,
-                            minimum_work=self.config.metabolic_minimum_work,
-                            body_size=self.body.size,
-                        )
-                    )
+                emit(NativeAction.metabolic_progress(
+                    claim.length,
+                    minimum_work=self.config.metabolic_minimum_work,
+                    body_size=self.body.size,
+                ))
                 ate = True
                 sandbox.note_bite(self.name, claim.length)
             finally:
@@ -514,11 +516,10 @@ class AutonomousOrganism(AutonomousCore):
         if not ate:
             sandbox.refresh_food_sources()
             corpse_energy = self._consume_corpse(sandbox)
-            if action_trace is not None and corpse_energy > 0.0:
-                action_trace.append(NativeAction.corpse_energy(corpse_energy))
-            if action_trace is not None:
-                action_trace.append(NativeAction.process_gut(capacity=self.body.bite_limit(self.config)))
+            if corpse_energy > 0.0:
+                emit(NativeAction.corpse_energy(corpse_energy))
             self.process_gut(self.body.bite_limit(self.config))
+            emit(NativeAction.process_gut(capacity=self.body.bite_limit(self.config)))
             # No clock-based starvation.  An already unpaid maintenance event,
             # however, is real pending biological work and progresses locally.
             if self.maintenance_deficit > 0.0 and self.body.size:
@@ -527,7 +528,11 @@ class AutonomousOrganism(AutonomousCore):
                     self._die(sandbox)
         if ate:
             started = perf_counter() if self.hot_metrics is not None else 0.0
-            self._run_due_metabolic_steps(sandbox, action_trace=action_trace)
+            self._run_due_metabolic_steps(
+                sandbox,
+                action_trace=action_trace,
+                action_observer=action_observer,
+            )
             if self.hot_metrics is not None:
                 self.hot_metrics.add("metabolic_schedule", started)
             return
@@ -688,18 +693,28 @@ class AutonomousOrganism(AutonomousCore):
         sandbox: "SandboxRuntime",
         *,
         action_trace: list[NativeAction] | None = None,
+        action_observer: Callable[[NativeAction], None] | None = None,
     ) -> None:
         while self.alive and self.metabolic_progress >= self.metabolic_work_threshold():
             self.metabolic_progress -= self.metabolic_work_threshold()
+            action = NativeAction.lifecycle_step(b"", nutrition=())
             if action_trace is not None:
-                action_trace.append(NativeAction.lifecycle_step(b"", nutrition=()))
-            self._run_metabolic_step(sandbox, action_trace=action_trace)
+                action_trace.append(action)
+            children_before = len(self.children)
+            self._run_metabolic_step(
+                sandbox,
+                action_trace=action_trace,
+                action_observer=action_observer,
+            )
+            if len(self.children) == children_before and action_observer is not None:
+                action_observer(action)
 
     def _run_metabolic_step(
         self,
         sandbox: "SandboxRuntime",
         *,
         action_trace: list[NativeAction] | None = None,
+        action_observer: Callable[[NativeAction], None] | None = None,
     ) -> None:
         """The expensive biological phase, charged by food volume not bites."""
         lifecycle_trace: dict[str, int] = {}
@@ -748,13 +763,14 @@ class AutonomousOrganism(AutonomousCore):
                         transport_child_id = (
                             transport_child_id * 1099511628211
                         ) & ((1 << 64) - 1)
-                    action_trace.append(
-                        NativeAction.division(
-                            tuple(sorted(child_atoms)),
-                            child_id=transport_child_id & ((1 << 64) - 1),
-                            birth_cost=self.config.birth_cost,
-                        )
+                    action = NativeAction.division(
+                        tuple(sorted(child_atoms)),
+                        child_id=transport_child_id & ((1 << 64) - 1),
+                        birth_cost=self.config.birth_cost,
                     )
+                    action_trace.append(action)
+                    if action_observer is not None:
+                        action_observer(action)
         if self.body.size == 0:
             self._die(sandbox)
 

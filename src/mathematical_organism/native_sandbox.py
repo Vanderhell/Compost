@@ -8,6 +8,7 @@ actions.
 
 from __future__ import annotations
 
+import copy
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -99,6 +100,8 @@ class NativeSandboxReplay:
         if self._closed:
             raise RuntimeError("native sandbox replay is closed")
         traces: dict[int, tuple[NativeAction, ...]] = {}
+        python_action_states: dict[int, dict[int, Any]] = {}
+        python_organisms: dict[int, Any] = {}
         python_division_children: dict[int, Any] = {}
         for organism in tuple(self.runtime.organisms):
             if not organism.alive:
@@ -110,7 +113,18 @@ class NativeSandboxReplay:
                     f"Python organism has no native handle: {organism.name}"
                 ) from error
             trace: list[NativeAction] = []
-            organism.live_step(self.runtime, action_trace=trace)
+            python_organisms[native_id] = organism
+            python_action_states[native_id] = {}
+
+            def observe(action: NativeAction, *, _organism: Any = organism,
+                        _native_id: int = native_id) -> None:
+                python_action_states[_native_id][id(action)] = copy.deepcopy(_organism)
+
+            organism.live_step(
+                self.runtime,
+                action_trace=trace,
+                action_observer=observe,
+            )
             traces[native_id] = tuple(trace)
             division = next(
                 (action for action in trace if action.kind is NativeActionKind.DIVISION),
@@ -130,6 +144,37 @@ class NativeSandboxReplay:
         # the selected native child must contain exactly the atoms selected by
         # that trace, otherwise the first divergent epoch is reported here.
         self._population.preflight_action_traces(traces)
+
+        def replay_sequence(
+            organism_id: int,
+            sequence: tuple[NativeAction, ...],
+        ) -> list[dict[str, object]]:
+            results: list[dict[str, object]] = []
+            for index, action in enumerate(sequence):
+                results.extend(
+                    self._population.replay_action_traces(
+                        {organism_id: (action,)}
+                    )[organism_id]
+                )
+                # Python records the accepted byte count before its following
+                # due-lifecycle loop subtracts the threshold. The native
+                # accumulator commits the remainder in the same action, so a
+                # progress action immediately followed by lifecycle work is
+                # one observable scheduling group rather than two comparable
+                # intermediate states.
+                if (
+                    action.kind is NativeActionKind.METABOLIC_PROGRESS
+                    and index + 1 < len(sequence)
+                    and sequence[index + 1].kind is NativeActionKind.LIFECYCLE_STEP
+                ):
+                    continue
+                expected = python_action_states.get(organism_id, {}).get(id(action))
+                if expected is not None:
+                    self._assert_shared_state(
+                        self._population.snapshot(organism_id), expected
+                    )
+            return results
+
         replayed: dict[int, tuple[dict[str, object], ...]] = {}
         for organism_id in sorted(traces):
             sequence = traces[organism_id]
@@ -142,17 +187,13 @@ class NativeSandboxReplay:
                 None,
             )
             if division_index is None:
-                replayed[organism_id] = tuple(
-                    self._population.replay_action_traces({organism_id: sequence})[organism_id]
-                )
+                replayed[organism_id] = tuple(replay_sequence(organism_id, sequence))
                 continue
 
             prefix = sequence[:division_index]
             results: list[dict[str, object]] = []
             if prefix:
-                results.extend(
-                    self._population.replay_action_traces({organism_id: prefix})[organism_id]
-                )
+                results.extend(replay_sequence(organism_id, prefix))
             division = sequence[division_index]
             native_result = self._population.try_local_reproduction(
                 organism_id,
@@ -196,6 +237,10 @@ class NativeSandboxReplay:
                     "kind": "division",
                     "policy": "global_partition_policy",
                 })
+                self._assert_shared_state(
+                    self._population.snapshot(organism_id),
+                    python_organisms[organism_id],
+                )
             else:
                 native_child_atoms = tuple(sorted(int(atom[0]) for atom in native_child["atoms"]))
                 if native_child_atoms != tuple(sorted(division.child_atoms)):
@@ -219,11 +264,13 @@ class NativeSandboxReplay:
                     "kind": "division",
                     "policy": "local_reproduction",
                 })
+                self._assert_shared_state(
+                    self._population.snapshot(organism_id),
+                    python_organisms[organism_id],
+                )
             suffix = sequence[division_index + 1 :]
             if suffix:
-                results.extend(
-                    self._population.replay_action_traces({organism_id: suffix})[organism_id]
-                )
+                results.extend(replay_sequence(organism_id, suffix))
             replayed[organism_id] = tuple(results)
         snapshots: dict[int, dict[str, object]] = {}
         corpses: dict[int, dict[str, object]] = {}
