@@ -96,7 +96,9 @@ snapshot does not carry all of the following Python-authoritative state:
   representation (the current C structure record only has bounded endpoint
   fields);
 - maintenance/weakness caches and their validity flags, weakest-member
-  ordering, member weights, and full-scan/weakening counters;
+  ordering, member weights, and full-scan counters. ABI v4 does carry the
+  behavioral maintenance deficit/totals and weakening-event count, but not
+  those derived indexes;
 - lifecycle totals and markers including biomass, nutrition, death and
   consolidation metadata where present in the Python canonical state;
 - per-source navigation cursors and FOOD parcel state;

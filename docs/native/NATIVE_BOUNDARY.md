@@ -26,9 +26,12 @@ The first C target is the lifecycle/sandbox behavioral core only:
 - Fixed-width organism identity, lifecycle status, age, cursor, generation,
   parent/child relation, and reserve.
 - Atoms, relations, composites, strengths, evidence, income, maintenance,
-  members, and structural body mass.
+  bounded endpoint keys, and structural body mass. The ABI does not yet claim
+  to carry the complete Python `members` representation.
 - Activated receptors and activity ledger/counters.
 - Gut FIFO and material-flow accounting.
+- Lifecycle bookkeeping: metabolic epoch, maintenance deficit/totals, and
+  weakening-event count.
 - Bounded maintenance settlement, weakening, resorption, and deterministic
   weakest-member selection for explicit native transitions. The lifecycle
   endpoint owns the sandbox member policy; the legacy public `weaken_weakest`
