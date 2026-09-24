@@ -1917,9 +1917,31 @@ class NativePopulationBackend:
         try:
             for organism_id in sorted(prepared):
                 epoch_results: list[dict[str, object]] = []
-                for action in prepared[organism_id]:
+                sequence = prepared[organism_id]
+                index = 0
+                while index < len(sequence):
+                    action = sequence[index]
                     status_before = int(self._contexts[organism_id].snapshot()["status"])
-                    result = self.apply_actions({organism_id: action})[organism_id]
+                    if action.kind is NativeActionKind.METABOLIC_PROGRESS:
+                        result = self.accumulate_metabolic_progress_and_run_due(
+                            organism_id,
+                            action.amount,
+                            action.minimum_work,
+                            action.body_size,
+                        )
+                        executed = int(result["executed_steps"])
+                        lifecycle_actions = sequence[index + 1:index + 1 + executed]
+                        if any(
+                            item.kind is not NativeActionKind.LIFECYCLE_STEP
+                            for item in lifecycle_actions
+                        ) or len(lifecycle_actions) != executed:
+                            raise NativeBackendError(
+                                "progress trace does not contain the native due lifecycle actions"
+                            )
+                        index += executed + 1
+                    else:
+                        result = self.apply_actions({organism_id: action})[organism_id]
+                        index += 1
                     epoch_results.append({
                         **result,
                         "requests": ("store_corpse",)
