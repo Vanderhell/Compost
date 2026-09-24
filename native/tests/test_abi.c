@@ -61,7 +61,7 @@ int main(void)
         schedule_remaining != UINT64_C(9)) {
         return fail("metabolic schedule validation");
     }
-    if (COMPOST_NATIVE_ABI_VERSION != UINT32_C(3) ||
+    if (COMPOST_NATIVE_ABI_VERSION != UINT32_C(4) ||
         compost_config_default(&config) != COMPOST_STATUS_OK ||
         compost_create(&config, UINT64_C(12), &context) != COMPOST_STATUS_OK ||
         context == NULL ||
@@ -153,7 +153,12 @@ int main(void)
         compost_context_digest(lifecycle_context, &input, &result) != COMPOST_STATUS_OK ||
         compost_context_lifecycle_step(lifecycle_context, &empty_input, &lifecycle_result) != COMPOST_STATUS_OK ||
         compost_context_snapshot(lifecycle_context, &snapshot) != COMPOST_STATUS_OK ||
-        snapshot.age_in_cycles != UINT64_C(1)) {
+        snapshot.age_in_cycles != UINT64_C(1) ||
+        snapshot.current_metabolic_epoch != UINT64_C(1) ||
+        snapshot.maintenance_deficit != 0.0 ||
+        snapshot.maintenance_deficit_total != 0.0 ||
+        snapshot.maintenance_paid_total != 0.0 ||
+        snapshot.weakening_events != 0U) {
         compost_destroy(lifecycle_context);
         compost_destroy(context);
         return fail("explicit lifecycle-step ABI");

@@ -300,6 +300,16 @@ class NativeSandboxReplay:
         fail("generation", body.generation, native["generation"])
         fail("age_in_cycles", body.age_in_cycles, native["age_in_cycles"])
         fail("reserve", body.reserve, native["reserve"])
+        fail("current_metabolic_epoch", organism.current_metabolic_epoch,
+             native["current_metabolic_epoch"])
+        fail("maintenance_deficit", organism.maintenance_deficit,
+             native["maintenance_deficit"])
+        fail("maintenance_deficit_total", organism.maintenance_deficit_total,
+             native["maintenance_deficit_total"])
+        fail("maintenance_paid_total", organism.maintenance_paid_total,
+             native["maintenance_paid_total"])
+        fail("weakening_events", organism.weakening_events,
+             native["weakening_events"])
         native_body = native["body"]
         assert isinstance(native_body, dict)
         for field, expected in (

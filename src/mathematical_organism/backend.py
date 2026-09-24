@@ -337,6 +337,11 @@ class _Snapshot(ctypes.Structure):
         ("gut", _GutChunk * 128),
         ("gut_head", ctypes.c_uint32),
         ("gut_count", ctypes.c_uint32),
+        ("current_metabolic_epoch", ctypes.c_uint64),
+        ("maintenance_deficit", ctypes.c_double),
+        ("maintenance_deficit_total", ctypes.c_double),
+        ("maintenance_paid_total", ctypes.c_double),
+        ("weakening_events", ctypes.c_uint64),
     ]
 
 
@@ -350,7 +355,7 @@ class _MetabolicSnapshot(ctypes.Structure):
 class NativeBackend:
     """Small explicit ctypes adapter for the versioned native ABI."""
 
-    ABI_VERSION = 3
+    ABI_VERSION = 4
     MAX_ATOMS = 256
 
     def __init__(
@@ -929,6 +934,11 @@ class NativeBackend:
                 native_chunk.payload[byte_index] = value
             for value_index, value in enumerate(nutrition):
                 native_chunk.nutrition[value_index] = value
+        snapshot.current_metabolic_epoch = int(getattr(organism, "current_metabolic_epoch"))
+        snapshot.maintenance_deficit = float(getattr(organism, "maintenance_deficit"))
+        snapshot.maintenance_deficit_total = float(getattr(organism, "maintenance_deficit_total"))
+        snapshot.maintenance_paid_total = float(getattr(organism, "maintenance_paid_total"))
+        snapshot.weakening_events = int(getattr(organism, "weakening_events"))
         metabolic = _MetabolicSnapshot()
         metabolic.progress = int(getattr(organism, "metabolic_progress"))
         metabolic.steps = int(getattr(organism, "metabolic_steps"))
@@ -998,6 +1008,11 @@ class NativeBackend:
                 )
                 for offset in range(snapshot.gut_count)
             ),
+            "current_metabolic_epoch": int(snapshot.current_metabolic_epoch),
+            "maintenance_deficit": float(snapshot.maintenance_deficit),
+            "maintenance_deficit_total": float(snapshot.maintenance_deficit_total),
+            "maintenance_paid_total": float(snapshot.maintenance_paid_total),
+            "weakening_events": int(snapshot.weakening_events),
             "territory": tuple(int(snapshot.territory.path[index]) for index in range(snapshot.territory.depth)),
             "activated_receptors": tuple(
                 index for index in range(256)

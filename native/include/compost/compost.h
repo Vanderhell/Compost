@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-#define COMPOST_NATIVE_ABI_VERSION UINT32_C(3)
+#define COMPOST_NATIVE_ABI_VERSION UINT32_C(4)
 #define COMPOST_MAX_TERRITORY_DEPTH 64U
 #define COMPOST_MAX_ATOMS 256U
 #define COMPOST_MAX_RELATIONS 512U
@@ -218,6 +218,11 @@ typedef struct compost_snapshot {
     compost_gut_chunk_t gut[COMPOST_MAX_GUT_CHUNKS];
     uint32_t gut_head;
     uint32_t gut_count;
+    uint64_t current_metabolic_epoch;
+    double maintenance_deficit;
+    double maintenance_deficit_total;
+    double maintenance_paid_total;
+    uint64_t weakening_events;
 } compost_snapshot_t;
 
 typedef struct compost_organism {
@@ -242,6 +247,11 @@ typedef struct compost_organism {
     compost_gut_chunk_t gut[COMPOST_MAX_GUT_CHUNKS];
     uint32_t gut_head;
     uint32_t gut_count;
+    uint64_t current_metabolic_epoch;
+    double maintenance_deficit;
+    double maintenance_deficit_total;
+    double maintenance_paid_total;
+    uint64_t weakening_events;
     bool initialized;
 } compost_organism_t;
 

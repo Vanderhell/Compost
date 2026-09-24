@@ -430,6 +430,11 @@ static compost_status_t validate_snapshot_for_context(
         !finite(snapshot->activity.energy_spent) || snapshot->activity.energy_spent < 0.0) {
         return COMPOST_STATUS_INVALID_STATE;
     }
+    if (!finite(snapshot->maintenance_deficit) || snapshot->maintenance_deficit < 0.0 ||
+        !finite(snapshot->maintenance_deficit_total) || snapshot->maintenance_deficit_total < 0.0 ||
+        !finite(snapshot->maintenance_paid_total) || snapshot->maintenance_paid_total < 0.0) {
+        return COMPOST_STATUS_INVALID_STATE;
+    }
     for (size_t index = 0U; index < snapshot->territory.depth; ++index) {
         if (snapshot->territory.path[index] > UINT8_C(1)) return COMPOST_STATUS_INVALID_STATE;
     }
@@ -467,6 +472,11 @@ static compost_status_t validate_snapshot_for_context(
     memcpy(next.gut, snapshot->gut, sizeof(next.gut));
     next.gut_head = snapshot->gut_head;
     next.gut_count = snapshot->gut_count;
+    next.current_metabolic_epoch = snapshot->current_metabolic_epoch;
+    next.maintenance_deficit = snapshot->maintenance_deficit;
+    next.maintenance_deficit_total = snapshot->maintenance_deficit_total;
+    next.maintenance_paid_total = snapshot->maintenance_paid_total;
+    next.weakening_events = snapshot->weakening_events;
     uint64_t structural_mass = UINT64_C(256);
     for (size_t collection = 1U; collection < 3U; ++collection) {
         const compost_structure_t *structures = collection == 1U
@@ -1025,6 +1035,11 @@ compost_status_t compost_organism_snapshot(
     memcpy(snapshot->gut, organism->gut, sizeof(snapshot->gut));
     snapshot->gut_head = organism->gut_head;
     snapshot->gut_count = organism->gut_count;
+    snapshot->current_metabolic_epoch = organism->current_metabolic_epoch;
+    snapshot->maintenance_deficit = organism->maintenance_deficit;
+    snapshot->maintenance_deficit_total = organism->maintenance_deficit_total;
+    snapshot->maintenance_paid_total = organism->maintenance_paid_total;
+    snapshot->weakening_events = organism->weakening_events;
     return COMPOST_STATUS_OK;
 }
 
@@ -1166,6 +1181,11 @@ uint64_t compost_organism_state_digest(const compost_organism_t *organism)
     digest = digest_u64(digest, organism->territory.organism_id);
     digest = digest_u64(digest, organism->territory.local_birth_counter);
     digest = digest_bool(digest, organism->territory.alive);
+    digest = digest_u64(digest, organism->current_metabolic_epoch);
+    digest = digest_double(digest, organism->maintenance_deficit);
+    digest = digest_double(digest, organism->maintenance_deficit_total);
+    digest = digest_double(digest, organism->maintenance_paid_total);
+    digest = digest_u64(digest, organism->weakening_events);
     for (size_t index = 0U; index < COMPOST_MAX_ATOMS; ++index) digest = digest_structure(digest, &organism->atoms[index]);
     for (size_t index = 0U; index < COMPOST_MAX_RELATIONS; ++index) digest = digest_structure(digest, &organism->relations[index]);
     for (size_t index = 0U; index < COMPOST_MAX_COMPOSITES; ++index) digest = digest_structure(digest, &organism->composites[index]);
@@ -2165,10 +2185,21 @@ static compost_status_t lifecycle_maintenance(
                                  &next_result.weakened_candidates)) {
             return COMPOST_STATUS_INVALID_ARGUMENT;
         }
-        if (!add_u64(next_result.resorbed_mass, resorbed, &next_result.resorbed_mass)) {
+    if (!add_u64(next_result.resorbed_mass, resorbed, &next_result.resorbed_mass)) {
             return COMPOST_STATUS_INVALID_ARGUMENT;
         }
     }
+    if (organism->current_metabolic_epoch == UINT64_MAX ||
+        !add_double(organism->maintenance_paid_total, next_result.paid,
+                    &organism->maintenance_paid_total) ||
+        !add_double(organism->maintenance_deficit_total, next_result.deficit,
+                    &organism->maintenance_deficit_total) ||
+        !add_u64(organism->weakening_events, next_result.weakened_candidates,
+                 &organism->weakening_events)) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    organism->current_metabolic_epoch += UINT64_C(1);
+    organism->maintenance_deficit = next_result.deficit;
     if (organism->age_in_cycles == UINT64_MAX) return COMPOST_STATUS_INVALID_ARGUMENT;
     organism->age_in_cycles += UINT64_C(1);
     if (structure_count(organism) == 0U) {
@@ -2275,6 +2306,17 @@ compost_status_t compost_organism_maintenance(
         append_resorption_chunk(&next, forgotten_mass) != COMPOST_STATUS_OK) {
         return COMPOST_STATUS_INVALID_STATE;
     }
+    if (next.current_metabolic_epoch == UINT64_MAX ||
+        !add_double(next.maintenance_paid_total, next_result.paid,
+                    &next.maintenance_paid_total) ||
+        !add_double(next.maintenance_deficit_total, next_result.deficit,
+                    &next.maintenance_deficit_total) ||
+        !add_u64(next.weakening_events, next_result.weakened_candidates,
+                 &next.weakening_events)) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    next.current_metabolic_epoch += UINT64_C(1);
+    next.maintenance_deficit = next_result.deficit;
     if (next.age_in_cycles == UINT64_MAX) {
         return COMPOST_STATUS_INVALID_ARGUMENT;
     }
