@@ -130,6 +130,15 @@ python -m mathematical_organism checkpoint ABCD --backend native \
   --library path/to/libcompost_native.so --steps 1 --json
 ```
 
+The serial public sandbox can also opt into the validated native replay
+boundary. It remains single-worker and keeps filesystem discovery and
+telemetry in Python:
+
+```bash
+python -m mathematical_organism run SANDBOX --backend native --workers 1 \
+  --library path/to/libcompost_native.so
+```
+
 The default checkpoint backend remains `python`. An explicitly requested
 native backend reports library, ABI, argument, and execution failures; it does
 not silently fall back to the Python oracle. Use the Python backend for the
