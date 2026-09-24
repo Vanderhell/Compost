@@ -62,6 +62,10 @@ step-and-division ABI and the metabolic progress accumulator on two identical
 contexts and compares status, digest, division plan, material result, due
 steps, and remainder on every case.
 
+The metabolic accounting regression also verifies that progress accumulation
+does not claim lifecycle steps before execution, and that queued due work stops
+without incrementing the completed-step counter after an organism is dead.
+
 The current eight-test suite was built and executed from the current tree with
 GCC 13.3 under WSL using AddressSanitizer and UndefinedBehaviorSanitizer,
 including leak detection. All eight tests passed in `414.45s`; the run emitted
