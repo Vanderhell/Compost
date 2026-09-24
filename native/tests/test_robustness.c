@@ -182,6 +182,16 @@ int main(void)
         failed_context != NULL) {
         return fail("allocation failure injection");
     }
+    compost_allocator_t incomplete_allocator = {
+        NULL, always_fail_allocate, NULL
+    };
+    compost_context_t *invalid_allocator_context = (compost_context_t *)(uintptr_t)1U;
+    if (compost_create_with_allocator(
+            &config, &incomplete_allocator, UINT64_C(2), &invalid_allocator_context
+        ) != COMPOST_STATUS_INVALID_ARGUMENT ||
+        invalid_allocator_context != (compost_context_t *)(uintptr_t)1U) {
+        return fail("incomplete allocator rejection");
+    }
     allocation_limit_t limited = {0U, 1U};
     compost_allocator_t limited_allocator = {
         &limited, allocate_until_limit, deallocate_until_limit
