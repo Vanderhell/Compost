@@ -38,6 +38,13 @@ int main(void)
     compost_context_t *lifecycle_context = NULL;
     uint64_t due_steps = 0U;
     uint64_t remaining_progress = 0U;
+    compost_config_t invalid_config = {0};
+    if (compost_config_default(NULL) != COMPOST_STATUS_INVALID_ARGUMENT ||
+        compost_create(NULL, UINT64_C(1), &context) != COMPOST_STATUS_INVALID_ARGUMENT ||
+        compost_config_default(&invalid_config) != COMPOST_STATUS_OK ||
+        compost_create(&invalid_config, UINT64_C(1), NULL) != COMPOST_STATUS_INVALID_ARGUMENT) {
+        return fail("public ABI null-argument validation");
+    }
     if (compost_metabolic_schedule(UINT64_C(64), UINT64_C(4), UINT64_C(65),
                                    &schedule_threshold, &schedule_steps,
                                    &schedule_remaining) != COMPOST_STATUS_OK ||
@@ -261,6 +268,21 @@ int main(void)
     compost_destroy(division_context);
     if (compost_context_snapshot(NULL, &snapshot) != COMPOST_STATUS_INVALID_ARGUMENT) {
         return fail("opaque ABI invalid handle");
+    }
+    compost_snapshot_t invalid_snapshot = {0};
+    invalid_snapshot.organism_id = UINT64_C(91);
+    invalid_snapshot.cursor = UINT64_C(37);
+    if (compost_context_snapshot(NULL, &invalid_snapshot) != COMPOST_STATUS_INVALID_ARGUMENT ||
+        invalid_snapshot.organism_id != UINT64_C(91) ||
+        invalid_snapshot.cursor != UINT64_C(37)) {
+        return fail("opaque snapshot output preservation");
+    }
+    compost_step_result_t invalid_result = {0};
+    invalid_result.consumed_bytes = SIZE_MAX;
+    if (compost_context_digest(context, NULL, &invalid_result) != COMPOST_STATUS_INVALID_ARGUMENT ||
+        invalid_result.consumed_bytes != SIZE_MAX) {
+        compost_destroy(context);
+        return fail("opaque step output preservation");
     }
     if (compost_context_verify_material_conservation(NULL) != COMPOST_STATUS_INVALID_ARGUMENT) {
         return fail("opaque conservation invalid handle");
