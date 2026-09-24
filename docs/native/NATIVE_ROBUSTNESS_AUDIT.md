@@ -78,6 +78,10 @@ The same current tree also passed the strict GCC 13.3 Release suite (`8/8`,
 `14.04s`) and strict Linux Clang 18.1.3 Release suite (`8/8`, `13.91s`),
 both with warnings-as-errors enabled.
 
+The Python ABI adapter also has a single-handle action-epoch regression: a
+failure in a later action restores the earlier native mutation from the opaque
+snapshot before propagating the error.
+
 The current MSVC 19.42 Release tree also passes all eight CTest targets,
 including the due-lifecycle ABI regression and fuzz target (`8/8`, `14.14s`).
 The current MSVC 19.42 Debug tree independently passes all eight CTest targets

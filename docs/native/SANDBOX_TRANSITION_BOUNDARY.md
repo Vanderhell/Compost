@@ -53,8 +53,10 @@ in a later organism therefore cannot leave an earlier environment transition
 committed, while Python environment claims remain host-owned.
 
 `NativeBackend.replay_actions` preflights a complete single-organism trace and
-then replays it in list order. This is the differential-test entry point for
-Python `live_step` action traces.
+then replays it in list order as one opaque-state transaction. If a later
+action fails, earlier native mutations are restored before the error is
+propagated. This is the differential-test entry point for Python `live_step`
+action traces.
 
 `NativePopulationBackend.replay_action_traces` extends that boundary to a
 deterministic host-built population epoch: each trace is preflighted before

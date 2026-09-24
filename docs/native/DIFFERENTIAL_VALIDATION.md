@@ -21,7 +21,7 @@ values duplicated in test code.
 
 The test requires `COMPOST_NATIVE_LIBRARY`. If the variable is absent it is
 skipped; if it names a missing file the test fails. There is no silent native
-to Python fallback. The current bounded campaign contains sixty-four tests,
+to Python fallback. The current bounded campaign contains sixty-five tests,
 including forty deterministic lifecycle replays (10,240 aggregate steps), a
 differential configuration matrix (144 additional steps), a
 differential starvation/death replay, a dense cross-split division replay, and
@@ -31,9 +31,9 @@ field-by-field snapshot checks.
 
 The full per-step Python/C campaign is **NOT READY**. The native organism is
 not yet a complete lifecycle engine. The current native-backed differential
-run is green (`64 passed`; the focused oracle/member-weakness validation run
-is `67 passed` including the related Python tests), and the complete Python regression suite is green
-(`262 passed, 3 subtests passed` in the latest ABI v4 run). The selected partition
+run is green (`65 passed`; the focused oracle/member-weakness validation run
+is `68 passed` including the related Python tests), and the complete Python regression suite is green
+(`263 passed, 3 subtests passed` in the latest ABI v4 run). The selected partition
 transaction now has a bounded Python/sandbox comparison, and both native
 reproduction policies are selected by the sandbox adapter and compared with
 the Python child atom set. The native checkpoint now
@@ -65,6 +65,8 @@ The metabolic progress accumulator reports due work without pre-crediting
 completed lifecycle steps; only a successful non-dead lifecycle checkpoint
 increments the settled step counter. A regression covers due work queued before
 a dead stop.
+Single-handle action traces are also transactional: an injected failure after
+an earlier native action restores the exact opaque snapshot before the trace.
 The bounded two-organism campaign also compares every relation and composite
 key and its strength/evidence/income fields after each ordered epoch.
 
