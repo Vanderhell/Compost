@@ -242,6 +242,25 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             self.assertEqual(tuple(population.organism_ids), (101,))
             self.assertEqual(population.state_digests(), before)
 
+    def test_python_adapter_restores_exact_native_snapshot_between_handles(self) -> None:
+        with NativeBackend(self.library_path, organism_id=900) as source:
+            source.digest(b"AB", (1.0, 1.0))
+            source.accumulate_metabolic_progress(65, 64, 4)
+            expected_digest = source.state_digest()
+            with NativeBackend(self.library_path, organism_id=900) as target:
+                target.digest(b"A", (1.0,))
+                target.restore_from(source)
+                self.assertEqual(target.state_digest(), expected_digest)
+                self.assertEqual(target.snapshot(), source.snapshot())
+
+    def test_python_adapter_rejects_native_snapshot_identity_mismatch(self) -> None:
+        with NativeBackend(self.library_path, organism_id=901) as source, \
+                NativeBackend(self.library_path, organism_id=902) as target:
+            before = target.state_digest()
+            with self.assertRaises(NativeBackendError):
+                target.restore_from(source)
+            self.assertEqual(target.state_digest(), before)
+
     def test_population_trace_preflight_is_epoch_wide_and_non_mutating(self) -> None:
         with NativePopulationBackend(self.library_path, organism_ids=(0, 1)) as population:
             before = population.state_digests()

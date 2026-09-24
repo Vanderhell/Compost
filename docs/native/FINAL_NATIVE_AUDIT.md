@@ -27,7 +27,7 @@ width audit and fuzz target enabled (14.48s). Current GCC and Clang strict
 results are recorded below.
 
 Differential cases:
-`51` Python/native differential tests pass, including bounded pure-rule,
+`53` Python/native differential tests pass, including bounded pure-rule,
 external-gut, environment corpse-energy credit, partition transaction,
 atomic division-boundary, step-plus-division lifecycle, territory predicate,
 deterministic FOOD block-key, two-organism population, and population child

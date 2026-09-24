@@ -361,6 +361,7 @@ class NativeBackend:
         config: LifecycleConfig | None = None,
     ) -> None:
         self.library_path = Path(library).resolve()
+        self._lifecycle_config = config
         if not self.library_path.is_file():
             raise NativeBackendError(f"native library does not exist: {self.library_path}")
         try:
@@ -481,6 +482,18 @@ class NativeBackend:
         library.compost_context_accumulate_metabolic_progress.restype = ctypes.c_int
         library.compost_context_snapshot.argtypes = [ctypes.c_void_p, ctypes.POINTER(_Snapshot)]
         library.compost_context_snapshot.restype = ctypes.c_int
+        try:
+            restore_snapshot = library.compost_context_restore_snapshot
+        except AttributeError:
+            self._restore_snapshot_symbol = None
+        else:
+            restore_snapshot.argtypes = [
+                ctypes.c_void_p,
+                ctypes.POINTER(_Snapshot),
+                ctypes.POINTER(_MetabolicSnapshot),
+            ]
+            restore_snapshot.restype = ctypes.c_int
+            self._restore_snapshot_symbol = restore_snapshot
         library.compost_context_select_partition.argtypes = [
             ctypes.c_void_p,
             ctypes.c_double,
@@ -759,6 +772,48 @@ class NativeBackend:
         if not self._context or not self._context.value:
             raise NativeBackendError("native backend is closed")
         return int(self._library.compost_context_state_digest(self._context))
+
+    def restore_from(self, source: "NativeBackend") -> None:
+        """Restore an exact native snapshot from another compatible handle.
+
+        This is a native-to-native operation only. It does not import Python
+        sandbox identity, navigation, filesystem, or telemetry state. The C
+        endpoint validates the snapshot transactionally and leaves this handle
+        unchanged on failure.
+        """
+        if not self._context or not self._context.value:
+            raise NativeBackendError("native backend is closed")
+        if not isinstance(source, NativeBackend) or not source._context or not source._context.value:
+            raise NativeBackendError("source native backend is closed or invalid")
+        if self._restore_snapshot_symbol is None:
+            raise NativeBackendError("native library does not provide snapshot restore")
+        source_snapshot = _Snapshot()
+        self._check(
+            source._library.compost_context_snapshot(
+                source._context, ctypes.byref(source_snapshot)
+            ),
+            "compost_context_snapshot",
+        )
+        target_snapshot = _Snapshot()
+        self._check(
+            self._library.compost_context_snapshot(
+                self._context, ctypes.byref(target_snapshot)
+            ),
+            "compost_context_snapshot",
+        )
+        if int(target_snapshot.organism_id) != int(source_snapshot.organism_id):
+            raise NativeBackendError("native snapshot restore requires matching organism IDs")
+        metabolic = _MetabolicSnapshot()
+        self._check(
+            source._library.compost_context_metabolic_snapshot(
+                source._context, ctypes.byref(metabolic)
+            ),
+            "compost_context_metabolic_snapshot",
+        )
+        status = self._restore_snapshot_symbol(
+            self._context, ctypes.byref(source_snapshot), ctypes.byref(metabolic)
+        )
+        self._check(status, "compost_context_restore_snapshot")
 
     @staticmethod
     def _structures(values: object) -> tuple[tuple[int, int, float, float, float, float], ...]:
