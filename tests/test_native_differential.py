@@ -470,6 +470,31 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             population._contexts[1].apply_action = original  # type: ignore[method-assign]
             self.assertEqual(population.snapshots(), before)
 
+    def test_single_action_epoch_rolls_back_on_later_native_failure(self) -> None:
+        with NativeBackend(self.library_path, organism_id=2) as backend:
+            before = backend.state_digest()
+            original = backend.apply_action
+            calls = [0]
+
+            def fail_after_first_action(action: NativeAction) -> dict[str, object]:
+                if calls[0] == 0:
+                    calls[0] += 1
+                    return original(action)
+                raise NativeBackendError("injected single-handle action failure")
+
+            backend.apply_action = fail_after_first_action  # type: ignore[method-assign]
+            try:
+                with self.assertRaises(NativeBackendError):
+                    backend.replay_actions(
+                        (
+                            NativeAction.external_gut(b"A", capacity=1),
+                            NativeAction.lifecycle_step(b""),
+                        )
+                    )
+            finally:
+                backend.apply_action = original  # type: ignore[method-assign]
+            self.assertEqual(backend.state_digest(), before)
+
     def test_population_transaction_restores_handle_removed_during_failed_epoch(self) -> None:
         dead = AutonomousOrganism("ORG-DEAD")
         dead.territory_state.die()

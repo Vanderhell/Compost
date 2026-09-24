@@ -751,11 +751,27 @@ class NativeBackend:
         self,
         actions: Iterable[NativeAction],
     ) -> tuple[dict[str, object], ...]:
-        """Preflight and replay one complete action prefix in list order."""
+        """Preflight and replay one complete action prefix atomically.
+
+        A trace is one logical native epoch for a single handle.  If a later
+        action fails, the earlier native mutations are restored from the
+        opaque snapshot captured before execution.  This keeps the single-
+        handle adapter consistent with the population transaction boundary.
+        """
         sequence = tuple(actions)
         if any(not isinstance(action, NativeAction) for action in sequence):
             raise TypeError("action trace contains a non-NativeAction item")
-        return tuple(self.apply_action(action) for action in sequence)
+        before = self._capture_native_state()
+        try:
+            return tuple(self.apply_action(action) for action in sequence)
+        except BaseException:
+            try:
+                self._restore_native_state(before)
+            except BaseException as rollback_error:
+                raise NativeBackendError(
+                    "native action-trace rollback failed"
+                ) from rollback_error
+            raise
 
     def verify_material_conservation(self) -> None:
         """Raise when the native material-flow invariant is not satisfied."""
