@@ -47,7 +47,8 @@ world-level conservation checks.
 Its seed/configuration/epoch parameters are stored in
 `tests/fixtures/native_replays.json`, and failures report the first field with
 Python/native state digests.
-The latest ABI v4 MSVC Debug DLL differential run completed in 41.88s; the
+The latest ABI v4 MSVC Debug DLL differential and sandbox run completed in
+31.07s; the
 earlier WSL GCC DLL run completed in 6.670s.
 
 Long-run steps:
