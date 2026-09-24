@@ -629,6 +629,9 @@ class NativeBackend:
 
     def metabolic_schedule(self, minimum_work: int, body_size: int, progress: int) -> dict[str, int]:
         """Return the bounded native threshold, due count, and remainder."""
+        minimum_work = _require_uint64(minimum_work, "minimum_work")
+        body_size = _require_uint64(body_size, "body_size")
+        progress = _require_uint64(progress, "progress")
         outputs = [ctypes.c_uint64(0), ctypes.c_uint64(0), ctypes.c_uint64(0)]
         status = self._library.compost_metabolic_schedule(
             ctypes.c_uint64(minimum_work), ctypes.c_uint64(body_size), ctypes.c_uint64(progress),
@@ -654,6 +657,9 @@ class NativeBackend:
         self, amount: int, minimum_work: int, body_size: int
     ) -> dict[str, int]:
         """Add bounded work and settle complete units transactionally."""
+        amount = _require_uint64(amount, "amount")
+        minimum_work = _require_uint64(minimum_work, "minimum_work")
+        body_size = _require_uint64(body_size, "body_size")
         due_steps = ctypes.c_uint64(0)
         remaining_progress = ctypes.c_uint64(0)
         status = self._library.compost_context_accumulate_metabolic_progress(
@@ -672,8 +678,7 @@ class NativeBackend:
 
     def run_due_lifecycle(self, due_steps: int) -> dict[str, float | int]:
         """Run due empty-input lifecycle checkpoints as one native transaction."""
-        if not isinstance(due_steps, int) or due_steps < 0 or due_steps >= 1 << 64:
-            raise ValueError("due_steps must be an unsigned 64-bit integer")
+        due_steps = _require_uint64(due_steps, "due_steps")
         result = _CycleResult()
         executed_steps = ctypes.c_uint64(0)
         status = self._library.compost_context_run_due_lifecycle(
@@ -710,6 +715,7 @@ class NativeBackend:
 
     def process_gut(self, capacity: int) -> dict[str, int]:
         """Process at most capacity units from the native FIFO gut."""
+        capacity = _require_uint64(capacity, "capacity")
         if not self._context or not self._context.value:
             raise NativeBackendError("native backend is closed")
         result = _GutProcessResult()

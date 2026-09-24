@@ -402,6 +402,9 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                 )
             with self.assertRaises(NativeBackendError):
                 backend.metabolic_schedule(0, 1, 1)
+            for invalid in (True, -1, 1.5, 1 << 64):
+                with self.assertRaises(ValueError):
+                    backend.metabolic_schedule(invalid, 1, 1)  # type: ignore[arg-type]
 
     def test_metabolic_context_accumulator_matches_python_and_is_transactional(self) -> None:
         with NativeBackend(self.library_path, organism_id=89) as backend:
@@ -423,6 +426,12 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             with self.assertRaises(NativeBackendError):
                 backend.accumulate_metabolic_progress((1 << 64) - 1, 64, 4)
             self.assertEqual(backend.metabolic_snapshot(), before)
+            for invalid in (True, -1, 1.5, 1 << 64):
+                with self.assertRaises(ValueError):
+                    backend.accumulate_metabolic_progress(invalid, 64, 4)  # type: ignore[arg-type]
+            for invalid in (True, -1, 1.5, 1 << 64):
+                with self.assertRaises(ValueError):
+                    backend.process_gut(invalid)  # type: ignore[arg-type]
 
     def test_due_lifecycle_batch_matches_repeated_native_steps(self) -> None:
         with NativeBackend(self.library_path, organism_id=61) as batched:
