@@ -14,6 +14,42 @@
     "payload_patterns": ["AB", "ABCD", "ABBA", "ABC"],
     "payload_repeats": [128, 64, 64, 85]
   },
+  "configuration_matrix": [
+    {
+      "name": "default",
+      "organism_id": 11,
+      "payload": "ABCDABBA",
+      "cycles": 48,
+      "config": {}
+    },
+    {
+      "name": "low_income",
+      "organism_id": 23,
+      "payload": "ABCABCBA",
+      "cycles": 48,
+      "config": {
+        "atom_income": 0.75,
+        "relation_income": 0.65,
+        "composite_income": 0.9,
+        "atom_maintenance": 0.2,
+        "relation_maintenance": 0.4,
+        "composite_maintenance": 0.25,
+        "birth_reserve": 2.0,
+        "boundary_ratio_limit": 0.25
+      }
+    },
+    {
+      "name": "high_reserve",
+      "organism_id": 37,
+      "payload": "ABBAABCD",
+      "cycles": 48,
+      "config": {
+        "birth_reserve": 8.0,
+        "boundary_ratio_limit": 0.01,
+        "reproduction_minimum_body": 100000
+      }
+    }
+  ],
   "sandbox_trace": {
     "seed": 0,
     "organism_ids": [0],

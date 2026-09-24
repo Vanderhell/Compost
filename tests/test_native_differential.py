@@ -1834,6 +1834,41 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                         for index, (actual, expected) in enumerate(zip(native_composites[key], reference_composites[key])):
                             self.assertAlmostEqual(actual, expected, places=12, msg=evidence(f"composite {key} field {index}"))
 
+    def test_configuration_matrix_replays_each_step(self) -> None:
+        matrix = _native_fixture("configuration_matrix")
+        if not isinstance(matrix, list):
+            self.fail("configuration_matrix fixture must be a list")
+        for case in matrix:
+            self.assertIsInstance(case, dict)
+            config_values = case["config"]
+            self.assertIsInstance(config_values, dict)
+            config = LifecycleConfig(**config_values)
+            payload = str(case["payload"])
+            population = MathematicalLifePopulation(payload, config=config)
+            with NativeBackend(
+                self.library_path,
+                organism_id=int(case["organism_id"]),
+                config=config,
+            ) as backend:
+                for cycle in range(int(case["cycles"])):
+                    population.cycle()
+                    backend.step(
+                        payload.encode("ascii") if cycle == 0 else b"",
+                        (1.0,) * len(payload) if cycle == 0 else (),
+                    )
+                    reference = population.organisms[0]
+                    native = backend.snapshot()
+                    prefix = f"configuration {case['name']} step {cycle}"
+                    evidence = _FailureEvidence(prefix, "state", population, backend)
+                    self.assertEqual(native["status"], 0 if reference.status is OrganismStatus.ALIVE else 1, evidence)
+                    self.assertEqual(native["cursor"], reference.cursor, evidence)
+                    self.assertEqual(native["age_in_cycles"], reference.age_in_cycles, evidence)
+                    self.assertEqual(native["body"]["atom_count"], len(reference.atoms), evidence)
+                    self.assertEqual(native["body"]["relation_count"], len(reference.relations), evidence)
+                    self.assertEqual(native["body"]["composite_count"], len(reference.composites), evidence)
+                    self.assertEqual(native["body"]["structural_mass"], reference.full_body_mass(), evidence)
+                    self.assertAlmostEqual(native["reserve"], reference.reserve, places=12, msg=evidence)
+
 
 if __name__ == "__main__":
     unittest.main()
