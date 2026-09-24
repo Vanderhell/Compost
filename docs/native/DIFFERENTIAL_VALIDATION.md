@@ -22,17 +22,23 @@ values duplicated in test code.
 The test requires `COMPOST_NATIVE_LIBRARY`. If the variable is absent it is
 skipped; if it names a missing file the test fails. There is no silent native
 to Python fallback. The current bounded Python/C differential campaign contains
-seventy-eight tests,
+seventy-nine tests,
 including forty deterministic lifecycle replays (10,240 aggregate steps), a
 differential configuration matrix (144 additional steps), a
 differential starvation/death replay, a dense cross-split division replay, and
 field-by-field snapshot checks.
 
+The sandbox fixture `test_native_sandbox_replays_weak_member_chain_maintenance`
+also guards the chunk boundary rule: native fixed-size FIFO storage must be
+reassembled into one logical external digest so adjacent pairs spanning two
+storage chunks are not lost. Native snapshot comparisons canonicalize structure
+order explicitly because C slot order is not behavioral order.
+
 ## Current status
 
 The full per-step Python/C campaign is **NOT READY**. The native organism is
 not yet a complete lifecycle engine. The current native-backed differential
-run is green (`78 passed`; the focused sandbox boundary suite is `82 passed`
+run is green (`79 passed`; the focused sandbox boundary suite is `83 passed`
 including its four ownership/terminal-failure tests and explicit public CLI
 native-backend coverage). The complete Python
 regression suite without a native library is green (`201 passed, 75 skipped,

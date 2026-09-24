@@ -20,7 +20,7 @@ Documentation: PASS
 Python tests:
 `279 passed, 3 subtests passed` in the latest complete local run with the
 current native DLL (103.02s). The focused native sandbox/differential suite
-passed `82` tests.
+passed `83` tests.
 
 Native tests:
 `8/8` CTest tests passed in the current MSVC 19.42 Debug build with the
@@ -28,7 +28,7 @@ width audit and fuzz target enabled (99.67s). The current MSVC Release,
 GCC, and Clang strict results are recorded below.
 
 Differential cases:
-`78` Python/native differential tests pass, including bounded pure-rule,
+`79` Python/native differential tests pass, including bounded pure-rule,
 external-gut, environment corpse-energy credit, partition transaction,
 atomic division-boundary, step-plus-division lifecycle, territory predicate,
 deterministic FOOD block-key, two-organism population, and population child
