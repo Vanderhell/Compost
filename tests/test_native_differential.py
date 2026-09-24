@@ -24,6 +24,7 @@ from mathematical_organism.biology_rules import (
     ACTIVITY_COSTS,
     ActivityCounters,
     ActivityLedger,
+    BASE_RECEPTOR_MASS,
     forgetting_delta,
     lazy_metabolism_delta,
     maintenance_weakening_budget,
@@ -1512,6 +1513,35 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                     division_policies,
                     {"global_partition_policy"},
                 )
+
+    def test_native_sandbox_replays_weak_member_chain_maintenance(self) -> None:
+        config = LifecycleConfig(
+            birth_reserve=0.0,
+            reproduction_minimum_body=10_000,
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = SandboxRuntime(Path(directory) / "sandbox", block_size=64)
+            organism = AutonomousOrganism(config=config)
+            for key in (65, 66, 67, 68):
+                organism.body.add_structure(
+                    organism.body.atoms,
+                    LivingStructure(key, "ATOM", strength=4.0, maintenance=1.0),
+                )
+            for left, right, strength in ((65, 66, 10.0), (66, 67, 1.0), (67, 68, 10.0)):
+                organism.body.add_structure(
+                    organism.body.relations,
+                    LivingStructure((left, right), "RELATION", strength=strength, maintenance=1.0),
+                )
+            organism.material_flow.structural_created_mass = organism.body.body_mass - BASE_RECEPTOR_MASS
+            organism.rebuild_metabolic_indexes()
+            runtime.organisms.append(organism)
+            (runtime.inbox / "weak-neck.bin").write_bytes(b"A" * 64)
+            with NativeSandboxReplay(self.library_path, runtime, config=config) as replay:
+                epoch = replay.step()
+            self.assertTrue(
+                any(action.kind is NativeActionKind.LIFECYCLE_STEP
+                    for _organism_id, trace in epoch.traces for action in trace)
+            )
 
     def test_native_sandbox_replay_rejects_orphan_initial_handles(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

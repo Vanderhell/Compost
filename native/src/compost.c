@@ -1910,43 +1910,81 @@ compost_status_t compost_organism_process_gut(
              chunk->origin != COMPOST_MATERIAL_RESORPTION)) {
             return COMPOST_STATUS_INVALID_STATE;
         }
-        const uint64_t amount = chunk->mass < capacity ? chunk->mass : capacity;
         if (chunk->origin == COMPOST_MATERIAL_EXTERNAL) {
-            compost_step_input_t input = {
-                chunk->payload, chunk->nutrition, (size_t)amount
-            };
+            uint8_t payload[COMPOST_MAX_GUT_CHUNKS * COMPOST_MAX_GUT_CHUNK_BYTES];
+            double nutrition[COMPOST_MAX_GUT_CHUNKS * COMPOST_MAX_GUT_CHUNK_BYTES];
+            size_t batch = 0U;
+            uint32_t batch_chunks = 0U;
+            uint32_t scan = 0U;
+            while (scan < next.gut_count && batch < (size_t)capacity &&
+                   batch < sizeof(payload) / sizeof(payload[0])) {
+                const uint32_t slot = (next.gut_head + scan) % COMPOST_MAX_GUT_CHUNKS;
+                const compost_gut_chunk_t *source = &next.gut[slot];
+                if (source->origin != COMPOST_MATERIAL_EXTERNAL) break;
+                const size_t available = (size_t)source->mass;
+                const size_t remaining_capacity = (size_t)capacity - batch;
+                const size_t remaining_buffer = sizeof(payload) / sizeof(payload[0]) - batch;
+                const size_t amount = available < remaining_capacity
+                    ? available : remaining_capacity;
+                const size_t copied = amount < remaining_buffer ? amount : remaining_buffer;
+                memcpy(payload + batch, source->payload, copied * sizeof(payload[0]));
+                memcpy(nutrition + batch, source->nutrition, copied * sizeof(nutrition[0]));
+                batch += copied;
+                ++batch_chunks;
+                if (copied < available) break;
+                ++scan;
+            }
+            if (batch == 0U || batch_chunks == 0U) return COMPOST_STATUS_INVALID_STATE;
+            compost_step_input_t input = {payload, nutrition, batch};
             compost_step_result_t digestion = {0};
             compost_status_t status = compost_organism_digest(&next, &input, &digestion);
-            if (status != COMPOST_STATUS_OK || next.material_flow.input_mass < amount) {
+            if (status != COMPOST_STATUS_OK || next.material_flow.input_mass < batch) {
                 return status == COMPOST_STATUS_OK ? COMPOST_STATUS_INVALID_STATE : status;
             }
-            next.material_flow.input_mass -= amount;
+            next.material_flow.input_mass -= batch;
             if (!add_u64(next_result.assimilated_mass, digestion.assimilated_mass,
                          &next_result.assimilated_mass) ||
                 !add_u64(next_result.rejected_mass, digestion.rejected_mass,
                          &next_result.rejected_mass) ||
                 !add_u64(next_result.expelled_mass, digestion.rejected_mass,
-                         &next_result.expelled_mass)) {
+                         &next_result.expelled_mass) ||
+                !add_u64(next_result.processed_mass, (uint64_t)batch,
+                         &next_result.processed_mass)) {
                 return COMPOST_STATUS_INVALID_ARGUMENT;
             }
-            const size_t consumed = (size_t)amount;
-            const size_t remaining = (size_t)chunk->mass - consumed;
-            if (remaining > 0U) {
-                memmove(chunk->payload, chunk->payload + consumed, remaining * sizeof(chunk->payload[0]));
-                memmove(chunk->nutrition, chunk->nutrition + consumed, remaining * sizeof(chunk->nutrition[0]));
+            size_t remaining = batch;
+            while (remaining > 0U) {
+                compost_gut_chunk_t *consumed = &next.gut[next.gut_head];
+                const size_t amount = (size_t)consumed->mass < remaining
+                    ? (size_t)consumed->mass : remaining;
+                const size_t tail = (size_t)consumed->mass - amount;
+                if (tail > 0U) {
+                    memmove(consumed->payload, consumed->payload + amount,
+                            tail * sizeof(consumed->payload[0]));
+                    memmove(consumed->nutrition, consumed->nutrition + amount,
+                            tail * sizeof(consumed->nutrition[0]));
+                }
+                consumed->mass = (uint64_t)tail;
+                consumed->payload_length = (uint32_t)tail;
+                remaining -= amount;
+                if (consumed->mass == 0U) {
+                    memset(consumed, 0, sizeof(*consumed));
+                    next.gut_head = (next.gut_head + 1U) % COMPOST_MAX_GUT_CHUNKS;
+                    --next.gut_count;
+                }
             }
-            chunk->payload_length = (uint32_t)remaining;
-            chunk->mass = (uint64_t)remaining;
-        } else {
-            chunk->mass -= amount;
-            if (!add_u64(resorbed_processed, amount, &resorbed_processed) ||
-                !add_u64(next.material_flow.processed_mass, amount, &next.material_flow.processed_mass) ||
-                !add_u64(next.material_flow.expelled_mass, amount, &next.material_flow.expelled_mass) ||
-                !add_u64(next.material_flow.resorption_expelled_mass, amount,
-                         &next.material_flow.resorption_expelled_mass) ||
-                !add_u64(next_result.expelled_mass, amount, &next_result.expelled_mass)) {
-                return COMPOST_STATUS_INVALID_ARGUMENT;
-            }
+            capacity -= (uint64_t)batch;
+            continue;
+        }
+        const uint64_t amount = chunk->mass < capacity ? chunk->mass : capacity;
+        chunk->mass -= amount;
+        if (!add_u64(resorbed_processed, amount, &resorbed_processed) ||
+            !add_u64(next.material_flow.processed_mass, amount, &next.material_flow.processed_mass) ||
+            !add_u64(next.material_flow.expelled_mass, amount, &next.material_flow.expelled_mass) ||
+            !add_u64(next.material_flow.resorption_expelled_mass, amount,
+                     &next.material_flow.resorption_expelled_mass) ||
+            !add_u64(next_result.expelled_mass, amount, &next_result.expelled_mass)) {
+            return COMPOST_STATUS_INVALID_ARGUMENT;
         }
         capacity -= amount;
         if (!add_u64(next_result.processed_mass, amount, &next_result.processed_mass)) {

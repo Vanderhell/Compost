@@ -195,9 +195,15 @@ class NativeSandboxReplay:
                     index += 1
                 expected = python_action_states.get(organism_id, {}).get(id(expected_action))
                 if expected is not None:
-                    self._assert_shared_state(
-                        self._population.snapshot(organism_id), expected
-                    )
+                    try:
+                        self._assert_shared_state(
+                            self._population.snapshot(organism_id), expected
+                        )
+                    except RuntimeError as error:
+                        raise RuntimeError(
+                            f"native sandbox divergence after {expected_action.kind.value} "
+                            f"at epoch {self._epoch}, organism {organism_id}: {error}"
+                        ) from error
             return results
 
         replayed: dict[int, tuple[dict[str, object], ...]] = {}
@@ -431,7 +437,8 @@ class NativeSandboxReplay:
             ("relations", structures(body.relations)),
             ("composites", structures(body.composites)),
         ):
-            fail(field, expected, native[field])
+            actual = tuple(sorted(native[field], key=lambda item: (item[0], item[1])))
+            fail(field, expected, actual)
 
         expected_receptors = tuple(sorted(body.activated_receptors))
         fail("activated_receptors", expected_receptors, native["activated_receptors"])
