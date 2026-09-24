@@ -78,6 +78,12 @@ The same current tree also passed the strict GCC 13.3 Release suite (`8/8`,
 `14.04s`) and strict Linux Clang 18.1.3 Release suite (`8/8`, `13.91s`),
 both with warnings-as-errors enabled.
 
+The current Windows GCC 16.1 Debug build was also rebuilt with the same strict
+warning set and warnings-as-errors; its complete CTest run passed `8/8` in
+`97.94s`, including the deterministic fuzz target. The fixed-width snapshot
+validation no longer contains comparisons that GCC can prove impossible for
+the declared `uint8_t` key domain.
+
 The Python ABI adapter also has a single-handle action-epoch regression: a
 failure in a later action restores the earlier native mutation from the opaque
 snapshot before propagating the error.

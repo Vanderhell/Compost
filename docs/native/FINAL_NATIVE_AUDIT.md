@@ -69,6 +69,8 @@ filesystem clock-skew warnings were not present in this WSL run.
 GCC result:
 GCC 13.3 Release `-Werror` build and CTest pass: `8/8` in `14.04s`; the
 native C fuzz target covers 10,000 deterministic public-API cases.
+The current Windows GCC 16.1 Debug `-Werror` build and CTest pass is also
+`8/8` in `97.94s`.
 
 Clang result:
 Linux Clang 18.1.3 Release `-Werror` build and full CTest pass (`8/8`, 13.91s) with
