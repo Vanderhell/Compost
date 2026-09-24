@@ -67,7 +67,7 @@ and composites after every step. This is bounded to the migrated
 single-organism checkpoint and is not the required 1,000,000-step
 full-population acceptance campaign.
 
-A long-run replay was executed locally against the current ABI v3 MSVC Release
+A long-run replay was executed locally against the current ABI v4 MSVC Release
 native DLL with `COMPOST_DIFFERENTIAL_CYCLES=25000`. It covered the same 40
 deterministic scenarios for exactly `1,000,000` aggregate Python/native steps
 and passed in `429.75s` with zero divergences. This is strong single-organism evidence, but
