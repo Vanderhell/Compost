@@ -470,6 +470,25 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             population._contexts[1].apply_action = original  # type: ignore[method-assign]
             self.assertEqual(population.snapshots(), before)
 
+    def test_population_apply_actions_rolls_back_on_later_native_failure(self) -> None:
+        with NativePopulationBackend(self.library_path, organism_ids=(0, 1)) as population:
+            before = population.snapshots()
+            original = population._contexts[1].apply_action
+
+            def fail_after_first_handle(_action: NativeAction) -> dict[str, object]:
+                raise NativeBackendError("injected apply-actions failure")
+
+            population._contexts[1].apply_action = fail_after_first_handle  # type: ignore[method-assign]
+            try:
+                with self.assertRaises(NativeBackendError):
+                    population.apply_actions({
+                        0: NativeAction.external_gut(b"A", capacity=1),
+                        1: NativeAction.lifecycle_step(b""),
+                    })
+            finally:
+                population._contexts[1].apply_action = original  # type: ignore[method-assign]
+            self.assertEqual(population.snapshots(), before)
+
     def test_single_action_epoch_rolls_back_on_later_native_failure(self) -> None:
         with NativeBackend(self.library_path, organism_id=2) as backend:
             before = backend.state_digest()

@@ -1221,6 +1221,7 @@ class NativeBackend:
         child.library_path = self.library_path
         child._library = self._library
         child._context = child_context
+        child._restore_snapshot_symbol = self._restore_snapshot_symbol
         child._local_reproduction_symbol = self._local_reproduction_symbol
         child._local_reproduction_transaction_symbol = self._local_reproduction_transaction_symbol
         plan_view["division"] = {
@@ -1311,6 +1312,7 @@ class NativeBackend:
         child.library_path = self.library_path
         child._library = self._library
         child._context = child_context
+        child._restore_snapshot_symbol = self._restore_snapshot_symbol
         child._local_reproduction_symbol = self._local_reproduction_symbol
         child._local_reproduction_transaction_symbol = self._local_reproduction_transaction_symbol
         return child, {
@@ -1352,6 +1354,7 @@ class NativeBackend:
         child.library_path = self.library_path
         child._library = self._library
         child._context = child_context
+        child._restore_snapshot_symbol = self._restore_snapshot_symbol
         child._local_reproduction_symbol = self._local_reproduction_symbol
         child._local_reproduction_transaction_symbol = self._local_reproduction_transaction_symbol
         plan_view["division"] = {
@@ -1386,6 +1389,7 @@ class NativeBackend:
         child.library_path = self.library_path
         child._library = self._library
         child._context = child_context
+        child._restore_snapshot_symbol = self._restore_snapshot_symbol
         child._local_reproduction_symbol = self._local_reproduction_symbol
         child._local_reproduction_transaction_symbol = self._local_reproduction_transaction_symbol
         return child, {
@@ -1606,10 +1610,18 @@ class NativePopulationBackend:
 
         Omitted IDs are a deliberate no-op for this epoch. Unknown IDs and
         invalid action objects are rejected during a complete preflight before
-        any native handle is mutated. Native allocation/runtime failures still
-        stop the epoch and are surfaced; this method does not claim rollback
-        after a native operation has begun.
+        any native handle is mutated. Native allocation/runtime failures abort
+        the complete epoch, restore every pre-existing handle, close/remove
+        any child created by the epoch, and are surfaced to the caller.
         """
+        with self._native_transaction():
+            return self._apply_actions_impl(actions)
+
+    def _apply_actions_impl(
+        self,
+        actions: Mapping[int, NativeAction],
+    ) -> dict[int, dict[str, object]]:
+        """Apply a preflightable action epoch inside its caller's transaction."""
         if self._closed:
             raise NativeBackendError("native population backend is closed")
         unknown = set(actions) - set(self._contexts)
