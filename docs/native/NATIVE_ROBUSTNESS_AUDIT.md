@@ -107,8 +107,9 @@ Invalid `try_divide` handles are checked to preserve all caller output sentinels
 Direct population reproduction and boundary-partition registration also roll
 back the parent and remove the transient child when child snapshot
 materialization fails.
-Population environment, action, due-lifecycle, and trace map keys now reject
-non-uint64 values before native state capture or mutation.
+Population environment, action, due-lifecycle, trace, snapshot, corpse, and
+restore IDs now reject non-uint64 values before native state capture or
+mutation. Direct child-ID operations use the same contract.
 Native handle constructors apply the same strict uint64 contract without
 lossy string, float, signed, or boolean coercion.
 The public status-name helper returns stable names for every defined status and
