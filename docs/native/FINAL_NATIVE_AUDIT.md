@@ -18,8 +18,8 @@ CI: PASS
 Documentation: PASS
 
 Python tests:
-`271 passed, 3 subtests passed` in the latest complete local run with the
-ABI v4 native DLL configured (106.00s).
+`272 passed, 3 subtests passed` in the latest complete local run with the
+ABI v4 native DLL configured (102.48s).
 
 Native tests:
 `8/8` CTest tests passed in the current MSVC 19.42 Debug build with the
@@ -27,7 +27,7 @@ width audit and fuzz target enabled (98.98s). The current MSVC Release,
 GCC, and Clang strict results are recorded below.
 
 Differential cases:
-`71` Python/native differential tests pass, including bounded pure-rule,
+`72` Python/native differential tests pass, including bounded pure-rule,
 external-gut, environment corpse-energy credit, partition transaction,
 atomic division-boundary, step-plus-division lifecycle, territory predicate,
 deterministic FOOD block-key, two-organism population, and population child
@@ -37,8 +37,9 @@ metabolic scheduling arithmetic, starvation/death replay, and opaque metabolic
 progress accumulation and completed-lifecycle-step accounting, including the
 dead-stop, single-handle, population action-rollback, child-handle rollback,
 and direct reproduction/partition snapshot-failure rollback regressions,
-plus strict non-uint64 population-ID and constructor validation. A multi-epoch
-sandbox trace campaign also replays
+plus strict non-uint64 population-ID and constructor validation, and
+preflight-before-capture rollback guards. A multi-epoch sandbox trace campaign
+also replays
 parent and child traces with per-epoch state comparison and corpse transfer,
 plus the reusable `NativeSandboxReplay` host-boundary acceptance and ownership
 validation tests, and local weakest-member reproduction component selection.

@@ -21,7 +21,7 @@ values duplicated in test code.
 
 The test requires `COMPOST_NATIVE_LIBRARY`. If the variable is absent it is
 skipped; if it names a missing file the test fails. There is no silent native
-to Python fallback. The current bounded campaign contains seventy-one tests,
+to Python fallback. The current bounded campaign contains seventy-two tests,
 including forty deterministic lifecycle replays (10,240 aggregate steps), a
 differential configuration matrix (144 additional steps), a
 differential starvation/death replay, a dense cross-split division replay, and
@@ -31,9 +31,9 @@ field-by-field snapshot checks.
 
 The full per-step Python/C campaign is **NOT READY**. The native organism is
 not yet a complete lifecycle engine. The current native-backed differential
-run is green (`71 passed`; the focused oracle/member-weakness validation run
-is `74 passed` including the related Python tests), and the complete Python regression suite is green
-(`271 passed, 3 subtests passed` in the latest ABI v4 run). The selected partition
+run is green (`72 passed`; the focused oracle/member-weakness validation run
+is `75 passed` including the related Python tests), and the complete Python regression suite is green
+(`272 passed, 3 subtests passed` in the latest ABI v4 run). The selected partition
 transaction now has a bounded Python/sandbox comparison, and both native
 reproduction policies are selected by the sandbox adapter and compared with
 the Python child atom set. The native checkpoint now
@@ -80,7 +80,8 @@ checks the complete native snapshot and state digest, including the dead-state
 and zero-step status contract at the C ABI boundary.
 The population adapter also runs these batches in ascending organism-ID order
 with epoch-wide ID/count preflight, exact cross-handle rollback on execution
-failure, atomic direct reproduction/partition child registration, and
+failure, atomic direct reproduction/partition child registration, strict
+preflight before native capture, and
 per-population conservation validation.
 
 The current Python/reference campaign executes 40 deterministic payload

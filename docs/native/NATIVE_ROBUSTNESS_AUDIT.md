@@ -112,6 +112,8 @@ materialization fails.
 Population environment, action, due-lifecycle, trace, snapshot, corpse, and
 restore IDs now reject non-uint64 values before native state capture or
 mutation. Direct child-ID operations use the same contract.
+The population `step`, `apply_actions`, and direct division wrappers preflight
+these IDs before opening their native transaction boundary.
 Native handle constructors apply the same strict uint64 contract without
 lossy string, float, signed, or boolean coercion.
 The public status-name helper returns stable names for every defined status and
