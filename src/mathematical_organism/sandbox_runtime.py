@@ -462,7 +462,8 @@ class AutonomousOrganism(AutonomousCore):
                 action_observer(action)
 
         self.live_steps += 1
-        self._reclaim_sibling_if_available(sandbox)
+        if self._reclaim_sibling_if_available(sandbox):
+            emit(NativeAction.territory_reclaim(self.territory_state.territory.path))
         if not sandbox.has_active_food():
             sandbox.ingest_one_available(self)
         # A committed physical bite must already have completed DIGEST.  When

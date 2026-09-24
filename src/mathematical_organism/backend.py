@@ -37,6 +37,7 @@ class NativeActionKind(str, Enum):
     METABOLIC_PROGRESS = "metabolic_progress"
     LIFECYCLE_STEP = "lifecycle_step"
     DIVISION = "division"
+    TERRITORY_RECLAIM = "territory_reclaim"
 
 
 @dataclass(frozen=True)
@@ -60,6 +61,7 @@ class NativeAction:
     child_atoms: tuple[int, ...] = ()
     child_id: int = 0
     birth_cost: float = 0.0
+    territory_path: tuple[int, ...] = ()
 
     def __post_init__(self) -> None:
         if not isinstance(self.kind, NativeActionKind):
@@ -95,6 +97,13 @@ class NativeAction:
         object.__setattr__(self, "child_atoms", atom_keys)
         if type(self.child_id) is not int or not 0 <= self.child_id <= (1 << 64) - 1:
             raise ValueError("child_id must be an unsigned 64-bit integer")
+        territory_path = tuple(self.territory_path)
+        if (
+            len(territory_path) > 64
+            or any(type(value) is not int or value not in (0, 1) for value in territory_path)
+        ):
+            raise ValueError("territory_path must contain at most 64 binary uint8 values")
+        object.__setattr__(self, "territory_path", territory_path)
         if (
             type(self.birth_cost) not in (int, float)
             or not math.isfinite(float(self.birth_cost))
@@ -128,6 +137,15 @@ class NativeAction:
             self.child_atoms or self.child_id or self.birth_cost
         ):
             raise ValueError("non-division action cannot carry partition fields")
+        if self.kind is NativeActionKind.TERRITORY_RECLAIM:
+            if (
+                payload or values is not None or self.capacity or self.energy or
+                self.amount or self.minimum_work or self.body_size or
+                self.child_atoms or self.child_id or self.birth_cost
+            ):
+                raise ValueError("territory-reclaim action cannot carry unrelated fields")
+        elif territory_path:
+            raise ValueError("territory_path is only valid for territory-reclaim actions")
         if self.kind is NativeActionKind.LIFECYCLE_STEP and (self.capacity or self.energy):
             raise ValueError("lifecycle-step action cannot carry capacity or energy")
 
@@ -168,6 +186,10 @@ class NativeAction:
             child_id=child_id,
             birth_cost=birth_cost,
         )
+
+    @classmethod
+    def territory_reclaim(cls, path: tuple[int, ...]) -> "NativeAction":
+        return cls(NativeActionKind.TERRITORY_RECLAIM, territory_path=tuple(path))
 
     @classmethod
     def lifecycle_step(
@@ -487,6 +509,10 @@ class NativeBackend:
             ctypes.c_void_p, ctypes.c_uint64, ctypes.POINTER(_GutProcessResult)
         ]
         library.compost_context_process_gut.restype = ctypes.c_int
+        library.compost_context_set_territory.argtypes = [
+            ctypes.c_void_p, ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t
+        ]
+        library.compost_context_set_territory.restype = ctypes.c_int
         library.compost_context_weaken_weakest.argtypes = [
             ctypes.c_void_p, ctypes.POINTER(ctypes.c_bool), ctypes.POINTER(ctypes.c_uint64)
         ]
@@ -730,6 +756,19 @@ class NativeBackend:
             "expelled_mass": int(result.expelled_mass),
         }
 
+    def set_territory(self, path: tuple[int, ...]) -> None:
+        """Apply a host-approved live territory path through the C ABI."""
+        values = tuple(path)
+        if len(values) > 64 or any(type(value) is not int or value not in (0, 1) for value in values):
+            raise ValueError("territory path must contain at most 64 binary values")
+        path_buffer = None
+        if values:
+            path_buffer = (ctypes.c_uint8 * len(values))(*values)
+        status = self._library.compost_context_set_territory(
+            self._context, path_buffer, ctypes.c_size_t(len(values))
+        )
+        self._check(status, "compost_context_set_territory")
+
     def apply_division_action(self, action: NativeAction) -> tuple["NativeBackend", dict[str, float | int]]:
         """Commit a division action and transfer ownership of its child handle.
 
@@ -770,6 +809,12 @@ class NativeBackend:
             return {
                 "kind": action.kind.value,
                 "credited_energy": self.apply_corpse_energy(action.energy),
+            }
+        if action.kind is NativeActionKind.TERRITORY_RECLAIM:
+            self.set_territory(action.territory_path)
+            return {
+                "kind": action.kind.value,
+                "territory": action.territory_path,
             }
         if action.kind is NativeActionKind.METABOLIC_PROGRESS:
             result = self.accumulate_metabolic_progress(

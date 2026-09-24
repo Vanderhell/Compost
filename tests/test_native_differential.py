@@ -1662,6 +1662,16 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                 backend.replay_actions((NativeAction.corpse_energy(1.0), "invalid"))  # type: ignore[arg-type]
             self.assertEqual(backend.state_digest(), before)
 
+    def test_territory_reclaim_action_updates_native_state(self) -> None:
+        with NativeBackend(self.library_path, organism_id=7) as backend:
+            result = backend.apply_action(NativeAction.territory_reclaim((1, 0)))
+            self.assertEqual(result, {"kind": "territory_reclaim", "territory": (1, 0)})
+            self.assertEqual(backend.snapshot()["territory"], (1, 0))
+            backend.apply_action(NativeAction.territory_reclaim(()))
+            self.assertEqual(backend.snapshot()["territory"], ())
+            with self.assertRaises(ValueError):
+                NativeAction.territory_reclaim((2,))
+
     def test_explicit_process_gut_action_preserves_backpressure_semantics(self) -> None:
         payload = (1, 2, 1)
         nutrition = (1.0, 2.0, 3.0)
