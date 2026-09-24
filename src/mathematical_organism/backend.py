@@ -66,27 +66,44 @@ class NativeAction:
             raise ValueError("kind must be a NativeActionKind")
         payload = bytes(self.payload)
         object.__setattr__(self, "payload", payload)
-        values = None if self.nutrition is None else tuple(float(value) for value in self.nutrition)
+        values = None if self.nutrition is None else tuple(self.nutrition)
         if values is not None:
-            if len(values) != len(payload) or any(not math.isfinite(value) for value in values):
+            if (
+                len(values) != len(payload)
+                or any(type(value) not in (int, float) for value in values)
+                or any(not math.isfinite(float(value)) for value in values)
+            ):
                 raise ValueError("nutrition must be finite and match payload length")
+            values = tuple(float(value) for value in values)
         object.__setattr__(self, "nutrition", values)
-        if not isinstance(self.capacity, int) or not 0 <= self.capacity <= (1 << 64) - 1:
-            raise ValueError("capacity must be an unsigned 64-bit integer")
+        for name, value in (("capacity", self.capacity),):
+            if type(value) is not int or not 0 <= value <= (1 << 64) - 1:
+                raise ValueError(f"{name} must be an unsigned 64-bit integer")
         for name, value in (
             ("amount", self.amount), ("minimum_work", self.minimum_work), ("body_size", self.body_size)
         ):
-            if not isinstance(value, int) or not 0 <= value <= (1 << 64) - 1:
+            if type(value) is not int or not 0 <= value <= (1 << 64) - 1:
                 raise ValueError(f"{name} must be an unsigned 64-bit integer")
-        atom_keys = tuple(int(value) for value in self.child_atoms)
-        if any(value < 0 or value > 255 for value in atom_keys) or len(set(atom_keys)) != len(atom_keys):
+        atom_keys = tuple(self.child_atoms)
+        if (
+            any(type(value) is not int or value < 0 or value > 255 for value in atom_keys)
+            or len(set(atom_keys)) != len(atom_keys)
+        ):
             raise ValueError("child_atoms must contain unique uint8 keys")
         object.__setattr__(self, "child_atoms", atom_keys)
-        if not isinstance(self.child_id, int) or not 0 <= self.child_id <= (1 << 64) - 1:
+        if type(self.child_id) is not int or not 0 <= self.child_id <= (1 << 64) - 1:
             raise ValueError("child_id must be an unsigned 64-bit integer")
-        if not math.isfinite(float(self.birth_cost)) or self.birth_cost < 0.0:
+        if (
+            type(self.birth_cost) not in (int, float)
+            or not math.isfinite(float(self.birth_cost))
+            or self.birth_cost < 0.0
+        ):
             raise ValueError("birth_cost must be finite and non-negative")
-        if not math.isfinite(float(self.energy)) or self.energy < 0.0:
+        if (
+            type(self.energy) not in (int, float)
+            or not math.isfinite(float(self.energy))
+            or self.energy < 0.0
+        ):
             raise ValueError("energy must be finite and non-negative")
         if self.kind is NativeActionKind.PROCESS_GUT and (payload or values is not None or self.energy):
             raise ValueError("gut-processing action cannot carry material or energy fields")

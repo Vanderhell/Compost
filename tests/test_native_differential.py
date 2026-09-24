@@ -1604,6 +1604,23 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 NativeAction.process_gut(capacity=1 << 64)
             self.assertEqual(backend.state_digest(), before)
+            with self.assertRaises(ValueError):
+                NativeAction.external_gut(b"A", capacity=True)  # type: ignore[arg-type]
+            with self.assertRaises(ValueError):
+                NativeAction(
+                    NativeActionKind.METABOLIC_PROGRESS,
+                    amount=True,
+                    minimum_work=1,
+                    body_size=1,
+                )  # type: ignore[arg-type]
+            with self.assertRaises(ValueError):
+                NativeAction.division(("4",), child_id=1, birth_cost=1.0)  # type: ignore[arg-type]
+            with self.assertRaises(ValueError):
+                NativeAction.division((True,), child_id=1, birth_cost=1.0)  # type: ignore[arg-type]
+            with self.assertRaises(ValueError):
+                NativeAction.corpse_energy("1.0")  # type: ignore[arg-type]
+            with self.assertRaises(ValueError):
+                NativeAction.external_gut(b"A", nutrition=("1.0",), capacity=1)  # type: ignore[arg-type]
             with self.assertRaises(TypeError):
                 backend.replay_actions((NativeAction.corpse_energy(1.0), "invalid"))  # type: ignore[arg-type]
             self.assertEqual(backend.state_digest(), before)
