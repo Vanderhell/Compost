@@ -18,8 +18,8 @@ CI: PASS
 Documentation: PASS
 
 Python tests:
-`263 passed, 3 subtests passed` in the latest complete local run with the
-ABI v4 native DLL configured (142.04s).
+`264 passed, 3 subtests passed` in the latest complete local run with the
+ABI v4 native DLL configured (105.67s).
 
 Native tests:
 `8/8` CTest tests passed in the current MSVC 19.42 Debug build with the

@@ -68,8 +68,9 @@ stable source digest and logical byte/block content, not an OS path.
 The future Python oracle and C exporter must use the same schema, explicit field
 names, stable type tags, sorted map/set entries, and a defined float encoding.
 The preferred initial float encoding is exact IEEE-754 binary64 bit patterns
-with explicit handling for signed zero, NaN, and infinity; configurations and
-normal simulation values should reject non-finite values. No `repr`, pointer,
+with explicit handling for signed zero, NaN, and infinity; every behavioral
+configuration used by a reference organism is included in the canonical
+snapshot. Normal simulation values should reject non-finite values. No `repr`, pointer,
 object ID, address, unordered iteration, or locale-dependent formatting may
 appear in the digest.
 

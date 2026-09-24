@@ -33,7 +33,7 @@ The full per-step Python/C campaign is **NOT READY**. The native organism is
 not yet a complete lifecycle engine. The current native-backed differential
 run is green (`65 passed`; the focused oracle/member-weakness validation run
 is `68 passed` including the related Python tests), and the complete Python regression suite is green
-(`263 passed, 3 subtests passed` in the latest ABI v4 run). The selected partition
+(`264 passed, 3 subtests passed` in the latest ABI v4 run). The selected partition
 transaction now has a bounded Python/sandbox comparison, and both native
 reproduction policies are selected by the sandbox adapter and compared with
 the Python child atom set. The native checkpoint now
