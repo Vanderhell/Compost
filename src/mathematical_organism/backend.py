@@ -1507,8 +1507,9 @@ class NativePopulationBackend:
 
         Missing environment entries are empty bites. Child IDs are supplied by
         the Python world/territory owner; a deterministic unused ID is used
-        only when an entry is omitted. A hard native error stops the epoch and
-        is surfaced to the caller.
+        only when an entry is omitted. A hard native error aborts the epoch,
+        restores every pre-existing native handle, and is surfaced to the
+        caller.
         """
         if self._closed:
             raise NativeBackendError("native population backend is closed")
