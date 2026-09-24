@@ -74,6 +74,27 @@ int main(void)
         compost_destroy(context);
         return fail("opaque ABI");
     }
+    const uint8_t reclaim_path[] = {1U, 0U};
+    const uint8_t invalid_path[] = {1U, 2U};
+    const uint64_t territory_before = compost_context_state_digest(context);
+    if (compost_context_set_territory(
+            context, reclaim_path, sizeof(reclaim_path)
+        ) != COMPOST_STATUS_OK) {
+        compost_destroy(context);
+        return fail("territory state action");
+    }
+    const uint64_t territory_valid_digest = compost_context_state_digest(context);
+    if (compost_context_set_territory(
+            context, invalid_path, sizeof(invalid_path)
+        ) != COMPOST_STATUS_INVALID_ARGUMENT ||
+        compost_context_state_digest(context) != territory_valid_digest) {
+        compost_destroy(context);
+        return fail("territory state validation");
+    }
+    if (compost_context_set_territory(context, NULL, 0U) != COMPOST_STATUS_OK) {
+        compost_destroy(context);
+        return fail("territory root reset");
+    }
     uint64_t batch_executed = UINT64_C(99);
     compost_cycle_result_t batch_result = {0};
     if (compost_create(&config, UINT64_C(17), &batch_context) != COMPOST_STATUS_OK ||

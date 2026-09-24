@@ -594,6 +594,14 @@ compost_status_t compost_context_process_gut(
     uint64_t capacity,
     compost_gut_process_result_t *result
 );
+/* Applies a host-approved live territory path without filesystem access.
+ * The path is copied transactionally; invalid depth or non-binary bytes leave
+ * the context unchanged. A zero-depth path may pass a NULL pointer. */
+compost_status_t compost_context_set_territory(
+    compost_context_t *context,
+    const uint8_t *path,
+    size_t depth
+);
 /* Weakens or removes one deterministically selected live structure. On hard
  * failure the context and both outputs remain unchanged. */
 compost_status_t compost_context_weaken_weakest(

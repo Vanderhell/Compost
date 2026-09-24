@@ -748,6 +748,29 @@ compost_status_t compost_context_process_gut(
     return compost_organism_process_gut(&context->organism, capacity, result);
 }
 
+compost_status_t compost_context_set_territory(
+    compost_context_t *context,
+    const uint8_t *path,
+    size_t depth
+)
+{
+    if (context == NULL || !context->organism.initialized ||
+        (path == NULL && depth != 0U) ||
+        depth > context->organism.config.max_territory_depth ||
+        context->organism.status != COMPOST_LIFECYCLE_ALIVE) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    for (size_t index = 0U; index < depth; ++index) {
+        if (path[index] > UINT8_C(1)) return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    compost_organism_t next = context->organism;
+    memset(next.territory.path, 0, sizeof(next.territory.path));
+    if (depth > 0U) memcpy(next.territory.path, path, depth);
+    next.territory.depth = (uint32_t)depth;
+    context->organism = next;
+    return COMPOST_STATUS_OK;
+}
+
 compost_status_t compost_context_weaken_weakest(
     compost_context_t *context,
     bool *changed,
