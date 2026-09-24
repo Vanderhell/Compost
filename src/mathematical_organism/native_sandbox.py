@@ -422,6 +422,11 @@ class NativeSandboxReplay:
         fail("activated_receptors", expected_receptors, native["activated_receptors"])
         expected_territory = organism.territory_state.territory.path
         fail("territory", expected_territory, native["territory"])
+        fail(
+            "territory_local_birth_counter",
+            organism.territory_state.local_birth_counter,
+            native["territory_local_birth_counter"],
+        )
 
         native_flow = native["material_flow"]
         assert isinstance(native_flow, dict)

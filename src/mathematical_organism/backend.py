@@ -1198,6 +1198,7 @@ class NativeBackend:
             "maintenance_paid_total": float(snapshot.maintenance_paid_total),
             "weakening_events": int(snapshot.weakening_events),
             "territory": tuple(int(snapshot.territory.path[index]) for index in range(snapshot.territory.depth)),
+            "territory_local_birth_counter": int(snapshot.territory.local_birth_counter),
             "activated_receptors": tuple(
                 index for index in range(256)
                 if snapshot.activated_receptors[index // 64] & (1 << (index % 64))

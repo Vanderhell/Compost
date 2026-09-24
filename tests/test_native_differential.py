@@ -298,6 +298,7 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             with NativeSandboxReplay(self.library_path, runtime) as replay:
                 imported = replay.population.snapshot(0)
             self.assertEqual(imported["territory"], (1, 0))
+            self.assertEqual(imported["territory_local_birth_counter"], 3)
             self.assertEqual(imported["gut"], ((1, 0, b"A", (1.0,)),))
             self.assertEqual(imported["metabolic_progress"], 7)
             self.assertEqual(imported["metabolic_steps"], 2)
