@@ -668,12 +668,12 @@ compost_status_t compost_context_lifecycle_step(
     status = activity_charge_only(&next.organism.activity, &lifecycle_counters, &DEFAULT_ACTIVITY_COSTS);
     if (status != COMPOST_STATUS_OK) return status;
     next_result.status_after = next.organism.status;
-    *result = next_result;
     status = settle_activity_debt(&next.organism);
     if (status != COMPOST_STATUS_OK) return status;
     if (next.metabolic_steps == UINT64_MAX) return COMPOST_STATUS_INVALID_ARGUMENT;
     next.metabolic_steps += UINT64_C(1);
     *context = next;
+    *result = next_result;
     return COMPOST_STATUS_OK;
 }
 

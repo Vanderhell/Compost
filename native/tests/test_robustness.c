@@ -141,6 +141,39 @@ int main(void)
         return fail("invalid lifecycle rollback");
     }
     compost_destroy(invalid_lifecycle_context);
+
+    compost_context_t *step_overflow_context = NULL;
+    compost_snapshot_t step_overflow_snapshot = {0};
+    compost_metabolic_snapshot_t step_overflow_metabolic = {0};
+    compost_cycle_result_t step_overflow_result = {0};
+    const compost_step_input_t step_overflow_input = {NULL, NULL, 0U};
+    if (compost_create(&config, UINT64_C(31), &step_overflow_context) != COMPOST_STATUS_OK ||
+        compost_context_snapshot(step_overflow_context, &step_overflow_snapshot) != COMPOST_STATUS_OK ||
+        compost_context_metabolic_snapshot(step_overflow_context, &step_overflow_metabolic) != COMPOST_STATUS_OK) {
+        compost_destroy(step_overflow_context);
+        return fail("metabolic-step overflow setup");
+    }
+    step_overflow_metabolic.steps = UINT64_MAX;
+    if (compost_context_restore_snapshot(
+            step_overflow_context, &step_overflow_snapshot, &step_overflow_metabolic
+        ) != COMPOST_STATUS_OK) {
+        compost_destroy(step_overflow_context);
+        return fail("metabolic-step overflow restore");
+    }
+    const uint64_t step_overflow_before = compost_context_state_digest(step_overflow_context);
+    step_overflow_result.digestion.consumed_bytes = SIZE_MAX;
+    if (compost_context_lifecycle_step(
+            step_overflow_context, &step_overflow_input, &step_overflow_result
+        ) != COMPOST_STATUS_INVALID_ARGUMENT ||
+        compost_context_state_digest(step_overflow_context) != step_overflow_before ||
+        step_overflow_result.digestion.consumed_bytes != SIZE_MAX ||
+        compost_context_metabolic_snapshot(step_overflow_context, &step_overflow_metabolic) != COMPOST_STATUS_OK ||
+        step_overflow_metabolic.steps != UINT64_MAX) {
+        compost_destroy(step_overflow_context);
+        return fail("metabolic-step overflow rollback");
+    }
+    compost_destroy(step_overflow_context);
+
     compost_allocator_t failing_allocator = {
         NULL, always_fail_allocate, always_fail_deallocate
     };
