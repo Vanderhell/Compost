@@ -847,6 +847,50 @@ class NativeBackend:
         )
         self._check(status, "compost_context_restore_snapshot")
 
+    def _capture_native_state(self) -> tuple[_Snapshot, _MetabolicSnapshot]:
+        """Capture the opaque state needed for a population transaction.
+
+        This is intentionally private: callers receive no C struct and cannot
+        use it as a wire format.  The copies are owned by this Python adapter
+        until the enclosing transaction either commits or restores them.
+        """
+        if not self._context or not self._context.value:
+            raise NativeBackendError("native backend is closed")
+        snapshot = _Snapshot()
+        self._check(
+            self._library.compost_context_snapshot(
+                self._context, ctypes.byref(snapshot)
+            ),
+            "compost_context_snapshot",
+        )
+        metabolic = _MetabolicSnapshot()
+        self._check(
+            self._library.compost_context_metabolic_snapshot(
+                self._context, ctypes.byref(metabolic)
+            ),
+            "compost_context_metabolic_snapshot",
+        )
+        return (
+            _Snapshot.from_buffer_copy(snapshot),
+            _MetabolicSnapshot.from_buffer_copy(metabolic),
+        )
+
+    def _restore_native_state(
+        self, state: tuple[_Snapshot, _MetabolicSnapshot]
+    ) -> None:
+        """Restore a private transaction snapshot without changing identity."""
+        if not self._context or not self._context.value:
+            raise NativeBackendError("native backend is closed")
+        if self._restore_snapshot_symbol is None:
+            raise NativeBackendError("native library does not provide snapshot restore")
+        snapshot, metabolic = state
+        self._check(
+            self._restore_snapshot_symbol(
+                self._context, ctypes.byref(snapshot), ctypes.byref(metabolic)
+            ),
+            "compost_context_restore_snapshot",
+        )
+
     @staticmethod
     def _copy_python_structures(
         values: Mapping[object, object],
@@ -1543,7 +1587,8 @@ class NativePopulationBackend:
 
         All IDs and counts are validated before the first native handle is
         changed. Native failures are surfaced and do not silently fall back;
-        this method provides deterministic ordering, not cross-handle rollback.
+        if execution fails after a handle has advanced, every handle in this
+        population batch is restored to its exact pre-batch native snapshot.
         """
         if self._closed:
             raise NativeBackendError("native population backend is closed")
@@ -1558,10 +1603,29 @@ class NativePopulationBackend:
                     f"due lifecycle count for organism {organism_id} must be an unsigned 64-bit integer"
                 )
             prepared[int(organism_id)] = count
-        return {
-            organism_id: self._contexts[organism_id].run_due_lifecycle(count)
-            for organism_id, count in prepared.items()
+        rollback_state = {
+            organism_id: self._contexts[organism_id]._capture_native_state()
+            for organism_id in prepared
         }
+        results: dict[int, dict[str, float | int]] = {}
+        try:
+            for organism_id, count in prepared.items():
+                results[organism_id] = self._contexts[organism_id].run_due_lifecycle(count)
+        except Exception:
+            rollback_errors: list[BaseException] = []
+            for organism_id in prepared:
+                try:
+                    self._contexts[organism_id]._restore_native_state(
+                        rollback_state[organism_id]
+                    )
+                except BaseException as rollback_error:
+                    rollback_errors.append(rollback_error)
+            if rollback_errors:
+                raise NativeBackendError(
+                    "native population due-lifecycle rollback failed"
+                ) from rollback_errors[0]
+            raise
+        return results
 
     def try_local_reproduction(
         self,
