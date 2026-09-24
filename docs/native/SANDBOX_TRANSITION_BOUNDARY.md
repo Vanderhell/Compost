@@ -110,6 +110,9 @@ because host-owned corpse registry and territory release cannot be inferred
 from an organism snapshot alone.
 Unsupported Python-only state remains host-owned and does not get silently
 discarded.
+Before a dead native handle is transferred as a corpse, the replay compares
+the complete shared snapshot against the Python dead organism; the subsequent
+corpse check then covers host-owned territory and remaining energy.
 All traces for the epoch are materialized and preflighted before any native
 prefix, reproduction policy, or suffix is committed; invalid later actions
 therefore cannot leave an earlier organism partially advanced.

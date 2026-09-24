@@ -81,6 +81,9 @@ Division replay now applies the same complete shared-state comparison to the
 new child as to the parent, including generation/age, material flow, activity
 ledger, gut contents, territory counter, and structure fields; child atom-set,
 reserve, and territory checks remain explicit first-failure diagnostics.
+Death replay applies that complete shared-state comparison before native corpse
+handle transfer, then separately verifies the Python-owned corpse territory and
+remaining energy.
 
 The native-only paired replay test now executes 10,000 deterministic steps and
 compares state digests and step counters after every step. It is a determinism

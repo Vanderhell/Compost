@@ -304,6 +304,9 @@ class NativeSandboxReplay:
         for organism_id in self._population.organism_ids:
             snapshot = self._population.snapshot(organism_id)
             if int(snapshot["status"]) == 1:
+                dead_python = python_organisms.get(organism_id)
+                if dead_python is not None:
+                    self._assert_shared_state(snapshot, dead_python)
                 corpses[organism_id] = self._population.take_corpse(organism_id)
             else:
                 snapshots[organism_id] = snapshot
