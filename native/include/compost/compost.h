@@ -531,11 +531,18 @@ compost_status_t compost_context_run_due_lifecycle(
     compost_cycle_result_t *last_result,
     uint64_t *executed_steps
 );
+/*
+ * Applies one caller-supplied food view without filesystem access. On a hard
+ * failure the context and result are unchanged; input memory is borrowed only
+ * for the duration of the call.
+ */
 compost_status_t compost_context_digest(
     compost_context_t *context,
     const compost_step_input_t *input,
     compost_step_result_t *result
 );
+/* Runs one explicit deterministic organism step. Hard failures are
+ * transactional: the context and result remain unchanged. */
 compost_status_t compost_context_step(
     compost_context_t *context,
     const compost_step_input_t *input,
@@ -568,16 +575,21 @@ compost_status_t compost_context_step_and_try_divide(
     compost_division_plan_t *plan,
     compost_division_result_t *division_result
 );
+/* Copies a finite ordered external-gut input into native-owned storage.
+ * Invalid input or capacity failure leaves the context unchanged. */
 compost_status_t compost_context_enqueue_external(
     compost_context_t *context,
     const compost_step_input_t *input
 );
+/* Processes at most capacity units from the native FIFO. On failure the
+ * context and result remain unchanged; result memory is caller-owned. */
 compost_status_t compost_context_process_gut(
     compost_context_t *context,
     uint64_t capacity,
     compost_gut_process_result_t *result
 );
-/* Weakens or removes one deterministically selected live structure. */
+/* Weakens or removes one deterministically selected live structure. On hard
+ * failure the context and both outputs remain unchanged. */
 compost_status_t compost_context_weaken_weakest(
     compost_context_t *context,
     bool *changed,
@@ -594,6 +606,8 @@ compost_status_t compost_context_apply_corpse_energy(
     double *credited
 );
 
+/* Commits a caller-selected partition transactionally. On hard failure the
+ * parent and caller outputs remain unchanged and no child is returned. */
 compost_status_t compost_context_partition(
     compost_context_t *parent,
     uint64_t child_id,
@@ -603,6 +617,8 @@ compost_status_t compost_context_partition(
     compost_context_t **child,
     compost_division_result_t *result
 );
+/* Selects a deterministic boundary without mutating the context. On failure
+ * output buffers and counts remain unchanged. */
 compost_status_t compost_context_select_partition(
     const compost_context_t *context,
     double boundary_ratio_limit,
@@ -611,6 +627,8 @@ compost_status_t compost_context_select_partition(
     size_t *child_atom_count,
     double *selected_ratio
 );
+/* Selects a deterministic local-reproduction component without mutation. On
+ * failure output buffers and counts remain unchanged. */
 compost_status_t compost_context_select_local_reproduction(
     const compost_context_t *context,
     uint8_t *child_atoms,
