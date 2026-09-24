@@ -1085,6 +1085,16 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                 population.replay_action_traces({"0": ()})  # type: ignore[dict-item]
             self.assertEqual(population.snapshots(), before)
 
+    def test_backend_constructors_reject_lossy_organism_ids(self) -> None:
+        invalid_ids = ("0", 1.5, -1, 1 << 64, True)
+        for organism_id in invalid_ids:
+            with self.assertRaises(ValueError):
+                NativeBackend(self.library_path, organism_id=organism_id)  # type: ignore[arg-type]
+            with self.assertRaises(ValueError):
+                NativePopulationBackend(
+                    self.library_path, organism_ids=(organism_id,)
+                )  # type: ignore[arg-type]
+
     def test_native_population_registers_division_child(self) -> None:
         config = LifecycleConfig(boundary_ratio_limit=0.5, birth_reserve=10.0)
         with NativePopulationBackend(

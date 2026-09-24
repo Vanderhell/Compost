@@ -21,6 +21,13 @@ class NativeBackendError(RuntimeError):
     pass
 
 
+def _require_uint64(value: object, label: str) -> int:
+    """Validate an ABI identity/count without lossy Python coercion."""
+    if type(value) is not int or not 0 <= value <= (1 << 64) - 1:
+        raise ValueError(f"{label} must be an unsigned 64-bit integer")
+    return value
+
+
 class NativeActionKind(str, Enum):
     """Environment decision which may be applied to one native organism."""
 
@@ -366,6 +373,7 @@ class NativeBackend:
         organism_id: int = 0,
         config: LifecycleConfig | None = None,
     ) -> None:
+        organism_id = _require_uint64(organism_id, "organism_id")
         self.library_path = Path(library).resolve()
         self._lifecycle_config = config
         if not self.library_path.is_file():
@@ -1430,12 +1438,9 @@ class NativePopulationBackend:
         organism_ids: Iterable[int] = (0,),
         config: LifecycleConfig | None = None,
     ) -> None:
-        ids = tuple(sorted(int(organism_id) for organism_id in organism_ids))
-        if (
-            not ids or len(set(ids)) != len(ids) or
-            any(organism_id < 0 or organism_id > (1 << 64) - 1 for organism_id in ids)
-        ):
-            raise ValueError("organism_ids must be unique non-negative integers")
+        ids = tuple(sorted(_require_uint64(organism_id, "organism_id") for organism_id in organism_ids))
+        if not ids or len(set(ids)) != len(ids):
+            raise ValueError("organism_ids must be unique unsigned 64-bit integers")
         self.library_path = Path(library).resolve()
         self._config = config
         self._contexts: dict[int, NativeBackend] = {}
