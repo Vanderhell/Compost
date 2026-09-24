@@ -45,9 +45,9 @@ The first C target is the lifecycle/sandbox behavioral core only:
 - Consolidation, structural mutations, connected-component/bridge predicates,
   partition selection, division, child initialization, and death state.
 - Pure territory path/state math and stable food address predicates.
-- Metabolic progress/settled-step accounting through an explicit opaque
-  context operation; lifecycle work triggered by due steps remains outside the
-  native state machine until its ordering is migrated.
+- Metabolic progress/settled-step accounting and an explicit transactional
+  batch of empty-input due lifecycle checkpoints through the opaque context;
+  automatic Python event ordering still remains host-owned until migrated.
 - A single deterministic step accepting an explicit environment view and
   returning state mutation plus explicit environment/action events.
 
@@ -63,9 +63,10 @@ clock, spawn threads, or make a scheduling decision based on hash iteration.
   deterministic local-reproduction/component selection, `try_local_reproduction`, `try_divide` and step-plus-division operations;
   native
   failures are not silently downgraded.
-- Automatic metabolic lifecycle scheduling and the complete `live_step` tail
-  (division/death orchestration) remain deferred; current action traces expose
-  only the validated environment prefix.
+- Automatic metabolic event ordering and the complete `live_step` tail
+  (division/death orchestration) remain deferred; the core now supports an
+  explicit due-lifecycle batch, while current action traces expose the
+  validated environment prefix.
 - Native multiprocessing and any throughput-oriented parallel mode.
 - Native physical FOOD storage, filesystem sandboxing, and telemetry.
 - Porting the legacy graph learner before a compatibility decision and fixtures
