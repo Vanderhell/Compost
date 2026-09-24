@@ -413,6 +413,21 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                 backend.accumulate_metabolic_progress((1 << 64) - 1, 64, 4)
             self.assertEqual(backend.metabolic_snapshot(), before)
 
+    def test_due_lifecycle_batch_matches_repeated_native_steps(self) -> None:
+        with NativeBackend(self.library_path, organism_id=61) as batched:
+            batched.digest(b"ABCD", (1.0, 1.0, 1.0, 1.0))
+            with NativeBackend(self.library_path, organism_id=61) as repeated:
+                repeated.restore_from(batched)
+                batched_due = batched.accumulate_metabolic_progress(128, 64, 4)
+                repeated_due = repeated.accumulate_metabolic_progress(128, 64, 4)
+                self.assertEqual(batched_due, repeated_due)
+                result = batched.run_due_lifecycle(batched_due["due_steps"])
+                self.assertEqual(result["executed_steps"], batched_due["due_steps"])
+                for _ in range(repeated_due["due_steps"]):
+                    repeated.lifecycle_step(b"", ())
+                self.assertEqual(batched.snapshot(), repeated.snapshot())
+                self.assertEqual(batched.state_digest(), repeated.state_digest())
+
     def test_metabolic_progress_action_replays_python_accounting(self) -> None:
         with NativeBackend(self.library_path, organism_id=90) as backend:
             actions = (

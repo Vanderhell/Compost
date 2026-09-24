@@ -516,6 +516,19 @@ compost_status_t compost_context_accumulate_metabolic_progress(
     uint64_t *due_steps,
     uint64_t *remaining_progress
 );
+/*
+ * Executes up to due_steps empty-input lifecycle checkpoints transactionally.
+ * The environment remains outside the core; this endpoint is only for due
+ * metabolic work after the caller has supplied and accounted for progress.
+ * A dead organism stops the batch successfully. On failure, context and all
+ * output arguments remain unchanged.
+ */
+compost_status_t compost_context_run_due_lifecycle(
+    compost_context_t *context,
+    uint64_t due_steps,
+    compost_cycle_result_t *last_result,
+    uint64_t *executed_steps
+);
 compost_status_t compost_context_digest(
     compost_context_t *context,
     const compost_step_input_t *input,

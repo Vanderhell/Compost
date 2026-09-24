@@ -575,6 +575,37 @@ compost_status_t compost_context_accumulate_metabolic_progress(
     return COMPOST_STATUS_OK;
 }
 
+compost_status_t compost_context_run_due_lifecycle(
+    compost_context_t *context,
+    uint64_t due_steps,
+    compost_cycle_result_t *last_result,
+    uint64_t *executed_steps
+)
+{
+    if (context == NULL || last_result == NULL || executed_steps == NULL) {
+        return COMPOST_STATUS_INVALID_ARGUMENT;
+    }
+    compost_context_t next = *context;
+    const compost_step_input_t empty_input = {NULL, NULL, 0U};
+    compost_cycle_result_t next_result = {0};
+    next_result.status_after = next.organism.status;
+    uint64_t next_executed = 0U;
+    for (uint64_t index = 0U; index < due_steps; ++index) {
+        if (next.organism.status == COMPOST_LIFECYCLE_DEAD) break;
+        const compost_status_t status = compost_context_lifecycle_step(
+            &next, &empty_input, &next_result
+        );
+        if (status != COMPOST_STATUS_OK || next_executed == UINT64_MAX) {
+            return status == COMPOST_STATUS_OK ? COMPOST_STATUS_INVALID_ARGUMENT : status;
+        }
+        next_executed += UINT64_C(1);
+    }
+    *context = next;
+    *last_result = next_result;
+    *executed_steps = next_executed;
+    return COMPOST_STATUS_OK;
+}
+
 compost_status_t compost_context_digest(
     compost_context_t *context,
     const compost_step_input_t *input,

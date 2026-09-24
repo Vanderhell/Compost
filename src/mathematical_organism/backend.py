@@ -485,6 +485,11 @@ class NativeBackend:
             ctypes.POINTER(ctypes.c_uint64), ctypes.POINTER(ctypes.c_uint64),
         ]
         library.compost_context_accumulate_metabolic_progress.restype = ctypes.c_int
+        library.compost_context_run_due_lifecycle.argtypes = [
+            ctypes.c_void_p, ctypes.c_uint64, ctypes.POINTER(_CycleResult),
+            ctypes.POINTER(ctypes.c_uint64),
+        ]
+        library.compost_context_run_due_lifecycle.restype = ctypes.c_int
         library.compost_context_snapshot.argtypes = [ctypes.c_void_p, ctypes.POINTER(_Snapshot)]
         library.compost_context_snapshot.restype = ctypes.c_int
         try:
@@ -617,6 +622,28 @@ class NativeBackend:
         return {
             "due_steps": int(due_steps.value),
             "remaining_progress": int(remaining_progress.value),
+        }
+
+    def run_due_lifecycle(self, due_steps: int) -> dict[str, float | int]:
+        """Run due empty-input lifecycle checkpoints as one native transaction."""
+        if not isinstance(due_steps, int) or due_steps < 0 or due_steps >= 1 << 64:
+            raise ValueError("due_steps must be an unsigned 64-bit integer")
+        result = _CycleResult()
+        executed_steps = ctypes.c_uint64(0)
+        status = self._library.compost_context_run_due_lifecycle(
+            self._context,
+            ctypes.c_uint64(due_steps),
+            ctypes.byref(result),
+            ctypes.byref(executed_steps),
+        )
+        self._check(status, "compost_context_run_due_lifecycle")
+        return {
+            "executed_steps": int(executed_steps.value),
+            "maintenance_required": float(result.maintenance.required),
+            "maintenance_paid": float(result.maintenance.paid),
+            "maintenance_deficit": float(result.maintenance.deficit),
+            "composites_consolidated": int(result.composites_consolidated),
+            "status_after": int(result.status_after),
         }
 
     def enqueue_external(self, food: bytes | bytearray, nutrition: tuple[float, ...] | None = None) -> None:

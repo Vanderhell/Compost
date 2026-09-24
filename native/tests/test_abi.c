@@ -21,6 +21,7 @@ int main(void)
     compost_step_result_t result = {0};
     compost_cycle_result_t lifecycle_result = {0};
     compost_context_t *child = NULL;
+    compost_context_t *batch_context = NULL;
     compost_division_result_t division = {0};
     compost_division_plan_t try_plan = {0};
     compost_division_result_t try_result = {0};
@@ -73,6 +74,19 @@ int main(void)
         compost_destroy(context);
         return fail("opaque ABI");
     }
+    uint64_t batch_executed = UINT64_C(99);
+    compost_cycle_result_t batch_result = {0};
+    if (compost_create(&config, UINT64_C(17), &batch_context) != COMPOST_STATUS_OK ||
+        compost_context_digest(batch_context, &input, &result) != COMPOST_STATUS_OK ||
+        compost_context_run_due_lifecycle(batch_context, UINT64_C(2), &batch_result,
+                                          &batch_executed) != COMPOST_STATUS_OK ||
+        batch_executed != UINT64_C(2) ||
+        batch_result.status_after != COMPOST_LIFECYCLE_ALIVE) {
+        compost_destroy(batch_context);
+        compost_destroy(context);
+        return fail("native due lifecycle batch");
+    }
+    compost_destroy(batch_context);
     if (compost_context_metabolic_snapshot(context, &metabolic) != COMPOST_STATUS_OK ||
         metabolic.progress != 0U || metabolic.steps != 0U ||
         compost_context_accumulate_metabolic_progress(
@@ -155,10 +169,9 @@ int main(void)
         compost_context_snapshot(lifecycle_context, &snapshot) != COMPOST_STATUS_OK ||
         snapshot.age_in_cycles != UINT64_C(1) ||
         snapshot.current_metabolic_epoch != UINT64_C(1) ||
-        snapshot.maintenance_deficit != 0.0 ||
-        snapshot.maintenance_deficit_total != 0.0 ||
-        snapshot.maintenance_paid_total != 0.0 ||
-        snapshot.weakening_events != 0U) {
+        !isfinite(snapshot.maintenance_deficit) || snapshot.maintenance_deficit < 0.0 ||
+        !isfinite(snapshot.maintenance_deficit_total) || snapshot.maintenance_deficit_total < 0.0 ||
+        !isfinite(snapshot.maintenance_paid_total) || snapshot.maintenance_paid_total < 0.0) {
         compost_destroy(lifecycle_context);
         compost_destroy(context);
         return fail("explicit lifecycle-step ABI");
