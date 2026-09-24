@@ -23,7 +23,7 @@ ABI v4 native DLL configured (103.03s).
 
 Native tests:
 `8/8` CTest tests passed in the current MSVC 19.42 Debug build with the
-width audit and fuzz target enabled (98.54s). The current MSVC Release,
+width audit and fuzz target enabled (98.47s). The current MSVC Release,
 GCC, and Clang strict results are recorded below.
 
 Differential cases:
