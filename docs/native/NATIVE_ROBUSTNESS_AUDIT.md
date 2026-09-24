@@ -28,6 +28,8 @@ covered by a separate injected-failure test.
 The outer sandbox epoch transaction also recreates a stable native handle when
 corpse transfer removed it before a later failure; this preserves the complete
 native population boundary rather than only live handles.
+The explicit environment-step API is protected by the same boundary and
+restores earlier organisms when a later organism fails during its transition.
 Sandbox action traces now have an epoch-wide preflight as well, including
 action types and globally reserved division IDs, before any prefix or native
 reproduction transaction commits.

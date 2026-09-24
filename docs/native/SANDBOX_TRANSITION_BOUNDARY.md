@@ -47,6 +47,11 @@ actions in ascending numeric organism-ID order. Unknown IDs and invalid action
 objects are rejected before any handle changes; omitted IDs are explicit
 no-ops for that epoch.
 
+`NativePopulationBackend.step` applies an explicit environment view in the same
+numeric order and wraps the complete epoch in opaque-state rollback. A failure
+in a later organism therefore cannot leave an earlier environment transition
+committed, while Python environment claims remain host-owned.
+
 `NativeBackend.replay_actions` preflights a complete single-organism trace and
 then replays it in list order. This is the differential-test entry point for
 Python `live_step` action traces.
