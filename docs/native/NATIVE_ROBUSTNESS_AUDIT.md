@@ -98,6 +98,8 @@ context through that same allocator rather than a hard-coded system `free`.
 The current fixture additionally forces allocation failure while creating a
 valid division child and verifies `COMPOST_STATUS_OUT_OF_MEMORY`, a null child
 handle, and unchanged parent state digest.
+It applies the same failure injection to local weakest-member reproduction and
+verifies the null child, zeroed result, and unchanged parent digest there too.
 The nested division fixture also accepts `UINT64_MAX` as a child identity and
 checks its parent, generation, territory, and conservation state.
 The dense cross-split division fixture passes a current GCC 13.3
