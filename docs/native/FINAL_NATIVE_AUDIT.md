@@ -18,9 +18,9 @@ CI: PASS
 Documentation: PASS
 
 Python tests:
-`201 passed, 75 skipped, 3 subtests passed` in the latest complete local run
-without a native library; the native acceptance subset separately passed
-`79` tests with the current DLL.
+`279 passed, 3 subtests passed` in the latest complete local run with the
+current native DLL (103.02s). The focused native sandbox/differential suite
+passed `82` tests.
 
 Native tests:
 `8/8` CTest tests passed in the current MSVC 19.42 Debug build with the
