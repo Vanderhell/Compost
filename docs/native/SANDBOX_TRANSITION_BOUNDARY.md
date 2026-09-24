@@ -177,11 +177,14 @@ physical-food lifecycle checkpoint remain Python-owned; each supplied action
 is compared after execution against the Python oracle in the differential
 campaign.
 
-Automatic metabolic scheduling remains a separate transaction. Both native
-reproduction policies and their deterministic selection are now exercised by
-the adapter, while full event ordering remains separate until that action-plan
-comparison covers it. A native
-`live_step` function must not be introduced before this ordering is frozen.
+Automatic metabolic scheduling is now a native population transaction: the
+adapter supplies the accepted progress amount, native computes the due count,
+executes the due lifecycle batch, and the trace must contain exactly the
+executed lifecycle actions (including an early stop after native death). Both
+native reproduction policies and their deterministic selection are now
+exercised by the adapter, while full event ordering remains separate until
+the remaining host-owned planning inputs are frozen. A native `live_step`
+function must not be introduced before this ordering is frozen.
 
 ## Acceptance rule
 

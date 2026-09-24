@@ -45,16 +45,16 @@ The first C target is the lifecycle/sandbox behavioral core only:
   operation is only a bounded structure-level compatibility primitive and is
   not a replacement for Python `AutonomousCore.remove_weakest` (which also
   applies critical-bridge protection). Python `live_step` metabolic-progress
-  scheduling remains host-owned until its event ordering is migrated and
-  differentially proven.
+  scheduling receives its accepted progress from the host, while the native
+  population boundary computes and executes all resulting due lifecycle work.
 - Pure biology rules: structural mass, costs, forgetting, maintenance budgets,
   reproduction eligibility, and conservation calculations.
 - Consolidation, structural mutations, connected-component/bridge predicates,
   partition selection, division, child initialization, and death state.
 - Pure territory path/state math and stable food address predicates.
 - Metabolic progress/settled-step accounting and an explicit transactional
-  batch of empty-input due lifecycle checkpoints through the opaque context;
-  automatic Python event ordering still remains host-owned until migrated.
+  progress-plus-due-lifecycle batch through the opaque context; the host still
+  owns the decision that produced the accepted progress amount.
 - A single deterministic step accepting an explicit environment view and
   returning state mutation plus explicit environment/action events.
 
@@ -70,10 +70,9 @@ clock, spawn threads, or make a scheduling decision based on hash iteration.
   deterministic local-reproduction/component selection, `try_local_reproduction`, `try_divide` and step-plus-division operations;
   native
   failures are not silently downgraded.
-- Automatic metabolic event ordering and the complete `live_step` tail
-  (division/death orchestration) remain deferred; the core now supports an
-  explicit due-lifecycle batch, while current action traces expose the
-  validated environment prefix.
+- Complete `live_step` event ordering and its division/death orchestration
+  remain deferred; current action traces expose the validated environment
+  prefix and the native progress-plus-due-lifecycle transaction.
 - Native multiprocessing and any throughput-oriented parallel mode.
 - Native physical FOOD storage, filesystem sandboxing, and telemetry.
 - Porting the legacy graph learner before a compatibility decision and fixtures

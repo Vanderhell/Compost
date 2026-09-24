@@ -84,15 +84,15 @@ Known limitations:
 
 - The native core does not yet own the complete `AutonomousOrganism.live_step`
   transition, including filesystem FOOD discovery/claims, territory scheduling,
-  corpse lookup/storage, automatic metabolic scheduling, and full death/birth
-  orchestration.
-- Native metabolic threshold/quotient arithmetic, one empty-input
-  consolidation/maintenance/age checkpoint are differential-tested, and
-  opaque progress accumulation is transactional. Single-organism replay uses
+  corpse lookup/storage, and full death/birth orchestration.
+- Native metabolic threshold/quotient arithmetic and the transactional
+  progress-plus-due-lifecycle population boundary are differential-tested;
+  one empty-input consolidation/maintenance/age checkpoint is also covered.
+  Single-organism replay uses
   a transient division child, while the population adapter retains explicit
   child handles. Both adapters expose corpse requests and dead-snapshot
-  transfer; automatic scheduling and complete sandbox event ordering remain
-  outside the native action state machine. The explicit lifecycle endpoint now
+  transfer; complete sandbox event ordering remains outside the native action
+  state machine. The explicit lifecycle endpoint now
   covers deficit-budget starvation, death transition, and terminal dead no-op.
 - Corpse energy credit is exposed as an explicit environment-supplied ABI
   transfer; corpse selection, persistence, and territory lookup remain Python
