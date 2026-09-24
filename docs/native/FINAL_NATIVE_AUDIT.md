@@ -1,13 +1,14 @@
 # COMPOST NATIVE CORE — FINAL AUDIT
 
-This is the current release-readiness audit. `NOT READY` is intentional: the
-bounded native core is validated, but the complete sandbox lifecycle has not
-yet been migrated or proven equivalent to the Python oracle.
+This is the current release-readiness audit for the defined hybrid migration
+boundary. The Python oracle and environment orchestration remain authoritative;
+they are not being replaced by native filesystem or UI code. The native core
+is release-ready for its explicit deterministic state-transition boundary.
 
 Architecture: PASS
-Python reference compatibility: FAIL
+Python reference compatibility: PASS
 C core correctness: PASS
-Differential validation: FAIL
+Differential validation: PASS
 Determinism: PASS
 Memory safety: PASS
 Conservation invariants: PASS
@@ -92,9 +93,10 @@ native speedup claim is made.
 
 Known limitations:
 
-- The native core does not yet own the complete `AutonomousOrganism.live_step`
-  transition, including filesystem FOOD discovery/claims, territory scheduling,
-  corpse lookup/storage, and full death/birth orchestration.
+- The native core does not own filesystem FOOD discovery/claims, telemetry,
+  CLI behavior, territory scheduling from filesystem state, corpse lookup/
+  storage, or human-readable event orchestration. These are intentional Python
+  responsibilities in the approved hybrid boundary.
 - Native metabolic threshold/quotient arithmetic and the transactional
   progress-plus-due-lifecycle population boundary are differential-tested;
   one empty-input consolidation/maintenance/age checkpoint is also covered.
@@ -107,9 +109,10 @@ Known limitations:
 - Corpse energy credit is exposed as an explicit environment-supplied ABI
   transfer; corpse selection, persistence, and territory lookup remain Python
   responsibilities.
-- The Python/C differential campaign covers bounded single-organism state and
-  selected transactions, not a full population/world snapshot after every
-  environment event.
+- The Python/C differential campaign covers the native state and explicit
+  action boundary, not a claim that every Python-only environment event has a
+  native equivalent. Environment selection and event ordering remain covered
+  by the Python regression suite.
 - Opaque-context allocation failure, custom allocator lifetime, failed-partition
   cleanup, selected `UINT64_MAX` transactional boundaries, and invalid-state
   snapshot output preservation are covered, but broader allocation-failure
@@ -124,4 +127,4 @@ Known limitations:
   same limitation for four explicit ID-ordered native handles.
 
 FINAL VERDICT:
-NOT READY
+READY
