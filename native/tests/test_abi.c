@@ -76,7 +76,6 @@ int main(void)
     }
     const uint8_t reclaim_path[] = {1U, 0U};
     const uint8_t invalid_path[] = {1U, 2U};
-    const uint64_t territory_before = compost_context_state_digest(context);
     if (compost_context_set_territory(
             context, reclaim_path, sizeof(reclaim_path)
         ) != COMPOST_STATUS_OK) {

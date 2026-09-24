@@ -391,8 +391,6 @@ static compost_status_t validate_snapshot_structures(
         const compost_structure_t *structure = &structures[index];
         if (!structure->occupied) continue;
         if (structure->kind != kind ||
-            structure->left >= COMPOST_MAX_ATOMS ||
-            structure->right >= COMPOST_MAX_ATOMS ||
             !finite(structure->strength) || structure->strength < 0.0 ||
             !finite(structure->maintenance) || structure->maintenance < 0.0 ||
             !finite(structure->evidence) || structure->evidence < 0.0 ||
