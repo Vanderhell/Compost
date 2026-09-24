@@ -49,6 +49,11 @@ class NativeSandboxReplay:
         organisms = tuple(runtime.organisms)
         if len(organisms) != len(organism_ids):
             raise ValueError("organism_ids must map exactly to initial Python organisms")
+        if any(not organism.alive for organism in organisms):
+            raise ValueError(
+                "NativeSandboxReplay requires living initial organisms; "
+                "initial corpse/world ownership must be imported separately"
+            )
         effective_config = config
         if effective_config is None and organisms:
             effective_config = organisms[0].config

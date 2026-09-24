@@ -74,8 +74,10 @@ viable component, the adapter invokes the native boundary-partition policy
 the host does not supply the selected child atom set. After each epoch it
 independently checks the native population ledger, every Python organism
 ledger, and the Python world-level ownership-transfer equation.
-Initial organisms are imported through the transactional native snapshot
+Initial living organisms are imported through the transactional native snapshot
 contract when their C-representable state is within the documented bounds.
+Initial dead organisms are rejected because their host-owned corpse registry
+and territory release cannot be inferred from an organism snapshot alone.
 Unsupported Python-only state remains host-owned and does not get silently
 discarded.
 All traces for the epoch are materialized and preflighted before any native

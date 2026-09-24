@@ -58,6 +58,15 @@ class NativeSandboxOwnershipTests(unittest.TestCase):
                     runtime,
                 )
 
+    def test_replay_rejects_dead_initial_state_without_world_corpse_import(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = SandboxRuntime(Path(directory) / "sandbox")
+            organism = AutonomousOrganism()
+            organism.territory_state.die()
+            runtime.organisms.append(organism)
+            with self.assertRaises(ValueError):
+                NativeSandboxReplay(Path(directory) / "missing-native.dll", runtime)
+
     def test_previous_epoch_corpse_handle_is_not_required_again(self) -> None:
         replay = object.__new__(NativeSandboxReplay)
         replay.runtime = _Runtime()
