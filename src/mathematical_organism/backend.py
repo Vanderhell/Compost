@@ -1455,6 +1455,16 @@ class NativePopulationBackend:
         """Return currently owned IDs in deterministic scheduling order."""
         return tuple(sorted(self._contexts))
 
+    @staticmethod
+    def _validate_id_keys(values: Mapping[object, object], label: str) -> None:
+        """Reject non-uint64 mapping keys before any population work starts."""
+        invalid = [
+            value for value in values
+            if type(value) is not int or not 0 <= value <= (1 << 64) - 1
+        ]
+        if invalid:
+            raise ValueError(f"{label} keys must be unsigned 64-bit integers: {invalid!r}")
+
     @contextmanager
     def _native_transaction(self) -> Iterable[None]:
         """Protect one multi-handle native epoch with exact rollback.
@@ -1527,6 +1537,9 @@ class NativePopulationBackend:
         """
         if self._closed:
             raise NativeBackendError("native population backend is closed")
+        self._validate_id_keys(environment, "environment")
+        if child_ids is not None:
+            self._validate_id_keys(child_ids, "child_ids")
         unknown = set(environment) - set(self._contexts)
         if unknown:
             raise ValueError(f"environment contains unknown organism IDs: {sorted(unknown)!r}")
@@ -1535,8 +1548,9 @@ class NativePopulationBackend:
         if unknown_children:
             raise ValueError(f"child_ids contains unknown organism IDs: {sorted(unknown_children)!r}")
         existing = set(self._contexts)
-        requested = [int(value) for value in supplied_children.values()]
+        requested = list(supplied_children.values())
         if (
+            any(type(value) is not int for value in requested) or
             any(value < 0 or value > (1 << 64) - 1 for value in requested) or
             len(requested) != len(set(requested))
         ):
@@ -1575,7 +1589,7 @@ class NativePopulationBackend:
             payload, nutrition = prepared[organism_id]
             status_before = int(self._contexts[organism_id].snapshot()["status"])
             if organism_id in supplied_children:
-                child_id = int(supplied_children[organism_id])
+                child_id = supplied_children[organism_id]
             else:
                 child_id = automatic_children[organism_id]
             child, cycle, plan = self._contexts[organism_id].step_and_try_divide(
@@ -1618,6 +1632,7 @@ class NativePopulationBackend:
         """Apply a preflightable action epoch inside its caller's transaction."""
         if self._closed:
             raise NativeBackendError("native population backend is closed")
+        self._validate_id_keys(actions, "actions")
         unknown = set(actions) - set(self._contexts)
         if unknown:
             raise ValueError(f"actions contain unknown organism IDs: {sorted(unknown)!r}")
@@ -1672,6 +1687,7 @@ class NativePopulationBackend:
         """
         if self._closed:
             raise NativeBackendError("native population backend is closed")
+        self._validate_id_keys(due_steps, "due_steps")
         unknown = set(due_steps) - set(self._contexts)
         if unknown:
             raise ValueError(f"due_steps contains unknown organism IDs: {sorted(unknown)!r}")
@@ -1856,6 +1872,7 @@ class NativePopulationBackend:
     ) -> dict[int, tuple[NativeAction, ...]]:
         if self._closed:
             raise NativeBackendError("native population backend is closed")
+        self._validate_id_keys(traces, "traces")
         unknown = set(traces) - set(self._contexts)
         if unknown:
             raise ValueError(f"traces contain unknown organism IDs: {sorted(unknown)!r}")

@@ -998,6 +998,7 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                     child_ids={organism_id: 100 + organism_id for organism_id in organism_ids},
                 )
             self.assertEqual(native_population.snapshots(), before_invalid_epoch)
+
             before_invalid_digests = native_population.state_digests()
             with self.assertRaises(ValueError):
                 native_population.step(
@@ -1068,6 +1069,21 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                                 )
                 native_population.verify_material_conservation()
                 reference.result.cycles += 1
+
+    def test_population_rejects_non_uint64_ids_before_mutation(self) -> None:
+        with NativePopulationBackend(self.library_path, organism_ids=(0, 1)) as population:
+            before = population.snapshots()
+            with self.assertRaises(ValueError):
+                population.step({"0": (b"", ())})  # type: ignore[dict-item]
+            with self.assertRaises(ValueError):
+                population.step({0: (b"", ())}, child_ids={0: "1"})  # type: ignore[dict-item]
+            with self.assertRaises(ValueError):
+                population.apply_actions({"0": NativeAction.lifecycle_step(b"")})  # type: ignore[dict-item]
+            with self.assertRaises(ValueError):
+                population.run_due_lifecycle({"0": 1})  # type: ignore[dict-item]
+            with self.assertRaises(ValueError):
+                population.replay_action_traces({"0": ()})  # type: ignore[dict-item]
+            self.assertEqual(population.snapshots(), before)
 
     def test_native_population_registers_division_child(self) -> None:
         config = LifecycleConfig(boundary_ratio_limit=0.5, birth_reserve=10.0)
