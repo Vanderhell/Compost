@@ -967,6 +967,22 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                 population.apply_actions({2: "not-an-action"})  # type: ignore[arg-type]
             self.assertEqual(population.state_digests(), before)
 
+    def test_native_population_runs_due_lifecycle_batches_in_id_order(self) -> None:
+        with NativePopulationBackend(self.library_path, organism_ids=(5, 2)) as population:
+            population.apply_actions({
+                2: NativeAction.external_gut(b"ABCD", capacity=4),
+                5: NativeAction.external_gut(b"ABCD", capacity=4),
+            })
+            before_invalid = population.state_digests()
+            with self.assertRaises(ValueError):
+                population.run_due_lifecycle({99: 1})
+            self.assertEqual(population.state_digests(), before_invalid)
+            results = population.run_due_lifecycle({5: 1, 2: 2})
+            self.assertEqual(tuple(results), (2, 5))
+            self.assertEqual(results[2]["executed_steps"], 2)
+            self.assertEqual(results[5]["executed_steps"], 1)
+            population.verify_material_conservation()
+
     def test_native_population_registers_explicit_division_children(self) -> None:
         config = LifecycleConfig(birth_reserve=10.0, boundary_ratio_limit=0.5)
         with NativePopulationBackend(self.library_path, organism_ids=(0,), config=config) as population:

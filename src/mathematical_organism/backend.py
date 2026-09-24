@@ -1535,6 +1535,34 @@ class NativePopulationBackend:
             }
         return results
 
+    def run_due_lifecycle(
+        self,
+        due_steps: Mapping[int, int],
+    ) -> dict[int, dict[str, float | int]]:
+        """Run explicit due lifecycle batches in ascending organism-ID order.
+
+        All IDs and counts are validated before the first native handle is
+        changed. Native failures are surfaced and do not silently fall back;
+        this method provides deterministic ordering, not cross-handle rollback.
+        """
+        if self._closed:
+            raise NativeBackendError("native population backend is closed")
+        unknown = set(due_steps) - set(self._contexts)
+        if unknown:
+            raise ValueError(f"due_steps contains unknown organism IDs: {sorted(unknown)!r}")
+        prepared: dict[int, int] = {}
+        for organism_id in sorted(due_steps):
+            count = due_steps[organism_id]
+            if not isinstance(count, int) or count < 0 or count >= 1 << 64:
+                raise ValueError(
+                    f"due lifecycle count for organism {organism_id} must be an unsigned 64-bit integer"
+                )
+            prepared[int(organism_id)] = count
+        return {
+            organism_id: self._contexts[organism_id].run_due_lifecycle(count)
+            for organism_id, count in prepared.items()
+        }
+
     def try_local_reproduction(
         self,
         organism_id: int,
