@@ -18,8 +18,8 @@ CI: PASS
 Documentation: PASS
 
 Python tests:
-`266 passed, 3 subtests passed` in the latest complete local run with the
-ABI v4 native DLL configured (107.75s).
+`267 passed, 3 subtests passed` in the latest complete local run with the
+ABI v4 native DLL configured (109.24s).
 
 Native tests:
 `8/8` CTest tests passed in the current MSVC 19.42 Debug build with the
@@ -27,7 +27,7 @@ width audit and fuzz target enabled (108.20s). The current MSVC Release,
 GCC, and Clang strict results are recorded below.
 
 Differential cases:
-`66` Python/native differential tests pass, including bounded pure-rule,
+`67` Python/native differential tests pass, including bounded pure-rule,
 external-gut, environment corpse-energy credit, partition transaction,
 atomic division-boundary, step-plus-division lifecycle, territory predicate,
 deterministic FOOD block-key, two-organism population, and population child
@@ -35,7 +35,8 @@ registration, replayable sandbox action-trace, idle/corpse action replay, and
 physical-food lifecycle comparisons, public native checkpoint CLI, division/child-death replay, plus bounded
 metabolic scheduling arithmetic, starvation/death replay, and opaque metabolic
 progress accumulation and completed-lifecycle-step accounting, including the
-dead-stop, single-handle, and population action-rollback regressions. A multi-epoch sandbox trace campaign also replays
+dead-stop, single-handle, population action-rollback, and child-handle
+rollback regressions. A multi-epoch sandbox trace campaign also replays
 parent and child traces with per-epoch state comparison and corpse transfer,
 plus the reusable `NativeSandboxReplay` host-boundary acceptance and ownership
 validation tests, and local weakest-member reproduction component selection.
@@ -48,7 +49,7 @@ Its seed/configuration/epoch parameters are stored in
 `tests/fixtures/native_replays.json`, and failures report the first field with
 Python/native state digests.
 The latest ABI v4 MSVC Debug DLL differential and sandbox run completed in
-31.07s; the
+28.64s; the
 earlier WSL GCC DLL run completed in 6.670s.
 
 Long-run steps:
