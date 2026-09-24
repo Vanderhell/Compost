@@ -1565,6 +1565,7 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             (sandbox.layout.inbox / "payload.bin").write_bytes(b"ABCD")
             reason, view = sandbox.run(snapshot_seconds=0.001, max_seconds=2.0)
             self.assertEqual(reason, "FOOD_EXHAUSTED")
+            self.assertEqual(view["backend"], "native")
             self.assertEqual(view["food"]["missing"], 0)
 
     def test_serial_public_sandbox_rejects_native_workers_without_fallback(self) -> None:

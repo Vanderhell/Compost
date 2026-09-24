@@ -134,6 +134,7 @@ class PublicSandbox:
         reserve = [float(item["reserve"]) for item in organisms]
         gut = [int(item["gut"]) for item in organisms]
         result = {
+            "backend": self.backend,
             "termination": termination,
             "failure": failure,
             "elapsed_seconds": elapsed,
