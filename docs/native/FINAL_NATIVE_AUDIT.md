@@ -18,8 +18,8 @@ CI: PASS
 Documentation: PASS
 
 Python tests:
-`279 passed, 3 subtests passed` in the latest complete local run with the
-current native DLL (103.02s). The focused native sandbox/differential suite
+`280 passed, 3 subtests passed` in the latest complete local run with the
+current native DLL (107.38s). The focused native sandbox/differential suite
 passed `83` tests.
 
 Native tests:

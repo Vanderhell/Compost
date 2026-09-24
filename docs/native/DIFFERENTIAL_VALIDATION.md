@@ -43,7 +43,7 @@ including its four ownership/terminal-failure tests and explicit public CLI
 native-backend coverage). The complete Python
 regression suite without a native library is green (`201 passed, 75 skipped,
 3 subtests passed`); the latest complete run with the native DLL is also green
-(`279 passed, 3 subtests passed` in 103.02s). The
+(`280 passed, 3 subtests passed` in 107.38s). The
 selected partition
 transaction now has a bounded Python/sandbox comparison, and both native
 reproduction policies are selected by the sandbox adapter and compared with
