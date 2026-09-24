@@ -33,7 +33,7 @@ The full per-step Python/C campaign is **NOT READY**. The native organism is
 not yet a complete lifecycle engine. The current native-backed differential
 run is green (`63 passed`; the focused oracle/member-weakness validation run
 is `66 passed` including the related Python tests), and the complete Python regression suite is green
-(`260 passed, 3 subtests passed` in the latest ABI v4 run). The selected partition
+(`261 passed, 3 subtests passed` in the latest ABI v4 run). The selected partition
 transaction now has a bounded Python/sandbox comparison, and both native
 reproduction policies are selected by the sandbox adapter and compared with
 the Python child atom set. The native checkpoint now
@@ -57,6 +57,10 @@ dead while the parent remains alive.
 The reusable sandbox epoch comparison now checks metabolic progress and
 settled metabolic-step count at every checkpoint, so a future scheduling
 divergence is reported at its first epoch rather than only at final state.
+Host action observers additionally capture post-mutation Python states for
+each native-replay action boundary; progress plus an immediately due lifecycle
+checkpoint is intentionally compared as one scheduling group because the two
+implementations commit the remainder at different intermediate points.
 The bounded two-organism campaign also compares every relation and composite
 key and its strength/evidence/income fields after each ordered epoch.
 

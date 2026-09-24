@@ -178,5 +178,7 @@ comparison covers it. A native
 ## Acceptance rule
 
 The Python sandbox remains the oracle. A native integration checkpoint is valid
-only when the canonical snapshot matches after every supplied action, including
-the first failure or rejected input. End-state-only agreement is insufficient.
+only when the shared behavioral snapshot matches after every supplied action
+boundary, including the first failure or rejected input. Progress immediately
+followed by due lifecycle work is one explicitly documented scheduling group;
+end-state-only agreement is insufficient.
