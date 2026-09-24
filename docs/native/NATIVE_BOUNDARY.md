@@ -19,6 +19,13 @@ Python owns environmental effects. It supplies bytes/nutrition, claims, corpse
 energy, and territory metadata to the core and applies explicit requests after
 the core returns.
 
+`AutonomousOrganism.live_step(..., action_trace=..., action_observer=...)`
+keeps the existing Python semantics while exposing post-mutation action
+checkpoints for differential validation. The observer is diagnostic only; it
+does not let C or Python callbacks make biological decisions. A progress event
+followed immediately by due lifecycle work is one scheduling group at the
+boundary because native accounting commits the remainder earlier.
+
 ## MOVE TO C CORE
 
 The first C target is the lifecycle/sandbox behavioral core only:

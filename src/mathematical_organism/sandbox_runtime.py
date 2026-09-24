@@ -445,7 +445,12 @@ class AutonomousOrganism(AutonomousCore):
         ``action_trace`` is optional observability for Python/native replay. It
         records host decisions after the same guards used by the reference
         implementation; it never supplies a biological decision or filesystem
-        callback to the native core.
+        callback to the native core. ``action_observer`` is a second optional
+        diagnostic hook. It is called after the Python-side mutation represented
+        by an emitted action. A metabolic-progress action immediately followed
+        by due lifecycle work is observed as a scheduling group at the native
+        boundary because the two implementations commit the progress remainder
+        at different intermediate points.
         """
         if not self.alive:
             return
