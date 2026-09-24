@@ -1672,6 +1672,17 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 NativeAction.territory_reclaim((2,))
 
+    def test_native_sandbox_replay_covers_territory_reclaim(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = SandboxRuntime(Path(directory) / "sandbox", block_size=4)
+            organism = AutonomousOrganism(territory=FoodTerritory((1, 0)))
+            runtime.organisms.append(organism)
+            with NativeSandboxReplay(self.library_path, runtime) as replay:
+                epoch = replay.step()
+            actions = tuple(action.kind for _organism_id, trace in epoch.traces for action in trace)
+            self.assertEqual(actions[0], NativeActionKind.TERRITORY_RECLAIM)
+            self.assertEqual(organism.territory_state.territory.path, (1,))
+
     def test_explicit_process_gut_action_preserves_backpressure_semantics(self) -> None:
         payload = (1, 2, 1)
         nutrition = (1.0, 2.0, 3.0)
