@@ -305,6 +305,10 @@ class NativeSandboxReplay:
         fail("reserve", body.reserve, native["reserve"])
         fail("current_metabolic_epoch", organism.current_metabolic_epoch,
              native["current_metabolic_epoch"])
+        fail("metabolic_progress", organism.metabolic_progress,
+             native["metabolic_progress"])
+        fail("metabolic_steps", organism.metabolic_steps,
+             native["metabolic_steps"])
         fail("maintenance_deficit", organism.maintenance_deficit,
              native["maintenance_deficit"])
         fail("maintenance_deficit_total", organism.maintenance_deficit_total,
