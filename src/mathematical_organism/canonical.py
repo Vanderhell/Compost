@@ -20,7 +20,9 @@ from .organism import MathematicalOrganism
 from .sandbox_runtime import AutonomousOrganism, SandboxRuntime
 
 
-SCHEMA_VERSION = 1
+# Version 2 includes the behaviorally relevant AutonomousOrganism config in
+# its canonical state. Consumers must not compare digests across schemas.
+SCHEMA_VERSION = 2
 
 
 def _float(value: float) -> tuple[str, str]:

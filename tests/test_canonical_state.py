@@ -17,10 +17,14 @@ from mathematical_organism import (  # noqa: E402
     canonical_digest,
     canonical_state,
 )
+from mathematical_organism.canonical import SCHEMA_VERSION  # noqa: E402
 from mathematical_organism.sandbox_runtime import AutonomousOrganism, SandboxRuntime  # noqa: E402
 
 
 class CanonicalStateTests(unittest.TestCase):
+    def test_canonical_schema_version_is_explicit(self) -> None:
+        self.assertEqual(SCHEMA_VERSION, 2)
+
     def test_fixture_replays_have_stable_digests(self) -> None:
         fixture_path = PROJECT_ROOT / "tests" / "fixtures" / "canonical_replays.json"
         fixtures = json.loads(fixture_path.read_text(encoding="utf-8"))
