@@ -100,6 +100,9 @@ valid division child and verifies `COMPOST_STATUS_OUT_OF_MEMORY`, a null child
 handle, and unchanged parent state digest.
 It applies the same failure injection to local weakest-member reproduction and
 verifies the null child, zeroed result, and unchanged parent digest there too.
+An incomplete custom allocator (missing allocate or deallocate callbacks) is
+rejected before context creation and leaves the caller's output handle
+unchanged.
 The nested division fixture also accepts `UINT64_MAX` as a child identity and
 checks its parent, generation, territory, and conservation state.
 The dense cross-split division fixture passes a current GCC 13.3
