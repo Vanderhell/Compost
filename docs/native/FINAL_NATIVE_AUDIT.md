@@ -27,7 +27,7 @@ width audit and fuzz target enabled (98.47s). The current MSVC Release,
 GCC, and Clang strict results are recorded below.
 
 Differential cases:
-`74` Python/native differential tests pass, including bounded pure-rule,
+`75` Python/native differential tests pass, including bounded pure-rule,
 external-gut, environment corpse-energy credit, partition transaction,
 atomic division-boundary, step-plus-division lifecycle, territory predicate,
 deterministic FOOD block-key, two-organism population, and population child
@@ -52,7 +52,7 @@ Its seed/configuration/epoch parameters are stored in
 `tests/fixtures/native_replays.json`, and failures report the first field with
 Python/native state digests.
 The latest ABI v4 MSVC Debug DLL differential and sandbox run completed in
-26.85s; the
+26.96s; the
 earlier WSL GCC DLL run completed in 6.670s.
 
 Long-run steps:
