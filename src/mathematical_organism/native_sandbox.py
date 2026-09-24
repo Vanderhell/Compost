@@ -283,10 +283,12 @@ class NativeSandboxReplay:
     def _assert_shared_state(native: dict[str, object], organism: Any) -> None:
         """Compare the complete state represented by both current boundaries.
 
-        Python-only names, navigation, caches, and filesystem ownership are
-        deliberately excluded.  The error names the first checked field so a
-        replay failure points to a semantic divergence rather than merely a
-        different final digest.
+        Python-only names, navigation, caches, filesystem ownership, native
+        handle parent identity, and the legacy body cursor are deliberately
+        excluded.  The error names the first checked field so a replay failure
+        points to a semantic divergence rather than merely a different final
+        digest.  The cursor belongs to the historical stream-oriented
+        lifecycle model; sandbox FOOD claims use host navigation state.
         """
         def fail(field: str, expected: object, actual: object) -> None:
             if expected != actual:

@@ -112,4 +112,7 @@ The reusable adapter additionally compares every shared native/Python field
 after each live epoch: lifecycle status, body structures and values, reserve,
 gut FIFO, receptors, territory, material flow, and activity ledger/counters.
 Its failure names the first divergent field; Python-only navigation, caches,
-filesystem ownership, and telemetry remain explicitly outside this boundary.
+filesystem ownership, telemetry, native numeric-handle parent identity, and
+the legacy body cursor remain explicitly outside this boundary. The cursor is
+advanced by the native byte-digestion model but is not the Python sandbox's
+physical FOOD cursor; comparing it here would report a false divergence.
