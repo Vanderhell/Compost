@@ -65,7 +65,9 @@ live organisms without mutation.
 primitive. It owns the native population handles, invokes the Python oracle's
 `live_step(..., action_trace=...)`, registers explicit division children,
 returns deterministic epoch snapshots, and transfers dead handles as corpse
-snapshots. It does not change the default Python runtime or silently fall back
+snapshots. Each complete native epoch is wrapped in an exact opaque-state
+transaction; failed suffixes restore earlier handles and recreate handles
+removed by an interrupted corpse transfer. It does not change the default Python runtime or silently fall back
 when native execution fails. For a division trace it first invokes the native
 weakest-member local-reproduction transaction. If that policy reports no
 viable component, the adapter invokes the native boundary-partition policy
