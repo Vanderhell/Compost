@@ -49,14 +49,11 @@ class NativeSandboxReplay:
         organisms = tuple(runtime.organisms)
         if len(organisms) != len(organism_ids):
             raise ValueError("organism_ids must map exactly to initial Python organisms")
-        if any(
-            not organism.alive or organism.body.size or organism.gut_queue
-            for organism in organisms
-        ):
-            raise ValueError(
-                "NativeSandboxReplay requires empty, living initial organisms; "
-                "native state import is not available at this boundary"
-            )
+        effective_config = config
+        if effective_config is None and organisms:
+            effective_config = organisms[0].config
+        if any(organism.config != effective_config for organism in organisms):
+            raise ValueError("all initial organisms must use the native replay configuration")
         self.runtime = runtime
         self._native_ids: dict[str, int] = {
             organism.name: int(organism_ids[index])
@@ -65,8 +62,10 @@ class NativeSandboxReplay:
         self._population = NativePopulationBackend(
             library,
             organism_ids=organism_ids,
-            config=config,
+            config=effective_config,
         )
+        for index, organism in enumerate(organisms):
+            self._population.restore_from_python(int(organism_ids[index]), organism)
         self._epoch = 0
         self._closed = False
 

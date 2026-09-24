@@ -261,6 +261,22 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                 target.restore_from(source)
             self.assertEqual(target.state_digest(), before)
 
+    def test_native_sandbox_imports_an_evolved_representable_organism(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = SandboxRuntime(Path(directory) / "sandbox")
+            organism = AutonomousOrganism()
+            organism.body.add_structure(
+                organism.body.atoms,
+                LivingStructure(
+                    65, "ATOM", strength=2.0, maintenance=0.25,
+                    evidence=1.0, income_rate=2.0,
+                ),
+            )
+            runtime.organisms.append(organism)
+            with NativeSandboxReplay(self.library_path, runtime) as replay:
+                epoch = replay.step()
+            self.assertEqual(tuple(item[0] for item in epoch.snapshots), (0,))
+
     def test_population_trace_preflight_is_epoch_wide_and_non_mutating(self) -> None:
         with NativePopulationBackend(self.library_path, organism_ids=(0, 1)) as population:
             before = population.state_digests()

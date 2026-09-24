@@ -816,6 +816,122 @@ class NativeBackend:
         self._check(status, "compost_context_restore_snapshot")
 
     @staticmethod
+    def _copy_python_structures(
+        values: Mapping[object, object],
+        target: object,
+        kind: int,
+    ) -> None:
+        """Encode the bounded integer-key structure subset into ABI slots."""
+        capacity = len(target)  # type: ignore[arg-type]
+        ordered = sorted(values.items(), key=lambda entry: repr(entry[0]))
+        if len(ordered) > capacity:
+            raise ValueError("Python structure collection exceeds native capacity")
+        for index, (key, value) in enumerate(ordered):
+            if isinstance(key, tuple):
+                if len(key) != 2 or not all(isinstance(item, int) for item in key):
+                    raise ValueError(f"native import requires integer pair keys: {key!r}")
+                left, right = (int(key[0]), int(key[1]))
+            elif isinstance(key, int):
+                left, right = int(key), 0
+            else:
+                raise ValueError(f"native import requires integer structure keys: {key!r}")
+            if not 0 <= left <= 255 or not 0 <= right <= 255:
+                raise ValueError(f"native import structure key is outside uint8: {key!r}")
+            slot = target[index]  # type: ignore[index]
+            slot.occupied = True
+            slot.kind = kind
+            slot.left = left
+            slot.right = right
+            slot.strength = float(getattr(value, "strength"))
+            slot.maintenance = float(getattr(value, "maintenance"))
+            slot.evidence = float(getattr(value, "evidence"))
+            slot.income_rate = float(getattr(value, "income_rate"))
+
+    def restore_from_python(self, organism: object) -> None:
+        """Import the C-representable state of an autonomous Python organism.
+
+        Python navigation, names, caches, filesystem ownership, and observer
+        history remain host-owned. The native ABI validates the imported
+        behavioral subset transactionally before it mutates this handle.
+        """
+        if not self._context or not self._context.value:
+            raise NativeBackendError("native backend is closed")
+        if self._restore_snapshot_symbol is None:
+            raise NativeBackendError("native library does not provide snapshot restore")
+        current = _Snapshot()
+        self._check(
+            self._library.compost_context_snapshot(self._context, ctypes.byref(current)),
+            "compost_context_snapshot",
+        )
+        snapshot = _Snapshot()
+        snapshot.abi_version = self.ABI_VERSION
+        snapshot.organism_id = current.organism_id
+        body = getattr(organism, "body")
+        parent_id = getattr(body, "parent_id")
+        snapshot.parent_id = 0 if parent_id is None else int(parent_id)
+        snapshot.has_parent = parent_id is not None
+        snapshot.generation = int(body.generation)
+        snapshot.cursor = int(body.cursor)
+        snapshot.age_in_cycles = int(body.age_in_cycles)
+        snapshot.status = 0 if bool(getattr(organism, "alive")) else 1
+        snapshot.reserve = float(body.reserve)
+        snapshot.body.structural_mass = int(body.full_body_mass())
+        snapshot.body.atom_count = len(body.atoms)
+        snapshot.body.relation_count = len(body.relations)
+        snapshot.body.composite_count = len(body.composites)
+        flow = getattr(organism, "material_flow")
+        for field, _ctype in _MaterialFlow._fields_:
+            setattr(snapshot.material_flow, field, int(getattr(flow, field)))
+        ledger = getattr(organism, "activity_ledger")
+        snapshot.activity.metabolic_debt = float(ledger.metabolic_debt)
+        snapshot.activity.energy_spent = float(ledger.energy_spent)
+        snapshot.activity.settlements = int(ledger.settlements)
+        for field, _ctype in _ActivityCounters._fields_:
+            setattr(snapshot.activity.counters, field, int(getattr(ledger.counters, field)))
+        territory_state = getattr(organism, "territory_state")
+        path = tuple(int(bit) for bit in territory_state.territory.path)
+        if len(path) > 64 or any(bit not in (0, 1) for bit in path):
+            raise ValueError("native import territory path is invalid")
+        snapshot.territory.depth = len(path)
+        for index, bit in enumerate(path):
+            snapshot.territory.path[index] = bit
+        snapshot.territory.organism_id = current.organism_id
+        snapshot.territory.local_birth_counter = int(territory_state.local_birth_counter)
+        snapshot.territory.alive = snapshot.status == 0
+        self._copy_python_structures(body.atoms, snapshot.atoms, 0)
+        self._copy_python_structures(body.relations, snapshot.relations, 1)
+        self._copy_python_structures(body.composites, snapshot.composites, 2)
+        for receptor in getattr(body, "activated_receptors"):
+            receptor_index = int(receptor)
+            if not 0 <= receptor_index < 256:
+                raise ValueError("native import receptor is outside uint8")
+            snapshot.activated_receptors[receptor_index // 64] |= 1 << (receptor_index % 64)
+        gut = tuple(getattr(organism, "gut_queue"))
+        if len(gut) > 128:
+            raise ValueError("Python gut exceeds native capacity")
+        snapshot.gut_count = len(gut)
+        for index, chunk in enumerate(gut):
+            native_chunk = snapshot.gut[index]
+            native_chunk.mass = int(chunk.mass)
+            native_chunk.origin = 0 if chunk.origin == "external" else 1
+            payload = tuple(int(value) for value in chunk.payload)
+            nutrition = tuple(float(value) for value in chunk.nutrition)
+            if len(payload) > 16 or len(payload) != len(nutrition):
+                raise ValueError("Python gut chunk exceeds native capacity")
+            native_chunk.payload_length = len(payload) if chunk.origin == "external" else 0
+            for byte_index, value in enumerate(payload):
+                native_chunk.payload[byte_index] = value
+            for value_index, value in enumerate(nutrition):
+                native_chunk.nutrition[value_index] = value
+        metabolic = _MetabolicSnapshot()
+        metabolic.progress = int(getattr(organism, "metabolic_progress"))
+        metabolic.steps = int(getattr(organism, "metabolic_steps"))
+        status = self._restore_snapshot_symbol(
+            self._context, ctypes.byref(snapshot), ctypes.byref(metabolic)
+        )
+        self._check(status, "compost_context_restore_snapshot")
+
+    @staticmethod
     def _structures(values: object) -> tuple[tuple[int, int, float, float, float, float], ...]:
         return tuple(
             (int(item.left), int(item.right), float(item.strength), float(item.maintenance),
@@ -1547,6 +1663,16 @@ class NativePopulationBackend:
                 raise NativeBackendError(
                     f"material conservation failed for organism {organism_id}"
                 ) from error
+
+    def restore_from_python(self, organism_id: int, organism: object) -> None:
+        """Import one host organism's C-representable state transactionally."""
+        if self._closed:
+            raise NativeBackendError("native population backend is closed")
+        try:
+            context = self._contexts[int(organism_id)]
+        except KeyError as error:
+            raise KeyError(f"unknown organism ID: {organism_id}") from error
+        context.restore_from_python(organism)
 
     def close(self) -> None:
         if self._closed:
