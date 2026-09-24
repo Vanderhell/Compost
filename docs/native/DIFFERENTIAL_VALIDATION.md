@@ -67,6 +67,9 @@ increments the settled step counter. A regression covers due work queued before
 a dead stop.
 Single-handle action traces are also transactional: an injected failure after
 an earlier native action restores the exact opaque snapshot before the trace.
+The sandbox replay boundary additionally closes a failed replay object after
+native rollback, because the Python oracle has already been advanced while the
+trace is being built and cannot safely be retried from the restored C state.
 The bounded two-organism campaign also compares every relation and composite
 key and its strength/evidence/income fields after each ordered epoch.
 
