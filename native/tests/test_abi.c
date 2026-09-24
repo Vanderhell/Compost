@@ -337,6 +337,27 @@ int main(void)
     if (compost_context_try_divide(NULL, 1U, &child, &try_plan, &try_result) != COMPOST_STATUS_INVALID_ARGUMENT) {
         return fail("opaque try-division invalid handle");
     }
+    compost_context_t *invalid_local_child = (compost_context_t *)(uintptr_t)UINTPTR_MAX;
+    compost_division_result_t invalid_local_result = {0};
+    invalid_local_result.cross_split_mass = UINT64_C(93);
+    if (compost_context_try_local_reproduction(
+            NULL, UINT64_C(1), &invalid_local_child, &invalid_local_result
+        ) != COMPOST_STATUS_INVALID_ARGUMENT ||
+        invalid_local_child != (compost_context_t *)(uintptr_t)UINTPTR_MAX ||
+        invalid_local_result.cross_split_mass != UINT64_C(93)) {
+        return fail("opaque local-reproduction invalid handle");
+    }
+    compost_context_t *invalid_partition_child = (compost_context_t *)(uintptr_t)UINTPTR_MAX;
+    compost_division_result_t invalid_partition_result = {0};
+    invalid_partition_result.cross_split_mass = UINT64_C(94);
+    if (compost_context_partition(
+            NULL, UINT64_C(1), NULL, 0U, 1.0,
+            &invalid_partition_child, &invalid_partition_result
+        ) != COMPOST_STATUS_INVALID_ARGUMENT ||
+        invalid_partition_child != (compost_context_t *)(uintptr_t)UINTPTR_MAX ||
+        invalid_partition_result.cross_split_mass != UINT64_C(94)) {
+        return fail("opaque partition invalid handle");
+    }
     compost_context_t *combined_context = NULL;
     compost_context_t *combined_child = NULL;
     compost_cycle_result_t combined_cycle = {0};
