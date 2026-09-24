@@ -87,6 +87,17 @@ int main(void)
         return fail("native due lifecycle batch");
     }
     compost_destroy(batch_context);
+    compost_cycle_result_t invalid_batch_result = {0};
+    invalid_batch_result.status_after = COMPOST_LIFECYCLE_DEAD;
+    uint64_t invalid_batch_executed = UINT64_C(77);
+    if (compost_context_run_due_lifecycle(
+            NULL, UINT64_C(1), &invalid_batch_result, &invalid_batch_executed
+        ) != COMPOST_STATUS_INVALID_ARGUMENT ||
+        invalid_batch_result.status_after != COMPOST_LIFECYCLE_DEAD ||
+        invalid_batch_executed != UINT64_C(77)) {
+        compost_destroy(context);
+        return fail("native due lifecycle invalid handle");
+    }
     if (compost_context_metabolic_snapshot(context, &metabolic) != COMPOST_STATUS_OK ||
         metabolic.progress != 0U || metabolic.steps != 0U ||
         compost_context_accumulate_metabolic_progress(
@@ -205,6 +216,16 @@ int main(void)
     }
     const uint64_t dead_digest = compost_context_state_digest(starvation_context);
     compost_cycle_result_t dead_result = {0};
+    uint64_t dead_executed = UINT64_C(77);
+    if (compost_context_run_due_lifecycle(
+            starvation_context, UINT64_C(3), &dead_result, &dead_executed
+        ) != COMPOST_STATUS_OK || dead_executed != 0U ||
+        dead_result.status_after != COMPOST_LIFECYCLE_DEAD ||
+        compost_context_state_digest(starvation_context) != dead_digest) {
+        compost_destroy(starvation_context);
+        compost_destroy(context);
+        return fail("native due lifecycle dead no-op");
+    }
     if (!reached_dead || compost_context_lifecycle_step(
             starvation_context, &empty_input, &dead_result) != COMPOST_STATUS_OK ||
         dead_result.digestion.consumed_bytes != 0U ||
