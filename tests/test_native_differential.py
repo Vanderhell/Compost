@@ -311,6 +311,18 @@ class NativePureRuleDifferentialTests(unittest.TestCase):
                 backend.restore_from_python(organism)
             self.assertEqual(backend.state_digest(), before)
 
+    def test_native_sandbox_imports_living_subset_with_python_owned_dead_history(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = SandboxRuntime(Path(directory) / "sandbox")
+            dead = AutonomousOrganism("ORG-DEAD")
+            dead.territory_state.die()
+            live = AutonomousOrganism("ORG-LIVE")
+            runtime.organisms.extend((dead, live))
+            with NativeSandboxReplay(self.library_path, runtime, organism_ids=(0,)) as replay:
+                epoch = replay.step()
+                self.assertEqual(replay.organism_ids, (0,))
+                self.assertEqual(tuple(item[0] for item in epoch.traces), (0,))
+
     def test_population_trace_preflight_is_epoch_wide_and_non_mutating(self) -> None:
         with NativePopulationBackend(self.library_path, organism_ids=(0, 1)) as population:
             before = population.state_digests()

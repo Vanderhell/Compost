@@ -47,29 +47,30 @@ class NativeSandboxReplay:
         if not organism_ids or len(set(organism_ids)) != len(organism_ids):
             raise ValueError("organism_ids must be non-empty and unique")
         organisms = tuple(runtime.organisms)
-        if len(organisms) != len(organism_ids):
-            raise ValueError("organism_ids must map exactly to initial Python organisms")
-        if any(not organism.alive for organism in organisms):
+        living_organisms = tuple(organism for organism in organisms if organism.alive)
+        if not living_organisms:
             raise ValueError(
-                "NativeSandboxReplay requires living initial organisms; "
-                "initial corpse/world ownership must be imported separately"
+                "NativeSandboxReplay requires at least one living initial organism; "
+                "initial corpse/world ownership remains Python-owned"
             )
+        if len(living_organisms) != len(organism_ids):
+            raise ValueError("organism_ids must map exactly to initial living Python organisms")
         effective_config = config
-        if effective_config is None and organisms:
-            effective_config = organisms[0].config
-        if any(organism.config != effective_config for organism in organisms):
+        if effective_config is None:
+            effective_config = living_organisms[0].config
+        if any(organism.config != effective_config for organism in living_organisms):
             raise ValueError("all initial organisms must use the native replay configuration")
         self.runtime = runtime
         self._native_ids: dict[str, int] = {
             organism.name: int(organism_ids[index])
-            for index, organism in enumerate(organisms)
+            for index, organism in enumerate(living_organisms)
         }
         self._population = NativePopulationBackend(
             library,
             organism_ids=organism_ids,
             config=effective_config,
         )
-        for index, organism in enumerate(organisms):
+        for index, organism in enumerate(living_organisms):
             self._population.restore_from_python(int(organism_ids[index]), organism)
         self._epoch = 0
         self._closed = False
