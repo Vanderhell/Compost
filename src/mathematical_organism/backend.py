@@ -561,6 +561,24 @@ class NativeBackend:
         if status != 0:
             raise NativeBackendError(f"{operation} failed with native status {status}")
 
+    def _wrap_child_context(self, child_context: ctypes.c_void_p) -> "NativeBackend":
+        """Adopt one returned child handle with one explicit ownership path."""
+        if not child_context.value:
+            raise NativeBackendError("native division returned a null child context")
+        try:
+            child = object.__new__(NativeBackend)
+            child.library_path = self.library_path
+            child._lifecycle_config = self._lifecycle_config
+            child._library = self._library
+            child._context = child_context
+            child._restore_snapshot_symbol = self._restore_snapshot_symbol
+            child._local_reproduction_symbol = self._local_reproduction_symbol
+            child._local_reproduction_transaction_symbol = self._local_reproduction_transaction_symbol
+            return child
+        except BaseException:
+            self._library.compost_destroy(child_context)
+            raise
+
     def digest(self, food: bytes | bytearray, nutrition: tuple[float, ...] | None = None) -> dict[str, int]:
         if not self._context or not self._context.value:
             raise NativeBackendError("native backend is closed")
@@ -1217,13 +1235,7 @@ class NativeBackend:
         }
         if not child_context.value:
             return None, cycle_view, plan_view
-        child = object.__new__(NativeBackend)
-        child.library_path = self.library_path
-        child._library = self._library
-        child._context = child_context
-        child._restore_snapshot_symbol = self._restore_snapshot_symbol
-        child._local_reproduction_symbol = self._local_reproduction_symbol
-        child._local_reproduction_transaction_symbol = self._local_reproduction_transaction_symbol
+        child = self._wrap_child_context(child_context)
         plan_view["division"] = {
             "child_structural_mass": int(division.child_structural_mass),
             "cross_split_mass": int(division.cross_split_mass),
@@ -1308,13 +1320,7 @@ class NativeBackend:
         self._check(status, "compost_context_partition")
         if not child_context.value:
             raise NativeBackendError("native partition returned a null child context")
-        child = object.__new__(NativeBackend)
-        child.library_path = self.library_path
-        child._library = self._library
-        child._context = child_context
-        child._restore_snapshot_symbol = self._restore_snapshot_symbol
-        child._local_reproduction_symbol = self._local_reproduction_symbol
-        child._local_reproduction_transaction_symbol = self._local_reproduction_transaction_symbol
+        child = self._wrap_child_context(child_context)
         return child, {
             "child_structural_mass": int(result.child_structural_mass),
             "cross_split_mass": int(result.cross_split_mass),
@@ -1350,13 +1356,7 @@ class NativeBackend:
         }
         if not child_context.value:
             return None, plan_view
-        child = object.__new__(NativeBackend)
-        child.library_path = self.library_path
-        child._library = self._library
-        child._context = child_context
-        child._restore_snapshot_symbol = self._restore_snapshot_symbol
-        child._local_reproduction_symbol = self._local_reproduction_symbol
-        child._local_reproduction_transaction_symbol = self._local_reproduction_transaction_symbol
+        child = self._wrap_child_context(child_context)
         plan_view["division"] = {
             "child_structural_mass": int(result.child_structural_mass),
             "cross_split_mass": int(result.cross_split_mass),
@@ -1385,13 +1385,7 @@ class NativeBackend:
         self._check(status, "compost_context_try_local_reproduction")
         if not child_context.value:
             return None, {}
-        child = object.__new__(NativeBackend)
-        child.library_path = self.library_path
-        child._library = self._library
-        child._context = child_context
-        child._restore_snapshot_symbol = self._restore_snapshot_symbol
-        child._local_reproduction_symbol = self._local_reproduction_symbol
-        child._local_reproduction_transaction_symbol = self._local_reproduction_transaction_symbol
+        child = self._wrap_child_context(child_context)
         return child, {
             "child_structural_mass": int(result.child_structural_mass),
             "cross_split_mass": int(result.cross_split_mass),
