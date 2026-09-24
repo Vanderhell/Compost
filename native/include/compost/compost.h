@@ -344,6 +344,8 @@ compost_status_t compost_organism_snapshot(
  * not inspect padding bytes or object addresses. */
 uint64_t compost_organism_state_digest(const compost_organism_t *organism);
 
+/* Returns a stable name for every defined status; unknown values return
+ * "UNKNOWN_STATUS" and never terminate the process. */
 const char *compost_status_name(compost_status_t status);
 
 /* Pure rule. Finite strength is required; negative strength returns mass zero. */
@@ -370,6 +372,8 @@ compost_status_t compost_activity_ledger_add(
     const compost_activity_costs_t *costs
 );
 
+/* Pure finite-cost rules. Inputs must be valid unsigned body mass and finite
+ * positive costs; output arguments and the ledger remain unchanged on error. */
 compost_status_t compost_activity_settlement_threshold(
     uint64_t body_mass,
     const compost_activity_costs_t *costs,
@@ -382,6 +386,8 @@ compost_status_t compost_activity_basal_cost(
     double *cost
 );
 
+/* Pure forgetting transition. Finite non-negative structure values and a
+ * decay factor in (0, 1) are required; delta remains unchanged on error. */
 compost_status_t compost_forgetting_delta(
     double strength,
     double income_rate,
