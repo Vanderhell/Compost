@@ -217,6 +217,42 @@ int main(void)
         return fail("failed-child allocation rollback");
     }
     compost_destroy(failed_child_parent);
+
+    allocation_limit_t local_limited = {0U, 1U};
+    compost_allocator_t local_limited_allocator = {
+        &local_limited, allocate_until_limit, deallocate_until_limit
+    };
+    compost_config_t local_config = division_config;
+    local_config.reproduction_minimum_body = UINT64_C(2);
+    compost_context_t *failed_local_parent = NULL;
+    compost_context_t *failed_local_child = (compost_context_t *)(uintptr_t)1U;
+    compost_division_result_t failed_local_result = {0};
+    failed_local_result.cross_split_mass = UINT64_C(95);
+    const uint8_t local_food[] = {1U, 2U, 3U, 4U};
+    const double local_nutrition[] = {2.0, 2.0, 2.0, 2.0};
+    const compost_step_input_t local_input = {
+        local_food, local_nutrition, sizeof(local_food)
+    };
+    compost_step_result_t local_digest = {0};
+    if (compost_create_with_allocator(
+            &local_config, &local_limited_allocator, UINT64_C(10), &failed_local_parent
+        ) != COMPOST_STATUS_OK ||
+        compost_context_digest(failed_local_parent, &local_input, &local_digest) != COMPOST_STATUS_OK) {
+        compost_destroy(failed_local_parent);
+        return fail("failed-local parent setup");
+    }
+    const uint64_t failed_local_before = compost_context_state_digest(failed_local_parent);
+    if (compost_context_try_local_reproduction(
+            failed_local_parent, UINT64_C(11), &failed_local_child, &failed_local_result
+        ) != COMPOST_STATUS_OUT_OF_MEMORY ||
+        failed_local_child != NULL ||
+        failed_local_result.cross_split_mass != 0U ||
+        compost_context_state_digest(failed_local_parent) != failed_local_before) {
+        compost_destroy(failed_local_child);
+        compost_destroy(failed_local_parent);
+        return fail("failed-local allocation rollback");
+    }
+    compost_destroy(failed_local_parent);
     allocator_probe_t probe = {0U, 0U};
     compost_allocator_t probe_allocator = {
         &probe, probe_allocate, probe_deallocate
