@@ -104,6 +104,8 @@ The dense cross-split division fixture passes a current GCC 13.3
 AddressSanitizer/UndefinedBehaviorSanitizer targeted run (`1/1`, `0.09s`) with
 no diagnostics.
 Invalid `try_divide` handles are checked to preserve all caller output sentinels.
+Invalid `try_local_reproduction` and `partition` handles now preserve their
+child-handle and division-result sentinels as well.
 Direct population reproduction and boundary-partition registration also roll
 back the parent and remove the transient child when child snapshot
 materialization fails.
