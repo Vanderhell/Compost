@@ -71,6 +71,9 @@ GCC 13.3 Release `-Werror` build and CTest pass: `8/8` in `14.04s`; the
 native C fuzz target covers 10,000 deterministic public-API cases.
 The current Windows GCC 16.1 Debug `-Werror` build and CTest pass is also
 `8/8` in `97.94s`.
+Windows Clang 22.1.8 strict compilation passes for all nine C translation
+units; executable linking remains unavailable locally because the LLVM
+installation lacks `oldnames.lib` and `msvcrtd.lib`.
 
 Clang result:
 Linux Clang 18.1.3 Release `-Werror` build and full CTest pass (`8/8`, 13.91s) with
