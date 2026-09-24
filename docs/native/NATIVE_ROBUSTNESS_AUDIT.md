@@ -121,6 +121,11 @@ The population `step`, `apply_actions`, and direct division wrappers preflight
 these IDs before opening their native transaction boundary.
 Native handle constructors apply the same strict uint64 contract without
 lossy string, float, signed, or boolean coercion.
+Host-built `NativeAction` values now apply the same rule to capacities,
+metabolic counters, child IDs, and child atom keys; numeric energy and
+nutrition fields reject strings and booleans instead of passing through
+lossy `float()`/`int()` conversion. Regression coverage verifies these plans
+fail before a native handle is touched.
 The public status-name helper returns stable names for every defined status and
 `UNKNOWN_STATUS` for an invalid enum value without terminating the process.
 
