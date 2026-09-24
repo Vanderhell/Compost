@@ -109,6 +109,8 @@ back the parent and remove the transient child when child snapshot
 materialization fails.
 Population environment, action, due-lifecycle, and trace map keys now reject
 non-uint64 values before native state capture or mutation.
+Native handle constructors apply the same strict uint64 contract without
+lossy string, float, signed, or boolean coercion.
 The public status-name helper returns stable names for every defined status and
 `UNKNOWN_STATUS` for an invalid enum value without terminating the process.
 
